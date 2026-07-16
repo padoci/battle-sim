@@ -1,0 +1,42 @@
+{
+  "costD1": {
+    "battles": 40,
+    "msPerDecisionMean": 105.5848107088013,
+    "msPerDecisionP50": 94.13079787499998,
+    "msPerDecisionP95": 261.43426499999924,
+    "nodesPerDecision": 25.099605511491895,
+    "msPerBattle": 3576.6134193,
+    "msTable": 194.77320007500015,
+    "decisionsPerBattle": 31.675,
+    "draws": 0
+  },
+  "costD2": {
+    "battles": 10,
+    "msPerDecisionMean": 685.3509601897646,
+    "msPerDecisionP50": 616.9721513000113,
+    "msPerDecisionP95": 1672.375595000002,
+    "nodesPerDecision": 200.29964120408889,
+    "msPerBattle": 22316.610203700002,
+    "msTable": 195.42131479999517,
+    "decisionsPerBattle": 32,
+    "draws": 0
+  },
+  "d1VsRandom": {
+    "battles": 40,
+    "searchWins": 40,
+    "winRate": 1
+  },
+  "d2VsD1": {
+    "battles": 20,
+    "d2Wins": 14,
+    "draws": 0,
+    "winRate": 0.7
+  },
+  "selfPlay": {
+    "battles": 30,
+    "p1Wins": 11,
+    "p2Wins": 19,
+    "draws": 0,
+    "meanRootEntropyBits": 0.37877685821871954
+  }
+}

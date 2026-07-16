@@ -94,9 +94,41 @@ function meanRootEntropy(results: BattleResult[]): number {
   return mean(entropies);
 }
 
+function writeBattleLogs() {
+  const logJobs: Array<{file: string; job: BattleJob; names: [string, string]}> = [
+    ...[1, 2, 3].map(s => ({
+      file: `battle-d2-selfplay-${s}.txt`,
+      job: job(2000 + s, [search(STRONG), search(STRONG)], {collectTrace: true, collectLog: true}),
+      names: ['P1', 'P2'] as [string, string],
+    })),
+    {
+      file: 'battle-d1-selfplay.txt',
+      job: job(2010, [search(FAST), search(FAST)], {collectTrace: true, collectLog: true}),
+      names: ['P1', 'P2'],
+    },
+    {
+      file: 'battle-d1-vs-random.txt',
+      job: job(2011, [search(FAST), {kind: 'random'}], {collectTrace: true, collectLog: true}),
+      names: ['SearchAI', 'RandomAI'],
+    },
+  ];
+  for (const entry of logJobs) {
+    const result = runBattle(gen, entry.job);
+    writeFileSync(`${LOGS}/${entry.file}`, renderBattle(result, entry.names));
+    console.log(`wrote ${LOGS}/${entry.file} (winner ${result.winner}, ${result.turns} turns)`);
+  }
+}
+
 function main() {
   mkdirSync(LOGS, {recursive: true});
   const renderOnly = process.argv.includes('--render-only');
+  const logsOnly = process.argv.includes('--logs-only');
+
+  if (logsOnly) {
+    writeBattleLogs();
+    renderReport();
+    return;
+  }
 
   if (!renderOnly) {
     const node: Record<string, unknown> = {};
@@ -143,29 +175,7 @@ function main() {
 
     writeFileSync(`${LOGS}/node-results.json`, JSON.stringify(node, null, 2));
 
-    // --- Battle logs for the human gate ---
-    const logJobs: Array<{file: string; job: BattleJob; names: [string, string]}> = [
-      ...[1, 2, 3].map(s => ({
-        file: `battle-d2-selfplay-${s}.txt`,
-        job: job(2000 + s, [search(STRONG), search(STRONG)], {collectTrace: true, collectLog: true}),
-        names: ['P1', 'P2'] as [string, string],
-      })),
-      {
-        file: 'battle-d1-selfplay.txt',
-        job: job(2010, [search(FAST), search(FAST)], {collectTrace: true, collectLog: true}),
-        names: ['P1', 'P2'],
-      },
-      {
-        file: 'battle-d1-vs-random.txt',
-        job: job(2011, [search(FAST), {kind: 'random'}], {collectTrace: true, collectLog: true}),
-        names: ['SearchAI', 'RandomAI'],
-      },
-    ];
-    for (const entry of logJobs) {
-      const result = runBattle(gen, entry.job);
-      writeFileSync(`${LOGS}/${entry.file}`, renderBattle(result, entry.names));
-      console.log(`wrote ${LOGS}/${entry.file} (winner ${result.winner}, ${result.turns} turns)`);
-    }
+    writeBattleLogs();
   }
 
   renderReport();

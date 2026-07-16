@@ -1,0 +1,228 @@
+=== P1 vs P2 — winner: P1 in 19 turns · 27 decisions · 13323 ms search · 177 nodes/decision ===
+
+  P1's Iron Moth switched in (100%)
+  P2's Iron Treads switched in (100%)
+
+== Turn 1 ==
+P1 -> fierydance+tera  [p=0.81 | sludgewave 0.19]
+P2 -> earthpower+tera  [p=0.60 | switch roaringmoon 0.40]
+  root v=0.3  nodes=538  ms=1859
+    P1's Iron Moth TERASTALLIZED -> Ghost
+    P2's Iron Treads TERASTALLIZED -> Ghost
+  P1's Iron Moth used Fiery Dance
+    P2's Iron Treads -> 44%
+    P1's Iron Moth +1 spa
+  P2's Iron Treads used Earth Power
+    P1's Iron Moth -> 69%
+    P1's Iron Moth -1 spd
+
+== Turn 2 ==
+P1 -> fierydance  [p=1.00]
+P2 -> switch skeledirge  [p=1.00]
+  root v=29.7  nodes=270  ms=844
+  P2's Skeledirge switched in (100%)
+  P1's Iron Moth used Fiery Dance
+    (resisted P2's Skeledirge)
+    P2's Skeledirge -> 84%
+
+== Turn 3 ==
+P1 -> switch ogerponcornerstone  [p=0.45 | sludgewave 0.55]
+P2 -> torchsong  [p=0.92 | willowisp 0.08]
+  root v=-7.3  nodes=360  ms=1119
+  P1's Ogerpon switched in (100%)
+  P2's Skeledirge used Torch Song
+    P1's Ogerpon -> 64%
+    P2's Skeledirge +1 spa
+
+== Turn 4 ==
+P1 -> powerwhip  [p=0.42 | ivycudgel 0.58]
+P2 -> torchsong  [p=0.55 | switch zamazenta 0.45]
+  root v=5.4  nodes=228  ms=657
+  P1's Ogerpon used Power Whip
+    (miss P1's Ogerpon)
+  P2's Skeledirge used Torch Song
+    P1's Ogerpon -> 13%
+    P2's Skeledirge +1 spa
+
+== Turn 5 ==
+P1 -> ivycudgel  [p=0.58 | powerwhip 0.42]
+P2 -> alluringvoice  [p=0.46 | switch zamazenta 0.54]
+  root v=-111.8  nodes=294  ms=838
+P1 -> pass  [p=1.00]
+P2 -> switch zamazenta  [p=1.00]
+  root v=9.5  nodes=50  ms=123
+  P1's Ogerpon used Ivy Cudgel
+    (supereffective P2's Skeledirge)
+    P2's Skeledirge -> fainted
+    P2's Skeledirge fainted!
+  P2's Zamazenta switched in (100%)
+    P2's Zamazenta +1 def
+
+== Turn 6 ==
+P1 -> switch ironvaliant  [p=0.90 | spikes 0.10]
+P2 -> roar  [p=0.76 | irondefense 0.24]
+  root v=81.9  nodes=192  ms=538
+  P1's Iron Valiant switched in (100%)
+  P2's Zamazenta used Roar
+  P1's Rillaboom switched in (100%)
+
+== Turn 7 ==
+P1 -> woodhammer  [p=0.51 | switch ironvaliant 0.40, knockoff 0.09]
+P2 -> roar  [p=0.72 | bodypress 0.21, irondefense 0.07]
+  root v=76.5  nodes=270  ms=887
+  P1's Rillaboom used Wood Hammer
+    P2's Zamazenta -> 37%
+    P1's Rillaboom -> 79%
+  P2's Zamazenta used Roar
+  P1's Iron Valiant switched in (100%)
+    P2's Zamazenta healed -> 43%
+    P2's Zamazenta healed -> 49%
+
+== Turn 8 ==
+P1 -> moonblast  [p=1.00]
+P2 -> bodypress  [p=1.00]
+  root v=231.7  nodes=276  ms=742
+P1 -> pass  [p=1.00]
+P2 -> switch roaringmoon  [p=1.00]
+  root v=90.7  nodes=40  ms=98
+  P2's Zamazenta used Body Press
+    (resisted P1's Iron Valiant)
+    P1's Iron Valiant -> 63%
+  P1's Iron Valiant used Moonblast
+    (supereffective P2's Zamazenta)
+    P2's Zamazenta -> fainted
+    P2's Zamazenta fainted!
+    P1's Iron Valiant healed -> 69%
+  P2's Roaring Moon switched in (100%)
+
+== Turn 9 ==
+P1 -> moonblast  [p=0.40 | switch ragingbolt 0.60]
+P2 -> acrobatics  [p=0.46 | switch enamorus 0.54]
+  root v=247.8  nodes=318  ms=1001
+P1 -> switch ragingbolt  [p=1.00]
+P2 -> pass  [p=1.00]
+  root v=226.5  nodes=50  ms=140
+  P2's Roaring Moon used Acrobatics
+    (supereffective P1's Iron Valiant)
+    P1's Iron Valiant -> fainted
+    P1's Iron Valiant fainted!
+  P1's Raging Bolt switched in (100%)
+
+== Turn 10 ==
+P1 -> terablast  [p=0.49 | dragonpulse 0.51]
+P2 -> switch enamorus  [p=0.77 | earthquake 0.12, dragondance 0.10]
+  root v=86.9  nodes=276  ms=767
+  P2's Enamorus switched in (100%)
+  P1's Raging Bolt used Tera Blast
+    P2's Enamorus -> 44%
+
+== Turn 11 ==
+P1 -> switch ironmoth  [p=0.74 | thunderclap 0.26]
+P2 -> moonblast  [p=0.38 | calmmind 0.62]
+  root v=158.0  nodes=258  ms=609
+  P1's Iron Moth switched in (69%)
+  P2's Enamorus used Moonblast
+    P1's Iron Moth -> 13%
+    P1's Iron Moth -1 spa
+
+== Turn 12 ==
+P1 -> switch kingambit  [p=0.43 | sludgewave 0.57]
+P2 -> switch roaringmoon  [p=0.87 | calmmind 0.13]
+  root v=63.6  nodes=300  ms=674
+  P1's Kingambit switched in (100%)
+  P2's Roaring Moon switched in (100%)
+
+== Turn 13 ==
+P1 -> ironhead  [p=1.00]
+P2 -> earthquake  [p=1.00]
+  root v=7.7  nodes=250  ms=634
+  P2's Roaring Moon used Earthquake
+    (supereffective P1's Kingambit)
+    (crit P1's Kingambit)
+    P1's Kingambit -> 12%
+  P1's Kingambit used Iron Head
+    P2's Roaring Moon -> 45%
+
+== Turn 14 ==
+P1 -> suckerpunch  [p=0.80 | swordsdance 0.20]
+P2 -> earthquake  [p=0.91 | dragondance 0.09]
+  root v=-1.4  nodes=258  ms=544
+P1 -> switch rillaboom  [p=1.00]
+P2 -> pass  [p=1.00]
+  root v=97.8  nodes=40  ms=81
+  P1's Kingambit used Sucker Punch
+    (resisted P2's Roaring Moon)
+    P2's Roaring Moon -> 18%
+  P2's Roaring Moon used Earthquake
+    (supereffective P1's Kingambit)
+    P1's Kingambit -> fainted
+    P1's Kingambit fainted!
+  P1's Rillaboom switched in (79%)
+
+== Turn 15 ==
+P1 -> grassyglide  [p=1.00]
+P2 -> acrobatics  [p=1.00]
+  root v=102.4  nodes=132  ms=271
+P1 -> pass  [p=1.00]
+P2 -> switch ogerponwellspring  [p=1.00]
+  root v=106.5  nodes=30  ms=74
+  P1's Rillaboom used Grassy Glide
+    (resisted P2's Roaring Moon)
+    P2's Roaring Moon -> fainted
+    P2's Roaring Moon fainted!
+    P1's Rillaboom healed -> 85%
+  P2's Ogerpon switched in (100%)
+
+== Turn 16 ==
+P1 -> grassyglide  [p=1.00]
+P2 -> uturn  [p=1.00]
+  root v=107.5  nodes=39  ms=91
+P1 -> pass  [p=1.00]
+P2 -> switch irontreads  [p=1.00]
+  root v=238.5  nodes=20  ms=45
+  P1's Rillaboom used Grassy Glide
+    P2's Ogerpon -> 24%
+  P2's Ogerpon used U-turn
+    (supereffective P1's Rillaboom)
+    P1's Rillaboom -> 29%
+  P2's Iron Treads switched in (44%)
+    P2's Iron Treads healed -> 50%
+    P1's Rillaboom healed -> 35%
+
+== Turn 17 ==
+P1 -> grassyglide  [p=1.00]
+P2 -> switch ogerponwellspring  [p=1.00]
+  root v=217.2  nodes=122  ms=271
+P1 -> pass  [p=1.00]
+P2 -> switch enamorus  [p=1.00]
+  root v=150.4  nodes=20  ms=46
+  P2's Ogerpon switched in (24%)
+  P1's Rillaboom used Grassy Glide
+    P2's Ogerpon -> fainted
+    P2's Ogerpon fainted!
+    P1's Rillaboom healed -> 41%
+  P2's Enamorus switched in (44%)
+
+== Turn 18 ==
+P1 -> grassyglide  [p=1.00]
+P2 -> moonblast  [p=1.00]
+  root v=157.6  nodes=88  ms=194
+P1 -> pass  [p=1.00]
+P2 -> switch irontreads  [p=1.00]
+  root v=10462.5  nodes=10  ms=27
+  P1's Rillaboom used Grassy Glide
+    (resisted P2's Enamorus)
+    P2's Enamorus -> fainted
+    P2's Enamorus fainted!
+    P1's Rillaboom healed -> 47%
+  P2's Iron Treads switched in (50%)
+
+== Turn 19 ==
+P1 -> grassyglide  [p=1.00]
+P2 -> earthpower  [p=1.00]
+  root v=10462.5  nodes=60  ms=148
+  P1's Rillaboom used Grassy Glide
+    P2's Iron Treads -> fainted
+    P2's Iron Treads fainted!
+
+** P1 wins **

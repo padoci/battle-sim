@@ -4,6 +4,12 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  esbuild: {
+    // @pkmn/sim's State.serializeBattle/deserializeBattle resolve class
+    // prototypes by constructor.name; minified name-mangling breaks
+    // snapshot/restore in production builds (browser-only failure).
+    keepNames: true,
+  },
   optimizeDeps: {
     include: ['@pkmn/sim', '@smogon/calc'],
   },

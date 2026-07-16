@@ -37,9 +37,19 @@ export function renderBattle(result: BattleResult, names: [string, string]): str
     return current === '0' ? 'fainted' : current;
   };
 
+  let skipNext = false;
   for (const line of log) {
     const parts = line.split('|');
     const kind = parts[1];
+    // '|split|pN' precedes a secret/public duplicate pair; drop the secret copy.
+    if (skipNext) {
+      skipNext = false;
+      continue;
+    }
+    if (kind === 'split') {
+      skipNext = true;
+      continue;
+    }
     switch (kind) {
       case 'turn': {
         const turn = Number(parts[2]);
@@ -118,6 +128,10 @@ export function renderBattle(result: BattleResult, names: [string, string]): str
       case 'rule':
       case 'start':
       case 'upkeep':
+      case 'gametype':
+      case 'clearpoke':
+      case 'poke':
+      case 'teampreview':
       case '-resisted':
       case '-supereffective':
       case '-crit':

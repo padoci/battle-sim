@@ -1,0 +1,200 @@
+=== SearchAI vs RandomAI — winner: SearchAI in 21 turns · 26 decisions · 2139 ms search · 29 nodes/decision ===
+
+  SearchAI's Iron Treads switched in (100%)
+  RandomAI's Darkrai switched in (100%)
+
+== Turn 1 ==
+SearchAI -> switch zamazenta  [p=0.84 | earthpower+tera 0.08, stealthrock 0.08]
+  root v=1.4  nodes=56  ms=210
+  SearchAI's Zamazenta switched in (100%)
+    SearchAI's Zamazenta +1 def
+  RandomAI's Enamorus switched in (100%)
+
+== Turn 2 ==
+SearchAI -> irondefense  [p=0.45 | bodypress+tera 0.55]
+  root v=-21.0  nodes=56  ms=142
+    RandomAI's Enamorus TERASTALLIZED -> Ground
+  RandomAI's Enamorus used Moonblast
+    (supereffective SearchAI's Zamazenta)
+    SearchAI's Zamazenta -> 15%
+  SearchAI's Zamazenta used Iron Defense
+    SearchAI's Zamazenta +2 def
+    SearchAI's Zamazenta healed -> 21%
+
+== Turn 3 ==
+SearchAI -> switch ogerponwellspring  [p=1.00]
+  root v=-115.6  nodes=16  ms=41
+  SearchAI's Ogerpon switched in (100%)
+  RandomAI's Enamorus used Moonblast
+    SearchAI's Ogerpon -> 37%
+    SearchAI's Ogerpon -1 spa
+
+== Turn 4 ==
+SearchAI -> encore  [p=1.00]
+  root v=-244.3  nodes=18  ms=48
+  RandomAI's Kingambit switched in (100%)
+  SearchAI's Ogerpon used Encore
+
+== Turn 5 ==
+SearchAI -> switch zamazenta  [p=0.25 | switch irontreads 0.43, ivycudgel+tera 0.22, uturn 0.10]
+  root v=-160.4  nodes=48  ms=121
+  SearchAI's Zamazenta switched in (21%)
+  RandomAI's Roaring Moon switched in (100%)
+    SearchAI's Zamazenta healed -> 27%
+
+== Turn 6 ==
+SearchAI -> bodypress  [p=0.44 | irondefense 0.56]
+  root v=-111.7  nodes=42  ms=181
+SearchAI -> pass  [p=1.00]
+  root v=39.8  nodes=5  ms=10
+  SearchAI's Zamazenta used Body Press
+    (supereffective RandomAI's Roaring Moon)
+    RandomAI's Roaring Moon -> fainted
+    RandomAI's Roaring Moon fainted!
+    SearchAI's Zamazenta healed -> 33%
+  RandomAI's Zamazenta switched in (100%)
+    RandomAI's Zamazenta +1 def
+
+== Turn 7 ==
+SearchAI -> switch skeledirge  [p=0.52 | irondefense 0.38, roar 0.10]
+  root v=35.5  nodes=40  ms=97
+  SearchAI's Skeledirge switched in (100%)
+  RandomAI's Zamazenta used Body Press
+    (immune SearchAI's Skeledirge)
+
+== Turn 8 ==
+SearchAI -> alluringvoice+tera  [p=1.00]
+  root v=51.6  nodes=48  ms=129
+  RandomAI's Kingambit switched in (100%)
+    SearchAI's Skeledirge TERASTALLIZED -> Fairy
+  SearchAI's Skeledirge used Alluring Voice
+    RandomAI's Kingambit -> 71%
+
+== Turn 9 ==
+SearchAI -> torchsong  [p=1.00]
+  root v=67.6  nodes=36  ms=160
+  RandomAI's Kingambit used Kowtow Cleave
+    (resisted SearchAI's Skeledirge)
+    SearchAI's Skeledirge -> 82%
+  SearchAI's Skeledirge used Torch Song
+    (supereffective RandomAI's Kingambit)
+    RandomAI's Kingambit -> 5%
+    SearchAI's Skeledirge +1 spa
+
+== Turn 10 ==
+SearchAI -> switch irontreads  [p=0.69 | slackoff 0.31]
+  root v=114.1  nodes=36  ms=85
+  RandomAI's Enamorus switched in (100%)
+  SearchAI's Iron Treads switched in (100%)
+
+== Turn 11 ==
+SearchAI -> switch skeledirge  [p=1.00]
+  root v=80.9  nodes=36  ms=88
+  RandomAI's Zamazenta switched in (100%)
+  SearchAI's Skeledirge switched in (82%)
+
+== Turn 12 ==
+SearchAI -> alluringvoice  [p=0.70 | willowisp 0.30]
+  root v=149.7  nodes=36  ms=88
+  RandomAI's Glimmora switched in (100%)
+  SearchAI's Skeledirge used Alluring Voice
+    (resisted RandomAI's Glimmora)
+    RandomAI's Glimmora -> 82%
+  SearchAI's Zamazenta switched in (33%)
+    SearchAI's Zamazenta healed -> 39%
+
+== Turn 13 ==
+SearchAI -> irondefense  [p=1.00]
+  root v=137.2  nodes=36  ms=163
+  RandomAI's Zamazenta switched in (100%)
+  SearchAI's Zamazenta used Iron Defense
+    SearchAI's Zamazenta +2 def
+    SearchAI's Zamazenta healed -> 45%
+
+== Turn 14 ==
+SearchAI -> bodypress  [p=0.87 | roar 0.13]
+  root v=208.6  nodes=36  ms=85
+  SearchAI's Zamazenta used Body Press
+    RandomAI's Zamazenta -> 49%
+  RandomAI's Zamazenta used Heavy Slam
+    SearchAI's Zamazenta -> 41%
+    SearchAI's Zamazenta healed -> 47%
+    RandomAI's Zamazenta healed -> 55%
+
+== Turn 15 ==
+SearchAI -> bodypress  [p=1.00]
+  root v=269.5  nodes=36  ms=86
+SearchAI -> pass  [p=1.00]
+  root v=306.3  nodes=4  ms=8
+  RandomAI's Kingambit switched in (5%)
+  SearchAI's Zamazenta used Body Press
+    (supereffective RandomAI's Kingambit)
+    RandomAI's Kingambit -> fainted
+    RandomAI's Kingambit fainted!
+    SearchAI's Zamazenta healed -> 53%
+  RandomAI's Zamazenta switched in (55%)
+
+== Turn 16 ==
+SearchAI -> bodypress  [p=1.00]
+  root v=355.4  nodes=36  ms=83
+  SearchAI's Zamazenta used Body Press
+    RandomAI's Zamazenta -> 6%
+  RandomAI's Zamazenta used Body Press
+    SearchAI's Zamazenta -> 39%
+    SearchAI's Zamazenta healed -> 45%
+    RandomAI's Zamazenta healed -> 12%
+
+== Turn 17 ==
+SearchAI -> bodypress  [p=1.00]
+  root v=442.2  nodes=24  ms=56
+SearchAI -> pass  [p=1.00]
+  root v=434.0  nodes=3  ms=7
+  SearchAI's Zamazenta used Body Press
+    RandomAI's Zamazenta -> fainted
+    RandomAI's Zamazenta fainted!
+    SearchAI's Zamazenta healed -> 51%
+  RandomAI's Glimmora switched in (82%)
+
+== Turn 18 ==
+SearchAI -> bodypress  [p=1.00]
+  root v=569.4  nodes=30  ms=73
+SearchAI -> pass  [p=1.00]
+  root v=561.1  nodes=2  ms=4
+  SearchAI's Zamazenta used Body Press
+    RandomAI's Glimmora -> fainted
+    SearchAI: P1 +move: Toxic Spikes
+    RandomAI's Glimmora fainted!
+    SearchAI's Zamazenta healed -> 57%
+  RandomAI's Enamorus switched in (100%)
+
+== Turn 19 ==
+SearchAI -> switch skeledirge  [p=1.00]
+  root v=484.5  nodes=24  ms=61
+SearchAI -> pass  [p=1.00]
+  root v=703.0  nodes=1  ms=2
+  SearchAI's Skeledirge switched in (82%)
+  RandomAI's Enamorus used Healing Wish
+    RandomAI's Enamorus fainted!
+  RandomAI's Darkrai switched in (100%)
+
+== Turn 20 ==
+SearchAI -> alluringvoice  [p=1.00]
+  root v=684.1  nodes=20  ms=59
+  RandomAI's Darkrai used Dark Pulse
+    (resisted SearchAI's Skeledirge)
+    SearchAI's Skeledirge -> 65%
+  SearchAI's Skeledirge used Alluring Voice
+    (supereffective RandomAI's Darkrai)
+    RandomAI's Darkrai -> 27%
+
+== Turn 21 ==
+SearchAI -> torchsong  [p=1.00]
+  root v=10813.8  nodes=20  ms=53
+  RandomAI's Darkrai used Ice Beam
+    SearchAI's Skeledirge -> 38%
+  SearchAI's Skeledirge used Torch Song
+    RandomAI's Darkrai -> fainted
+    SearchAI's Skeledirge +1 spa
+    RandomAI's Darkrai fainted!
+
+** P1 wins **
