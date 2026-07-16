@@ -1,4 +1,4 @@
-import {Battle, State} from '@pkmn/sim';
+import {Battle, PRNG, State} from '@pkmn/sim';
 import type {PokemonSet} from '../data/types';
 import {randomSeed, type Seed} from './rng';
 
@@ -64,6 +64,18 @@ export function snapshot(battle: Battle): BattleSnapshot {
 /** Restore an independent battle from a snapshot (snapshot stays reusable). */
 export function restore(snap: BattleSnapshot): Battle {
   return State.deserializeBattle({...(snap as object), log: []} as never);
+}
+
+/**
+ * Replace a battle's internal PRNG.
+ *
+ * CRITICAL for search: `restore` preserves the serialized PRNG seed, so an
+ * un-reseeded search branch replays the live battle's exact future RNG
+ * stream — the bot would know this turn's crit/miss/roll before choosing.
+ * Every search branch must be re-seeded with a deterministic fork seed.
+ */
+export function reseed(battle: Battle, seed: Seed): void {
+  battle.prng = new PRNG(seed);
 }
 
 /** Apply a joint action synchronously. Empty string = auto-choose (wait). */
