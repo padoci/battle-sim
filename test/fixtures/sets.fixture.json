@@ -1,0 +1,265 @@
+{
+  "Kingambit": {
+    "Swords Dance": {
+      "moves": [
+        "Swords Dance",
+        "Sucker Punch",
+        [
+          "Kowtow Cleave",
+          "Low Kick"
+        ],
+        [
+          "Iron Head",
+          "Low Kick"
+        ]
+      ],
+      "ability": "Supreme Overlord",
+      "item": [
+        "Leftovers",
+        "Lum Berry",
+        "Black Glasses",
+        "Air Balloon"
+      ],
+      "nature": "Adamant",
+      "evs": [
+        {
+          "atk": 252,
+          "def": 4,
+          "spe": 252
+        },
+        {
+          "hp": 252,
+          "atk": 252,
+          "spd": 4
+        }
+      ],
+      "teratypes": [
+        "Ghost",
+        "Dark",
+        "Fighting",
+        "Fire"
+      ]
+    }
+  },
+  "Dragonite": {
+    "Dragon Dance": {
+      "moves": [
+        "Dragon Dance",
+        [
+          "Extreme Speed",
+          "Ice Spinner"
+        ],
+        "Earthquake",
+        [
+          "Ice Spinner",
+          "Roost",
+          "Encore"
+        ]
+      ],
+      "ability": "Multiscale",
+      "item": "Heavy-Duty Boots",
+      "nature": [
+        "Adamant",
+        "Jolly"
+      ],
+      "evs": {
+        "atk": 252,
+        "def": 4,
+        "spe": 252
+      },
+      "teratypes": [
+        "Normal",
+        "Ground"
+      ]
+    },
+    "Dragon Dance + Scale Shot": {
+      "moves": [
+        "Dragon Dance",
+        "Scale Shot",
+        "Fire Punch",
+        "Encore"
+      ],
+      "ability": "Multiscale",
+      "item": "Loaded Dice",
+      "nature": [
+        "Jolly",
+        "Adamant"
+      ],
+      "evs": {
+        "atk": 252,
+        "def": 4,
+        "spe": 252
+      },
+      "teratypes": "Fire"
+    },
+    "Bulky Phazer (3 Attacks + Roost)": {
+      "moves": [
+        "Dragon Tail",
+        "Extreme Speed",
+        "Earthquake",
+        "Roost"
+      ],
+      "ability": "Multiscale",
+      "item": "Heavy-Duty Boots",
+      "nature": "Adamant",
+      "evs": {
+        "hp": 252,
+        "atk": 240,
+        "spe": 16
+      },
+      "teratypes": "Normal"
+    },
+    "Choice Band": {
+      "moves": [
+        "Outrage",
+        "Extreme Speed",
+        [
+          "Earthquake",
+          "Ice Spinner"
+        ],
+        [
+          "Fire Punch",
+          "Ice Spinner"
+        ]
+      ],
+      "ability": "Multiscale",
+      "item": "Choice Band",
+      "nature": "Adamant",
+      "evs": {
+        "atk": 252,
+        "def": 4,
+        "spe": 252
+      },
+      "teratypes": "Normal"
+    }
+  },
+  "Clefable": {
+    "Utility": {
+      "moves": [
+        "Stealth Rock",
+        "Moonblast",
+        "Moonlight",
+        [
+          "Thunder Wave",
+          "Knock Off"
+        ]
+      ],
+      "ability": "Magic Guard",
+      "item": [
+        "Leftovers",
+        "Sticky Barb",
+        "Rocky Helmet"
+      ],
+      "nature": "Bold",
+      "evs": {
+        "hp": 252,
+        "def": 252,
+        "spd": 4
+      },
+      "teratypes": [
+        "Water",
+        "Steel"
+      ]
+    },
+    "Calm Mind": {
+      "moves": [
+        "Calm Mind",
+        "Moonblast",
+        "Moonlight",
+        [
+          "Knock Off",
+          "Flamethrower"
+        ]
+      ],
+      "ability": "Magic Guard",
+      "item": [
+        "Leftovers",
+        "Sticky Barb"
+      ],
+      "nature": "Bold",
+      "ivs": {
+        "atk": 0
+      },
+      "evs": {
+        "hp": 252,
+        "def": 252,
+        "spd": 4
+      },
+      "teratypes": [
+        "Water",
+        "Steel"
+      ]
+    },
+    "Unaware": {
+      "moves": [
+        "Calm Mind",
+        "Moonblast",
+        "Moonlight",
+        [
+          "Thunder Wave",
+          "Knock Off"
+        ]
+      ],
+      "ability": "Unaware",
+      "item": "Heavy-Duty Boots",
+      "nature": "Bold",
+      "ivs": {
+        "atk": 0
+      },
+      "evs": {
+        "hp": 252,
+        "def": 252,
+        "spd": 4
+      },
+      "teratypes": [
+        "Poison",
+        "Water",
+        "Steel"
+      ]
+    }
+  },
+  "Ditto": {
+    "Choice Scarf": {
+      "moves": [
+        "Transform"
+      ],
+      "ability": "Imposter",
+      "item": "Choice Scarf",
+      "nature": "Quiet",
+      "ivs": {
+        "spe": 0
+      },
+      "evs": {
+        "hp": 248,
+        "atk": 8,
+        "spa": 252
+      },
+      "teratypes": "Ghost"
+    }
+  },
+  "Chansey": {
+    "Defensive": {
+      "moves": [
+        "Stealth Rock",
+        "Seismic Toss",
+        "Soft-Boiled",
+        "Thunder Wave"
+      ],
+      "item": "Eviolite",
+      "nature": "Bold",
+      "ivs": {
+        "atk": 0
+      },
+      "evs": {
+        "hp": 248,
+        "def": 252,
+        "spd": 8
+      },
+      "teratypes": [
+        "Ghost",
+        "Steel",
+        "Fairy"
+      ]
+    }
+  }
+}
