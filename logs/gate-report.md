@@ -20,11 +20,11 @@ If missed: pruning knobs first (interior 3×2, rootSwitchK=1), then search-spec 
 | config | runtime | ms/decision mean/p50/p95 | nodes/dec | s/battle | table ms | startup ms | battles/min |
 |---|---|---|---|---|---|---|---|
 | d1 FAST | Node | 105.6 / 94.1 / 261.4 | 25 | 3.6s | 195 | — | 16.8 |
-| d1 FAST | browser worker | — | — | — | — | — | — |
+| d1 FAST | browser worker | 60.7 / 57.3 / 140.1 | 25 | 2.4s | 115 | 1 | 25.5 |
 | d2 STRONG | Node | 685.4 / 617.0 / 1672.4 | 200 | 22.3s | 195 | — | 2.7 |
-| d2 STRONG | browser worker | — | — | — | — | — | — |
+| d2 STRONG | browser worker | 466.7 / 448.0 / 1157.4 | 207 | 15.1s | 124 | 0 | 4.0 |
 
-(browser rows are the primary gate numbers — NOT YET RUN: `node scripts/measure-browser.mjs`)
+(browser rows are the primary gate numbers)
 
 ## Table 2 — Strength (Node)
 

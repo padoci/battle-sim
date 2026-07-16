@@ -1,0 +1,42 @@
+{
+  "fast": {
+    "config": "fast",
+    "battles": 15,
+    "startupMs": 0.5,
+    "totalMs": 35330.899999999965,
+    "msPerDecision": {
+      "mean": 60.72563911668987,
+      "p50": 57.279999999996896,
+      "p95": 140.10666666667288
+    },
+    "nodesPerDecision": 24.919967787395198,
+    "msPerBattle": 2355.393333333331,
+    "msTableMean": 114.76666666666279,
+    "decisionsPerBattle": 36.6,
+    "wins": [
+      7,
+      8,
+      0
+    ]
+  },
+  "strong": {
+    "config": "strong",
+    "battles": 5,
+    "startupMs": 0.29999999998835847,
+    "totalMs": 75335.49999999994,
+    "msPerDecision": {
+      "mean": 466.72061424254616,
+      "p50": 448.04000000003725,
+      "p95": 1157.4399999999907
+    },
+    "nodesPerDecision": 206.74846853302023,
+    "msPerBattle": 15067.099999999988,
+    "msTableMean": 123.89999999998835,
+    "decisionsPerBattle": 31.8,
+    "wins": [
+      2,
+      3,
+      0
+    ]
+  }
+}
