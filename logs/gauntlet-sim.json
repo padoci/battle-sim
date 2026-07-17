@@ -1,0 +1,103 @@
+{
+  "config": "fast",
+  "draft": "greedy",
+  "runs": 25,
+  "summaries": [
+    {
+      "mode": "easy",
+      "runs": 25,
+      "flawless": 1,
+      "flawlessRate": 0.04,
+      "eliminatedAt": [
+        0,
+        0,
+        16,
+        6,
+        2,
+        0
+      ],
+      "perRung": [
+        {
+          "played": 25,
+          "won": 25,
+          "rate": 1
+        },
+        {
+          "played": 25,
+          "won": 25,
+          "rate": 1
+        },
+        {
+          "played": 25,
+          "won": 9,
+          "rate": 0.36
+        },
+        {
+          "played": 9,
+          "won": 3,
+          "rate": 0.3333333333333333
+        },
+        {
+          "played": 3,
+          "won": 1,
+          "rate": 0.3333333333333333
+        },
+        {
+          "played": 1,
+          "won": 1,
+          "rate": 1
+        }
+      ],
+      "meanBattlesPerRun": 3.52,
+      "meanTurns": 28.863636363636363
+    },
+    {
+      "mode": "normal",
+      "runs": 25,
+      "flawless": 0,
+      "flawlessRate": 0,
+      "eliminatedAt": [
+        12,
+        10,
+        3,
+        0,
+        0,
+        0
+      ],
+      "perRung": [
+        {
+          "played": 25,
+          "won": 13,
+          "rate": 0.52
+        },
+        {
+          "played": 13,
+          "won": 3,
+          "rate": 0.23076923076923078
+        },
+        {
+          "played": 3,
+          "won": 0,
+          "rate": 0
+        },
+        {
+          "played": 0,
+          "won": 0,
+          "rate": 0
+        },
+        {
+          "played": 0,
+          "won": 0,
+          "rate": 0
+        },
+        {
+          "played": 0,
+          "won": 0,
+          "rate": 0
+        }
+      ],
+      "meanBattlesPerRun": 1.64,
+      "meanTurns": 39.97560975609756
+    }
+  ]
+}
