@@ -1,6 +1,7 @@
 import type {Generation} from '@pkmn/data';
 import type {PokemonSet} from '../data/types';
 import {createBattle, isOver, makeJointChoice, winner} from '../engine/battle';
+import {setEvalOverrides} from '../engine/eval';
 import {legalActions, toChoice} from '../engine/actions';
 import {buildCalcTable, type CalcTable} from '../engine/calc/table';
 import {extractState} from '../engine/snapshot';
@@ -28,6 +29,8 @@ export interface BattleJob {
    * run (a run-scoped cache) — see resolveTable.
    */
   opponentKey?: string;
+  /** Dev-only eval tuning knobs (e.g. the gauntlet's ?tera=N). */
+  evalOverrides?: {teraAvailable?: number};
 }
 
 export interface BattleResult {
@@ -86,6 +89,9 @@ export function resolveTable(
  * seeds. This is the API the worker and the Stage 3 bulk sim reuse.
  */
 export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): BattleResult {
+  // Applied unconditionally: a job WITHOUT overrides must clear any prior
+  // battle's overrides in the long-lived worker.
+  setEvalOverrides(job.evalOverrides);
   const tableStart = performance.now();
   const calcTable = table ?? buildCalcTable(gen, job.teams);
   const msTable = table ? 0 : performance.now() - tableStart;
