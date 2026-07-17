@@ -5,18 +5,28 @@ import {useEffect, useState} from 'react';
  * framework router required"). Route state is only WHICH screen — team,
  * pool, and run data live in AppState.
  */
-export type Screen = 'landing' | 'test-import' | 'test-configure' | 'test-results' | 'sixoh-soon';
+export type Screen =
+  | 'landing'
+  | 'test-import'
+  | 'test-configure'
+  | 'test-results'
+  | 'sixoh-draft'
+  | 'sixoh-gauntlet'
+  | 'sixoh-result';
 
 const ROUTES: Array<[string, Screen]> = [
   ['', 'landing'],
   ['/test/import', 'test-import'],
   ['/test/configure', 'test-configure'],
   ['/test/results', 'test-results'],
-  ['/sixoh', 'sixoh-soon'],
+  ['/sixoh', 'sixoh-draft'],
+  ['/sixoh/gauntlet', 'sixoh-gauntlet'],
+  ['/sixoh/result', 'sixoh-result'],
 ];
 
 export function parseHash(hash: string): Screen {
-  const path = hash.replace(/^#/, '');
+  // Tolerate a dev query suffix: '#/sixoh?seed=1&config=fast'.
+  const path = hash.replace(/^#/, '').split('?')[0];
   return ROUTES.find(([route]) => route === path)?.[1] ?? 'landing';
 }
 

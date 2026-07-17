@@ -44,6 +44,18 @@ export function burnMultiplier(physicalShare: number): number {
   return 1 + physicalShare;
 }
 
+/**
+ * Dev-only tuning overrides (e.g. the gauntlet's ?tera=N knob). Defaults
+ * stay untouched; overrides apply symmetrically to both sides, so the
+ * zero-sum property is preserved by construction. Callers that run many
+ * battles (the worker) must set this per battle — including clearing it.
+ */
+let evalOverrides: {teraAvailable?: number} | undefined;
+
+export function setEvalOverrides(overrides?: {teraAvailable?: number}): void {
+  evalOverrides = overrides;
+}
+
 function boostScore(mon: MonState): number {
   let score = 0;
   for (const stat of ['atk', 'def', 'spa', 'spd', 'spe', 'accuracy', 'evasion'] as const) {
@@ -218,7 +230,7 @@ function sideScore(state: BattleState, table: CalcTable, side: 0 | 1): number {
   for (const mon of sideState.mons) {
     score += evaluatePokemon(mon, physicalShareOf(table, side, mon));
   }
-  if (!sideState.teraUsed) score += WEIGHTS.TERA_AVAILABLE;
+  if (!sideState.teraUsed) score += evalOverrides?.teraAvailable ?? WEIGHTS.TERA_AVAILABLE;
   return score;
 }
 

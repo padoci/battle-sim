@@ -8,3 +8,5 @@ export {deriveGamePlanFacts, renderGamePlan} from './gameplan';
 export type {GamePlan, GamePlanFacts} from './gameplan';
 export {buildExportJson, buildExportMarkdown} from './export';
 export type {DashboardExportJsonV1, ExportInputs} from './export';
+export {buildPostMortem} from './postmortem';
+export type {PostMortem, PostMortemRead, PlayedBattle} from './postmortem';
