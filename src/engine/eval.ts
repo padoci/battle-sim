@@ -38,9 +38,10 @@ export const WEIGHTS = {
    * where it's use-it-or-lose-it. Sized above a typical incremental Tera swing
    * so the AI only cashes Tera when it clearly changes an interaction (which,
    * because KO probability dominates the matchup term, is ~a KO-flip), rather
-   * than on the first decent attack.
+   * than on the first decent attack. Tuned to 50 (holds Tera to ~mid-game,
+   * turn ~13) from the sim sweep — "Tera to win the game, not the turn."
    */
-  TERA_AVAILABLE: 30,
+  TERA_AVAILABLE: 50,
   /** The Tera option value decays to 0 by this many total faints (game phase). */
   TERA_DECAY_FAINTS: 8,
 } as const;
