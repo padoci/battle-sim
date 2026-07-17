@@ -941,34 +941,67 @@ button.primary:disabled {
   50% { transform: scale(1.1); opacity: 1; }
 }
 
+/* Retro (GBA/DS) battle skin — scoped literals for the classic handheld look:
+   a light "menu window" HP box + battle-scene field, on the app's dark arena. */
 .battle-stage {
+  --retro-frame: #23201b;
+  --retro-menu: #f6f2e6;
+  --retro-menu-ink: #26232b;
+  --retro-menu-sub: #6d6656;
+  --retro-hp-track: #3b3f49;
   border: 1px solid var(--arena-line);
   border-radius: var(--r-l);
   background: var(--arena-raised);
   padding: 1rem;
 }
 
+/* The field: sky over ground with a horizon, the two mons crossed diagonally
+   (opponent top-right, player bottom-left) as in a classic single battle. */
 .stage-field {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  min-height: 240px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 260px;
+  padding: 0.85rem 1rem;
+  border: 2px solid var(--retro-frame);
+  border-radius: 14px;
+  background:
+    linear-gradient(#7fb4d6 0%, #a3cbe0 44%, #c6e19a 44%, #aed483 100%);
+  overflow: hidden;
 }
 
 .stage-half {
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 0.4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
+/* Opponent row: HP window to the left, sprite to the right (DOM is
+   sprite-then-HP, so reverse the row). */
 .stage-half.theirs {
-  align-items: flex-end;
+  flex-direction: row-reverse;
 }
 
 .sprite-holder {
   position: relative;
   display: inline-block;
+}
+
+/* Ground platform shadow under each active sprite. */
+.sprite-holder::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 96px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(20, 40, 15, 0.4), rgba(20, 40, 15, 0) 70%);
+  z-index: -1;
 }
 
 .stage-sprite {
@@ -1042,9 +1075,16 @@ button.primary:disabled {
   to { transform: translateY(-26px); opacity: 0; }
 }
 
+/* HP window — the light rounded "menu box" of the handheld games. */
 .hp-block {
-  width: 100%;
-  max-width: 300px;
+  width: max-content;
+  max-width: 260px;
+  background: var(--retro-menu);
+  color: var(--retro-menu-ink);
+  border: 2px solid var(--retro-frame);
+  border-radius: 12px;
+  padding: 0.35rem 0.6rem 0.4rem;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.28);
 }
 
 .hp-head {
@@ -1053,33 +1093,59 @@ button.primary:disabled {
   gap: 0.35rem;
   flex-wrap: wrap;
   font-size: 0.8rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
 }
 
 .hp-name {
   font-family: var(--font-display);
   font-weight: 700;
   font-stretch: 110%;
+  color: var(--retro-menu-ink);
+}
+
+.hp-level {
+  margin-left: auto;
+  font-size: 0.66rem;
+  color: var(--retro-menu-sub);
+}
+
+.hp-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hp-hp {
+  font-size: 0.6rem;
+  font-weight: 700;
+  font-style: italic;
+  color: #c8892b;
+  letter-spacing: 0.02em;
 }
 
 .hp-bar {
-  height: 12px;
-  border-radius: var(--r-pill);
-  background: var(--arena-well);
+  flex: 1;
+  min-width: 128px;
+  height: 7px;
+  border-radius: 4px;
+  border: 1px solid var(--retro-frame);
+  background: var(--retro-hp-track);
   overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .hp-fill {
   height: 100%;
-  border-radius: var(--r-pill);
+  border-radius: 3px;
   transition: width 0.4s ease;
 }
 
 .hp-label {
+  display: block;
+  text-align: right;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--arena-muted);
+  font-size: 0.66rem;
+  color: var(--retro-menu-sub);
+  margin-top: 0.1rem;
 }
 
 .status-chip,
@@ -1143,12 +1209,15 @@ button.primary:disabled {
   color: var(--arena-muted);
 }
 
+/* Message window — the bottom textbox, double-framed like the games. */
 .battle-log {
   height: 170px;
   overflow-y: auto;
   background: var(--arena-well);
-  border-radius: var(--r-m);
-  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--retro-frame);
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 2px var(--arena-raised);
+  padding: 0.6rem 0.85rem;
   font-size: 0.74rem;
   line-height: 1.5;
 }
@@ -1293,11 +1362,18 @@ button.primary:disabled {
     flex-direction: column;
   }
   .stage-field {
-    min-height: 180px;
+    min-height: 200px;
+    padding: 0.6rem;
   }
   .stage-sprite {
     min-width: 72px;
     min-height: 72px;
+  }
+  .hp-bar {
+    min-width: 88px;
+  }
+  .hp-block {
+    max-width: 190px;
   }
   .shell-header {
     padding: 0.6rem 1rem;

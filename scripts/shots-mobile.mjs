@@ -50,6 +50,10 @@ async function routeData(page) {
           : 'test/fixtures/stats.fixture.json';
     route.fulfill({status: 200, contentType: 'application/json', body: readFileSync(file, 'utf8')});
   });
+  // Keep the external sample-teams fetch hermetic (empty index -> base pool).
+  await page.route(/crob\.at\/api\/samples\/gen9ou/, route => {
+    route.fulfill({status: 200, contentType: 'application/json', body: '[]'});
+  });
 }
 
 async function main() {
@@ -73,6 +77,23 @@ async function main() {
     await page.waitForTimeout(600);
     await page.screenshot({path: `${shotsDir}/mobile-draft.png`, fullPage: true});
     console.log('shot: mobile-draft');
+
+    // Retro battle stage: Easy mode (fast, random early opponent), draft via
+    // the two-stage flow, start the gauntlet, capture the first battle.
+    await page.locator('.mode-toggle button', {hasText: 'Easy'}).click();
+    await page.waitForTimeout(200);
+    for (let i = 0; i < 6; i++) {
+      await page.locator('.offer-card').first().click();
+      await page.waitForSelector('.set-card', {timeout: 10_000});
+      await page.locator('.set-card').first().click();
+      await page.waitForTimeout(120);
+    }
+    await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
+    await page.waitForSelector('.battle-stage', {timeout: 120_000});
+    await page.waitForSelector('.hp-bar', {timeout: 30_000});
+    await page.waitForTimeout(1500);
+    await page.screenshot({path: `${shotsDir}/mobile-battle.png`, fullPage: true});
+    console.log('shot: mobile-battle');
 
     await page.goto(`http://localhost:${PORT}/#/test/import`);
     await page.waitForSelector('.team-input');

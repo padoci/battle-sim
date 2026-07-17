@@ -100,9 +100,14 @@ function fail(message) {
 
 const ok = message => console.log(`ok: ${message}`);
 
+// A valid gen9ou export served as a mocked external "sample team"; its species
+// set does not collide with the base fixture, so it grows the opponent pool.
+const SAMPLE_EXPORT = GOOD_TEAM;
+
 /**
  * Serve the vendored real data files for data.pkmn.cc / the GitHub mirror —
- * the sandbox proxy blocks both hosts in the browser (Stage 0 precedent).
+ * the sandbox proxy blocks both hosts in the browser (Stage 0 precedent) —
+ * plus the external sample-teams source (crob.at index -> pokepaste JSON).
  */
 async function routeData(page) {
   await page.route(/https:\/\/(data\.pkmn\.cc|raw\.githubusercontent\.com).*\/(sets|stats|teams)\/gen9ou\.json/, route => {
@@ -117,6 +122,20 @@ async function routeData(page) {
       status: 200,
       contentType: 'application/json',
       body: require('fs').readFileSync(file, 'utf8'),
+    });
+  });
+  await page.route(/crob\.at\/api\/samples\/gen9ou/, route => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([{name: 'E2E Sample Team', author: 'e2e', url: 'https://pokepast.es/e2e1'}]),
+    });
+  });
+  await page.route(/pokepast\.es\/.*\/json/, route => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({paste: SAMPLE_EXPORT, title: 'E2E Sample Team', author: 'e2e'}),
     });
   });
 }
@@ -156,13 +175,17 @@ async function main() {
     ok('valid team previews 6 mons with type badges');
     await page.locator('button.primary').click();
 
-    // 3. Configure: pool with archetype tags.
+    // 3. Configure: pool with archetype tags — built-in teams merged with the
+    // mocked external sample team (proves the runtime fetch + merge path).
     await page.waitForSelector('.pool-table tbody tr', {timeout: 30_000});
+    const baseTeams = JSON.parse(require('fs').readFileSync('test/fixtures/gen9ou.teams.full.json', 'utf8')).length;
     const poolRows = await page.locator('.pool-table tbody tr').count();
-    if (poolRows < 5) fail(`expected a real opponent pool, got ${poolRows} rows`);
+    if (poolRows <= baseTeams) fail(`expected external teams merged in: ${poolRows} rows vs ${baseTeams} built-in`);
+    const poolNames = await page.locator('.pool-name').allTextContents();
+    if (!poolNames.some(n => /E2E Sample Team/.test(n))) fail('merged pool should include the external sample team');
     const archetypeTags = await page.locator('.archetype-tag').allTextContents();
     if (!archetypeTags.every(tag => tag.length > 0)) fail('every pool team needs an archetype tag');
-    ok(`pool lists ${poolRows} teams with archetypes: ${[...new Set(archetypeTags)].join(', ')}`);
+    ok(`pool lists ${poolRows} teams (${baseTeams} built-in + external) with archetypes: ${[...new Set(archetypeTags)].join(', ')}`);
 
     // Weight one matchup up, disable one team.
     await page.locator('.weight-input').first().fill('3');
