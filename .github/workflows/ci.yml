@@ -1,0 +1,64 @@
+name: CI
+
+# Runs on every pull request (and on demand). Unlike the local dev sandbox,
+# GitHub runners have real network access, so the e2e walkthroughs load the
+# real Pokémon sprites and their screenshots (uploaded as artifacts) show the
+# actually-rendered app — the thing the sandbox can't see.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Type-check + build
+        run: npm run build
+
+  e2e:
+    name: E2E walkthroughs (real network + screenshots)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Playwright isn't a project dep (the dev sandbox uses a global one), so
+      # install it here without touching the lockfile.
+      - name: Install Playwright + Chromium
+        run: |
+          npm i --no-save playwright@^1.48.0
+          npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
+      - name: E2E — Can you 6-0?
+        run: node scripts/e2e-six-oh.mjs --shots-dir logs
+      - name: E2E — Test your team
+        run: node scripts/e2e-test-your-team.mjs --shots-dir logs
+      - name: Mobile + reduced-motion screenshots
+        run: node scripts/shots-mobile.mjs --shots-dir logs
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: logs/*.png
+          if-no-files-found: warn

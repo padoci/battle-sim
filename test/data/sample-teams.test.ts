@@ -204,23 +204,17 @@ describe('fetchSampleTeams', () => {
   });
 });
 
-describe('loadOpponentTeams — never blocks the UI', () => {
-  const baseTeam: Team = {name: 'Base', data: ['A', 'B', 'C', 'D', 'E', 'F'].map(s => ({species: s, ability: '', moves: []}))};
+describe('loadOpponentTeams — built-in pool + vendored pack (no runtime fetch)', () => {
+  // Distinct fake species so this base team never dedups against a real vendored one.
+  const baseTeam: Team = {name: 'Base', data: ['Zx1', 'Zx2', 'Zx3', 'Zx4', 'Zx5', 'Zx6'].map(s => ({species: s, ability: '', moves: []}))};
 
-  it('returns the built-in pool fast even when the sample source hangs', async () => {
-    const hanging = ((_url: unknown, init?: {signal?: AbortSignal}) =>
-      new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
-      })) as unknown as typeof fetch;
+  it('merges the built-in teams with the vendored sample teams', async () => {
     const client = {teams: async () => [baseTeam]} as unknown as DataClient;
-    const start = Date.now();
-    const teams = await loadOpponentTeams(client, {
-      store: new MemoryStore(),
-      fetchFn: hanging,
-      uiWaitMs: 30,
-      timeoutMs: 80,
-    });
-    expect(teams).toEqual([baseTeam]); // base only — no hang
-    expect(Date.now() - start).toBeLessThan(1500);
+    const teams = await loadOpponentTeams(client);
+    // base + the curated seed pack (≥3) → strictly grows the pool.
+    expect(teams.length).toBeGreaterThanOrEqual(4);
+    expect(teams[0]).toEqual(baseTeam);
+    // at least one team that isn't the base team (i.e. a vendored one).
+    expect(teams.some(t => t.name !== 'Base')).toBe(true);
   });
 });

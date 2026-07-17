@@ -212,15 +212,20 @@ async function main() {
       {timeout: 60_000}
     );
     // Keep clicking Instant as new battles arrive until the result route.
-    for (let guard = 0; guard < 40; guard++) {
+    // Budget generously — a stall matchup can compute to maxTurns before it
+    // replays. Fail fast if the run hits an actual error panel.
+    for (let guard = 0; guard < 120; guard++) {
       if (page.url().includes('/sixoh/result')) break;
+      if (await page.locator('.problems', {hasText: 'failed'}).count()) {
+        fail(`gauntlet run errored: ${(await page.locator('.problems').first().textContent()).trim()}`);
+      }
       const instant = page.locator('.playback-controls button', {hasText: 'Instant'});
       if (await instant.count()) {
         await instant.first().click().catch(() => {});
       }
       await page.waitForTimeout(2000);
     }
-    if (!page.url().includes('/sixoh/result')) fail('run never reached the result screen');
+    if (!page.url().includes('/sixoh/result')) fail('run never reached the result screen (timed out)');
     ok('gauntlet ran to completion via instant playback');
 
     // 6. Result + post-mortem.
