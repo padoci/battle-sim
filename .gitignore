@@ -6,5 +6,6 @@ dist/
 coverage/
 *.tsbuildinfo
 
-# Transient sim-gauntlet stdout captures (final data -> logs/gauntlet-sim.*)
+# Transient sim stdout captures (final data -> logs/gauntlet-sim.*, logs/*.md)
 logs/sim-*.txt
+logs/tera-*.txt
