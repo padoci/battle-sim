@@ -4,6 +4,8 @@ A client-side, in-browser competitive Pokémon teambuilding tool for the Smogon/
 
 No server. Fully static-hostable. All simulation runs in a web worker in your browser.
 
+**Live demo:** https://padoci.github.io/battle-sim/ (deployed from `main` via GitHub Pages).
+
 ## Two modes
 
 - **Can you 6-0?** — a draft roguelike. Draft six Pokémon from randomized, usage-weighted offers (beginner: pick species then set; normal: pick mon+set bundles), then watch the AI pilot your team through a six-battle gauntlet, cinematically. Win all six to go flawless. Post-mortem tells you what ended the run — with the calc to back it up.
