@@ -226,9 +226,9 @@ export function SixOhGauntlet() {
   if (!state.team || state.phase === 'draft') {
     return (
       <main className="screen">
-        <p>
-          No run yet — <a href="#/sixoh">draft a team first</a>.
-        </p>
+        <div className="empty-state">
+          No run in progress — <a href="#/sixoh">draft a team</a> to start the gauntlet.
+        </div>
       </main>
     );
   }

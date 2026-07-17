@@ -100,9 +100,9 @@ export function ConfigureRun() {
   if (!team) {
     return (
       <main className="screen">
-        <p>
-          No team yet — <a href="#/test/import">paste one first</a>.
-        </p>
+        <div className="empty-state">
+          No team loaded yet — <a href="#/test/import">paste one to analyze</a> and come back.
+        </div>
       </main>
     );
   }
@@ -151,24 +151,30 @@ export function ConfigureRun() {
         Your team fights a weighted field of real meta teams. Weight a matchup up to pressure-test it.
       </p>
 
-      {poolError && <p className="problems">Failed to load the opponent pool: {poolError}</p>}
+      {poolError && (
+        <p className="problems">
+          Couldn't load the opponent pool: {poolError}. Check your connection and reload.
+        </p>
+      )}
 
-      <table className="pool-table">
-        <thead>
-          <tr>
-            <th />
-            <th>Team</th>
-            <th>Archetype</th>
-            <th>Roster</th>
-            <th>Weight</th>
-          </tr>
-        </thead>
-        <tbody>
-          {pool.map(entry => (
-            <PoolRow key={entry.teamId} entry={entry} />
-          ))}
-        </tbody>
-      </table>
+      <div className="table-scroll">
+        <table className="pool-table">
+          <thead>
+            <tr>
+              <th />
+              <th>Team</th>
+              <th>Archetype</th>
+              <th>Roster</th>
+              <th>Weight</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pool.map(entry => (
+              <PoolRow key={entry.teamId} entry={entry} />
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {run.status === 'idle' && (
         <section className="run-controls">

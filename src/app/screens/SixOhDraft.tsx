@@ -113,14 +113,16 @@ export function SixOhDraft() {
   if (error) {
     return (
       <main className="screen">
-        <p className="problems">Failed to load draft data: {error}</p>
+        <p className="problems">
+          Couldn't load the draft data: {error}. Check your connection and reload.
+        </p>
       </main>
     );
   }
   if (!draft || !data) {
     return (
       <main className="screen">
-        <p>Dealing your first hand…</p>
+        <div className="empty-state">Dealing your first hand…</div>
       </main>
     );
   }

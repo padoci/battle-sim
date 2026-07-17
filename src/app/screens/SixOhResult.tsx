@@ -41,9 +41,9 @@ export function SixOhResult() {
   if (!postMortem || !state.outcome) {
     return (
       <main className="screen">
-        <p>
-          No finished run — <a href="#/sixoh">draft a team first</a>.
-        </p>
+        <div className="empty-state">
+          No finished run yet — <a href="#/sixoh">draft a team</a> and run the gauntlet.
+        </div>
       </main>
     );
   }
