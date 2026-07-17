@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {Icons, Sprites} from '@pkmn/img';
 import type {PokemonSet} from '../../data/types';
 import {parseProtocol} from '../../replay/parse';
@@ -6,7 +6,7 @@ import {toBeats} from '../../replay/pace';
 import type {FxItem, MonView, SideView} from '../../replay/view';
 import {navigate} from '../router';
 import {readDevParams} from '../sixoh/devParams';
-import {ensureComputed} from '../sixoh/session';
+import {ensureComputed, resetSixOhSession, retryBattle} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState} from '../sixoh/state';
 import {typeColor} from '../sixoh/typeColors';
 import {usePlayback, type PlaybackSpeed} from '../sixoh/usePlayback';
@@ -218,9 +218,24 @@ export function SixOhGauntlet() {
     return () => clearInterval(timer);
   }, [battle?.phase, index]);
 
+  // Auto-advance to the result only on the *live* finish transition. If the
+  // screen is re-entered already-finished (browser Back from the result), don't
+  // redirect — that would trap the user in a result↔gauntlet loop; show a
+  // terminal panel instead (below).
+  const wasFinishedOnMount = useRef(state.phase === 'finished');
   useEffect(() => {
-    if (state.phase === 'finished') navigate('sixoh-result');
+    if (state.phase === 'finished' && !wasFinishedOnMount.current) navigate('sixoh-result');
   }, [state.phase]);
+
+  const draftAgain = () => {
+    resetSixOhSession();
+    dispatch({type: 'RESET'});
+    navigate('sixoh-draft');
+  };
+  const retry = () => {
+    retryBattle(index);
+    dispatch({type: 'CLEAR_ERROR'});
+  };
 
   const beats = useMemo(() => {
     if (!battle?.result?.protocolLog) return undefined;
@@ -236,6 +251,23 @@ export function SixOhGauntlet() {
       <main className="screen">
         <div className="empty-state">
           No run in progress — <a href="#/sixoh">draft a team</a> to start the gauntlet.
+        </div>
+      </main>
+    );
+  }
+
+  // Re-entered a finished run (Back from the result): terminal choice, no loop.
+  if (state.phase === 'finished' && wasFinishedOnMount.current) {
+    return (
+      <main className="screen">
+        <div className="empty-state">
+          <p>This run is over ({state.record.wins}–{state.record.losses}).</p>
+          <div className="result-actions">
+            <button className="primary" onClick={() => navigate('sixoh-result')}>
+              See the result
+            </button>
+            <button onClick={draftAgain}>Draft again</button>
+          </div>
         </div>
       </main>
     );
@@ -274,7 +306,7 @@ export function SixOhGauntlet() {
           Battle {index + 1} of {state.opponents.length} — vs {state.opponents[index]?.name}
         </h2>
 
-        {(battle?.phase === 'pending' || battle?.phase === 'computing') && (
+        {!state.error && (battle?.phase === 'pending' || battle?.phase === 'computing') && (
           <div className="simulating">
             <div className="pulse" />
             <p>
@@ -284,7 +316,7 @@ export function SixOhGauntlet() {
           </div>
         )}
 
-        {(battle?.phase === 'ready' || battle?.phase === 'replaying') && beats && (
+        {!state.error && (battle?.phase === 'ready' || battle?.phase === 'replaying') && beats && (
           <BattleStage
             team={state.team}
             opponentSets={state.opponents[index].sets}
@@ -293,7 +325,17 @@ export function SixOhGauntlet() {
           />
         )}
 
-        {state.error && <p className="problems">Run failed: {state.error}</p>}
+        {state.error && (
+          <div className="empty-state">
+            <p className="problems">Battle {index + 1} failed: {state.error}</p>
+            <div className="result-actions">
+              <button className="primary" onClick={retry}>
+                Retry this battle
+              </button>
+              <button onClick={draftAgain}>Draft again</button>
+            </div>
+          </div>
+        )}
       </section>
     </main>
   );

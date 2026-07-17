@@ -1,4 +1,5 @@
 import {useReducer} from 'react';
+import {ErrorBoundary} from './ErrorBoundary';
 import {useRoute} from './router';
 import {AppDispatchContext, AppStateContext, appReducer, initialState} from './state';
 import {
@@ -55,7 +56,9 @@ export function AppShell() {
                 </button>
               </div>
             </header>
-            <Screen />
+            <ErrorBoundary>
+              <Screen />
+            </ErrorBoundary>
           </div>
         </SixOhDispatchContext.Provider>
       </SixOhStateContext.Provider>

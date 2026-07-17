@@ -237,26 +237,41 @@ async function main() {
     await page.screenshot({path: `${shotsDir}/e2e-sixoh-result.png`, fullPage: true});
     ok(`result: "${headline.trim()}" (${record.trim()}) with ${reads} post-mortem read(s)`);
 
-    // 7. Draft again restarts.
-    await page.locator('.result-actions button', {hasText: 'Draft again'}).click();
-    await page.waitForSelector('.offer-card', {timeout: 60_000});
-    ok('Draft again restarts to a fresh hand');
+    // 7. Back from the result must NOT loop straight back to it (bug fix).
+    await page.goBack();
+    await page.waitForTimeout(600);
+    if (page.url().includes('/sixoh/result')) fail('Back trapped on the result screen (redirect loop)');
+    if (!(await page.locator('.empty-state', {hasText: 'This run is over'}).count())) {
+      fail('expected the "run is over" terminal panel after Back, not a loop');
+    }
+    ok('Back from the result lands on the terminal panel (no redirect loop)');
+    await page.locator('.empty-state button', {hasText: 'See the result'}).click();
+    await page.waitForSelector('.result-card', {timeout: 10_000});
 
-    // 8. Hard-mode bundle spot-check (6 mon+set bundles, one-click picks).
+    // 8. "Step up" actually changes difficulty (this run was Easy → Normal).
+    await page.locator('.result-actions button', {hasText: 'Step up to Normal'}).click();
+    await page.waitForSelector('.offer-card', {timeout: 60_000});
+    if (!(await page.locator('.mode-toggle button.active', {hasText: 'Normal'}).count())) {
+      fail('Step up to Normal should start the draft in Normal mode');
+    }
+    ok('Step up threads the mode into the draft (Easy → Normal)');
+
+    // 9. ?mode=hard deals 6 bundles with Hard pre-selected (mode from the hash).
     const page2 = await browser.newPage({viewport: {width: 1440, height: 1000}});
     await routeData(page2);
-    await page2.goto(`http://localhost:${PORT}/#/sixoh?config=fast&seed=7`);
+    await page2.goto(`http://localhost:${PORT}/#/sixoh?mode=hard&config=fast&seed=7`);
     await page2.waitForSelector('.offer-card', {timeout: 60_000});
-    await page2.locator('.mode-toggle button', {hasText: 'Hard'}).click();
-    await page2.waitForTimeout(300);
+    if (!(await page2.locator('.mode-toggle button.active', {hasText: 'Hard'}).count())) {
+      fail('?mode=hard should pre-select Hard mode');
+    }
     const bundleCount = await page2.locator('.offer-card').count();
-    if (bundleCount !== 6) fail(`hard mode should offer 6 bundles, got ${bundleCount}`);
+    if (bundleCount !== 6) fail(`?mode=hard should deal 6 bundles, got ${bundleCount}`);
     const firstBundle = await page2.locator('.offer-card').first().textContent();
     if (!/·/.test(firstBundle)) fail('bundle should show item/nature meta');
     await page2.locator('.offer-card').first().click();
     await page2.waitForTimeout(200);
     if ((await page2.locator('.tray-slot.filled').count()) !== 1) fail('bundle pick should fill tray slot 1');
-    ok(`hard bundle flow works (6 bundles -> one-click pick fills tray)`);
+    ok('hard bundle flow works from the hash (6 bundles -> one-click pick fills tray)');
     await page2.close();
 
     console.log('\nE2E PASS — Can you 6-0? walkthrough green');

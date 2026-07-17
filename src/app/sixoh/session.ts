@@ -32,6 +32,15 @@ export function resetSixOhSession(): void {
 }
 
 /**
+ * Allow a failed rung to be recomputed: forget its submission so the next
+ * `ensureComputed` resubmits it (paired with the reducer's CLEAR_ERROR, which
+ * resets the rung to `pending`).
+ */
+export function retryBattle(index: number): void {
+  submitted.delete(index);
+}
+
+/**
  * Per-rung blunder rate for Easy: a competent opponent that misplays into a
  * random move this fraction of the time, decaying to 0 by the last rung.
  * Tuned from headless gauntlet sims (scripts/sim-gauntlet.ts) — this smooth

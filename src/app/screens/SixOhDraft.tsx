@@ -76,6 +76,12 @@ export function SixOhDraft() {
   const [error, setError] = useState<string>();
   const gen = useMemo(() => gen9(), []);
   const dev = useMemo(() => readDevParams(), []);
+  // Starting difficulty from the hash (`#/sixoh?mode=hard`) so "Step up" and
+  // "Draft again" can pick the mode; defaults to normal.
+  const initialMode = useMemo<DraftMode>(() => {
+    const raw = new URLSearchParams(location.hash.split('?')[1] ?? '').get('mode');
+    return raw === 'easy' || raw === 'hard' ? raw : 'normal';
+  }, []);
 
   // Load pool + sets + opponent teams, then deal the first hand.
   useEffect(() => {
@@ -95,13 +101,13 @@ export function SixOhDraft() {
         dispatch({
           type: 'NEW_RUN',
           seed,
-          mode: 'normal',
-          draft: createDraft(pool, sets, 'normal', seed ^ 0xd4af7),
+          mode: initialMode,
+          draft: createDraft(pool, sets, initialMode, seed ^ 0xd4af7),
           opponents,
         });
       })
       .catch(e => setError(String(e)));
-  }, [state.draft, data, dispatch, dev.seed]);
+  }, [state.draft, data, dispatch, dev.seed, initialMode]);
 
   const draft = state.draft;
   const canSwitchMode = draft && draft.team.length === 0 && draft.phase === 'species';
