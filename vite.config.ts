@@ -22,6 +22,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
+        dev: resolve(__dirname, 'dev.html'),
         measure: resolve(__dirname, 'measure.html'),
       },
     },

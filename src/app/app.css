@@ -1,0 +1,324 @@
+/* Stage 3 product shell — functional styling only; visual identity is Stage 5. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  color: #0f1216;
+  background: #f3f5f7;
+}
+
+.mono {
+  font-family: ui-monospace, 'IBM Plex Mono', monospace;
+}
+
+.shell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1.5rem;
+  border-bottom: 1px solid #d2d7de;
+  background: #fff;
+}
+
+.brand {
+  font-weight: 700;
+  text-decoration: none;
+  color: #0f1216;
+}
+
+.tier-control .tier {
+  border: 1px solid #d2d7de;
+  background: #fff;
+  padding: 0.25rem 0.8rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tier-control .tier.active {
+  background: #5b34d6;
+  color: #fff;
+  border-color: #5b34d6;
+}
+
+.tier-control .tier:disabled {
+  color: #9aa1ab;
+  cursor: not-allowed;
+}
+
+main.screen,
+main.landing {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.hero {
+  font-size: 2rem;
+  margin: 2.5rem 0 0.5rem;
+}
+
+.hero-sub,
+.screen-sub {
+  color: #6b7280;
+}
+
+.mode-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+@media (max-width: 800px) {
+  .mode-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mode-card {
+  text-align: left;
+  border: 1px solid #d2d7de;
+  border-radius: 10px;
+  background: #fff;
+  padding: 1.25rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mode-card:hover:not(.disabled) {
+  border-color: #5b34d6;
+}
+
+.mode-card.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.soon-badge {
+  font-size: 0.7rem;
+  background: #6b7280;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  vertical-align: middle;
+}
+
+.team-input {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  padding: 0.75rem;
+  border: 1px solid #d2d7de;
+  border-radius: 8px;
+}
+
+.problems {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 0.6rem 1rem 0.6rem 2rem;
+}
+
+.team-preview-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.preview-mon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.75rem;
+}
+
+.type-badges {
+  display: flex;
+  gap: 2px;
+}
+
+.type-badge {
+  font-size: 0.6rem;
+  padding: 0 0.3rem;
+  border-radius: 3px;
+  background: #6b7280;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+button.primary {
+  background: #5b34d6;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.6rem 1.4rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.75rem;
+}
+
+button.primary:disabled {
+  background: #c4b8ee;
+  cursor: not-allowed;
+}
+
+.pool-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #d2d7de;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.pool-table th,
+.pool-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid #eef1f5;
+  text-align: left;
+}
+
+.pool-row-off {
+  opacity: 0.45;
+}
+
+.archetype-tag {
+  background: #eef1f5;
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.weight-input {
+  width: 3.2rem;
+  font: inherit;
+}
+
+.run-controls {
+  margin-top: 1rem;
+  background: #fff;
+  border: 1px solid #d2d7de;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.run-controls progress {
+  width: 100%;
+}
+
+.run-controls button {
+  margin-right: 0.5rem;
+  font: inherit;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+
+.run-controls input[type='range'] {
+  width: 100%;
+}
+
+.hint {
+  color: #6b7280;
+  font-size: 0.82rem;
+}
+
+.verdict h1 {
+  margin-bottom: 0.25rem;
+}
+
+.matchup-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 800px) {
+  .matchup-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.matchup-card {
+  background: #fff;
+  border: 1px solid #d2d7de;
+  border-radius: 8px;
+  margin-bottom: 0.6rem;
+}
+
+.matchup-head {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  padding: 0.6rem 0.9rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.matchup-title {
+  font-weight: 600;
+  flex: 1;
+}
+
+.matchup-rate {
+  font-size: 1.05rem;
+}
+
+.matchup-meta {
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+.matchup-body {
+  border-top: 1px solid #eef1f5;
+  padding: 0.6rem 0.9rem;
+}
+
+.threats {
+  font-size: 0.78rem;
+  background: #f6f8fa;
+  border-radius: 6px;
+  padding: 0.5rem 0.5rem 0.5rem 1.5rem;
+}
+
+.game-plan h4 {
+  margin: 0.5rem 0 0.25rem;
+}
+
+.game-plan p {
+  margin: 0.2rem 0;
+}
+
+.matchup-detail {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #4b5563;
+}
+
+.matchup-detail-row {
+  border-top: 1px dashed #eef1f5;
+  padding: 0.35rem 0;
+}
+
+.dashboard-actions {
+  margin-top: 1.25rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dashboard-actions button {
+  font: inherit;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+}
