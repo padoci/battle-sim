@@ -3,6 +3,10 @@ import {defineConfig} from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  // Root by default (dev, preview, e2e all serve from '/'). The GitHub Pages
+  // deploy build sets DEPLOY_BASE=/battle-sim/ so project-Pages asset URLs
+  // resolve under the repo subpath. Hash routing needs no other Pages config.
+  base: process.env.DEPLOY_BASE || '/',
   plugins: [react()],
   esbuild: {
     // @pkmn/sim's State.serializeBattle/deserializeBattle resolve class
