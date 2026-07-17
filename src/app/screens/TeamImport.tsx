@@ -25,12 +25,17 @@ export function TeamImport() {
 
   const parsed = useMemo(() => {
     if (!raw.trim()) return undefined;
-    const sets = Teams.import(raw);
-    if (!sets || sets.length === 0) {
-      return {sets: [] as PokemonSet[], problems: ["That doesn't parse as a Showdown team export — check the format."]};
+    try {
+      const sets = Teams.import(raw);
+      if (!sets || sets.length === 0) {
+        return {sets: [] as PokemonSet[], problems: ["That doesn't parse as a Showdown team export — check the format."]};
+      }
+      const problems = validator.validateTeam(sets as never) ?? [];
+      return {sets: sets as unknown as PokemonSet[], problems};
+    } catch {
+      // @pkmn/sim can throw on sufficiently malformed input — treat as unparseable.
+      return {sets: [] as PokemonSet[], problems: ["Couldn't read that team — check it's a valid Showdown export."]};
     }
-    const problems = validator.validateTeam(sets as never) ?? [];
-    return {sets: sets as unknown as PokemonSet[], problems};
   }, [raw, validator]);
 
   const valid = parsed && parsed.sets.length > 0 && parsed.problems.length === 0;

@@ -155,10 +155,15 @@ export function Dashboard() {
     for (const battle of run.battles) {
       byTeam.set(battle.teamId, [...(byTeam.get(battle.teamId) ?? []), battle]);
     }
-    const matchups = [...byTeam.entries()].map(([teamId, battles]) => {
-      const entry = pool.find(p => p.teamId === teamId);
-      return aggregateMatchup(teamId, entry?.teamName ?? teamId, entry!.archetype, battles);
-    });
+    const matchups = [...byTeam.entries()]
+      .map(([teamId, battles]) => {
+        const entry = pool.find(p => p.teamId === teamId);
+        // Skip battles whose team is no longer in the pool (stale state) rather
+        // than assert non-null and blank the app.
+        if (!entry) return undefined;
+        return aggregateMatchup(teamId, entry.teamName, entry.archetype, battles);
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== undefined);
     const cards = rollUpByArchetype(matchups);
     return {matchups, cards, overall: summarize(cards, matchups)};
   }, [team, pool, run.battles]);

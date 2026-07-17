@@ -73,4 +73,24 @@ describe('sixOhReducer', () => {
     expect(noDraft.phase).toBe('draft');
     expect(sixOhReducer(freshRun(), {type: 'RESET'})).toEqual(initialSixOhState);
   });
+
+  it('SET_DRAFT syncs mode from the draft (toggle changes gauntlet difficulty)', () => {
+    const easyDraft = {phase: 'species', team: [], mode: 'easy'} as unknown as DraftState;
+    const state = sixOhReducer(initialSixOhState, {type: 'SET_DRAFT', draft: easyDraft});
+    expect(state.mode).toBe('easy');
+    expect(state.draft).toBe(easyDraft);
+  });
+
+  it('CLEAR_ERROR clears the error and resets the current rung to pending (retry)', () => {
+    let state = freshRun();
+    state = sixOhReducer(state, {type: 'BATTLE_COMPUTING', index: 0});
+    state = sixOhReducer(state, {type: 'RUN_ERROR', error: 'worker died'});
+    expect(state.error).toBe('worker died');
+    expect(state.battles[0].phase).toBe('computing');
+
+    const cleared = sixOhReducer(state, {type: 'CLEAR_ERROR'});
+    expect(cleared.error).toBeUndefined();
+    expect(cleared.battles[0].phase).toBe('pending');
+    expect(cleared.battles[0].result).toBeUndefined();
+  });
 });

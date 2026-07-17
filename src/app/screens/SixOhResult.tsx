@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import {gen9} from '../../data/gen';
 import {buildPostMortem} from '../../analysis/postmortem';
-import {navigate} from '../router';
+import type {DraftMode} from '../../draft/draft';
 import {resetSixOhSession} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState} from '../sixoh/state';
 
@@ -48,10 +48,14 @@ export function SixOhResult() {
     );
   }
 
-  const restart = () => {
+  // Restart into a chosen difficulty. The mode rides in the hash query so the
+  // draft screen picks it up on mount (preserving any dev params like seed).
+  const restartAs = (mode: DraftMode) => {
     resetSixOhSession();
     dispatch({type: 'RESET'});
-    navigate('sixoh-draft');
+    const params = new URLSearchParams(location.hash.split('?')[1] ?? '');
+    params.set('mode', mode);
+    location.hash = `#/sixoh?${params.toString()}`;
   };
 
   return (
@@ -70,11 +74,11 @@ export function SixOhResult() {
         </section>
 
         <div className="result-actions">
-          <button className="primary" onClick={restart}>
+          <button className="primary" onClick={() => restartAs(state.mode)}>
             Draft again
           </button>
-          {state.mode === 'easy' && <button onClick={restart}>Step up to Normal</button>}
-          {state.mode === 'normal' && <button onClick={restart}>Step up to Hard</button>}
+          {state.mode === 'easy' && <button onClick={() => restartAs('normal')}>Step up to Normal</button>}
+          {state.mode === 'normal' && <button onClick={() => restartAs('hard')}>Step up to Hard</button>}
         </div>
       </div>
     </main>

@@ -37,6 +37,7 @@ export type SixOhAction =
   | {type: 'REPLAY_STARTED'; index: number}
   | {type: 'REPLAY_FINISHED'; index: number}
   | {type: 'RUN_ERROR'; error: string}
+  | {type: 'CLEAR_ERROR'}
   | {type: 'RESET'};
 
 export const initialSixOhState: SixOhState = {
@@ -61,7 +62,9 @@ export function sixOhReducer(state: SixOhState, action: SixOhAction): SixOhState
         battles: action.opponents.map(() => ({phase: 'pending' as BattlePhase})),
       };
     case 'SET_DRAFT':
-      return {...state, draft: action.draft};
+      // Keep mode in sync with the draft — switching the difficulty toggle
+      // must actually change the gauntlet difficulty and the result's step-up.
+      return {...state, draft: action.draft, mode: action.draft.mode};
     case 'START_GAUNTLET':
       if (!state.draft || state.draft.phase !== 'complete') return state;
       return {...state, team: action.team, phase: 'gauntlet', battleIndex: 0};
@@ -95,6 +98,13 @@ export function sixOhReducer(state: SixOhState, action: SixOhAction): SixOhState
     }
     case 'RUN_ERROR':
       return {...state, error: action.error};
+    case 'CLEAR_ERROR':
+      // Retry: drop the error and reset the current rung so it recomputes.
+      return patchBattle({...state, error: undefined}, state.battleIndex, battle => ({
+        ...battle,
+        phase: 'pending',
+        result: undefined,
+      }));
     case 'RESET':
       return initialSixOhState;
   }
