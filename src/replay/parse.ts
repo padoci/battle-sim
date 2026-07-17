@@ -64,8 +64,42 @@ const NOTE_KINDS = new Set([
   '-zbroken', '-center', '-combine', '-waiting', '-burst', '-primal', '-mega',
 ]);
 
-/** Human sentence for the paced log panel. */
-const label = (ref: Ref, names: [string, string]) => `${names[ref.side]}'s ${ref.name}`;
+/**
+ * Human sentence subject for the paced log panel. `names` are possessive-position
+ * labels ("Your" / "The opposing"), so `${label} used X` and `${label}'s Ability`
+ * both read naturally — no hardcoded `'s` on the label itself.
+ */
+const label = (ref: Ref, names: [string, string]) => `${names[ref.side]} ${ref.name}`;
+
+/**
+ * Clean human text for a "note" protocol line, or null to drop it (never leak
+ * the raw protocol string). Covers the common OU cases; `[silent]` lines and
+ * anything unmapped are dropped by the caller.
+ */
+function noteLogText(kind: string, parts: string[], names: [string, string]): string | null {
+  const ref = parseRef(parts[2] ?? '');
+  if (!ref) return null;
+  const who = label(ref, names);
+  const effect = (parts[3] ?? '').replace(/^(ability|move|item): /, '');
+  switch (kind) {
+    case '-ability':
+      return effect ? `${who}'s ${effect}!` : null;
+    case '-activate':
+      return /^ability: /.test(parts[3] ?? '') && effect ? `${who}'s ${effect}!` : null;
+    case '-item':
+      return effect ? `${who}'s ${effect} was revealed!` : null;
+    case '-enditem':
+      return effect ? `${who} lost its ${effect}!` : null;
+    case '-start':
+      return /substitute/i.test(effect) ? `${who} put up a substitute!` : null;
+    case '-end':
+      return /substitute/i.test(effect) ? `${who}'s substitute faded!` : null;
+    case '-singleturn':
+      return /protect|detect|endure|guard/i.test(effect) ? `${who} protected itself!` : null;
+    default:
+      return null;
+  }
+}
 
 export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P2']): ReplayEvent[] {
   const events: ReplayEvent[] = [];
@@ -203,7 +237,7 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
         const effect = parts[3].replace(/^move: /, '');
         events.push({
           kind: 'side', side, effect, start: kind === '-sidestart',
-          logText: `${effect} ${kind === '-sidestart' ? `went up on ${names[side]}'s side` : `faded on ${names[side]}'s side`}.`,
+          logText: `${effect} ${kind === '-sidestart' ? `went up on ${names[side]} side` : `faded on ${names[side]} side`}.`,
         });
         break;
       }
@@ -248,13 +282,14 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
       case 'tie':
         events.push({kind: 'win', side: null, logText: 'The battle ended in a tie.'});
         break;
-      default:
-        if (NOTE_KINDS.has(kind)) {
-          events.push({kind: 'note', text: kind, logText: `· ${line.slice(1)}`});
-        } else {
-          // Genuinely unrecognized: keep as note so nothing is silently lost.
-          events.push({kind: 'note', text: `unknown:${kind}`, logText: `· ${line.slice(1)}`});
-        }
+      default: {
+        // Keep every line accounted as an event, but NEVER print the raw
+        // protocol string. `[silent]` lines are display-suppressed by Showdown
+        // (this also hides the upstream `fallenundefined` Supreme Overlord line);
+        // otherwise use a clean translation if we have one, else drop the text.
+        const logText = parts.includes('[silent]') ? '' : noteLogText(kind, parts, names) ?? '';
+        events.push({kind: 'note', text: NOTE_KINDS.has(kind) ? kind : `unknown:${kind}`, logText});
+      }
     }
   }
   return events;

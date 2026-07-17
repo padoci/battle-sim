@@ -239,7 +239,7 @@ export function SixOhGauntlet() {
 
   const beats = useMemo(() => {
     if (!battle?.result?.protocolLog) return undefined;
-    return toBeats(parseProtocol(battle.result.protocolLog, ['You', 'Them']));
+    return toBeats(parseProtocol(battle.result.protocolLog, ['Your', 'The opposing']));
   }, [battle?.result]);
 
   useEffect(() => {

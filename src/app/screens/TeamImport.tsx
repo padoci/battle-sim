@@ -2,7 +2,7 @@ import {useMemo, useState} from 'react';
 import {Teams, TeamValidator} from '@pkmn/sim';
 import type {PokemonSet} from '../../data/types';
 import {navigate} from '../router';
-import {useAppDispatch} from '../state';
+import {useAppDispatch, useAppState} from '../state';
 import {TeamPreviewRow} from '../components/TeamPreviewRow';
 
 const PLACEHOLDER = `Paste your team in Showdown export format, e.g.
@@ -20,8 +20,11 @@ Jolly Nature
 
 export function TeamImport() {
   const dispatch = useAppDispatch();
+  const {team} = useAppState();
   const validator = useMemo(() => new TeamValidator('gen9ou'), []);
-  const [raw, setRaw] = useState('');
+  // Prefill with the previously analyzed team so "Tweak team" doesn't dump the
+  // user back to a blank box.
+  const [raw, setRaw] = useState(() => team?.raw ?? '');
 
   const parsed = useMemo(() => {
     if (!raw.trim()) return undefined;

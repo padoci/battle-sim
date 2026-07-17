@@ -21,9 +21,17 @@ import type {PokemonSet, Team} from './types';
 const SAMPLES_INDEX = 'https://crob.at/api/samples/gen9ou';
 const CACHE_KEY = 'samples/gen9ou.json';
 const TTL_MS = 24 * 60 * 60 * 1000;
+/** A failed/empty attempt is negative-cached this long so a dead/blocked source
+ *  doesn't re-fetch on every navigation (but recovers within the hour). */
+const NEGATIVE_TTL_MS = 60 * 60 * 1000;
 /** Cap the fan-out: bounded fetches, aggressively cached. */
-const MAX_TEAMS = 30;
+const MAX_TEAMS = 12;
 const CONCURRENCY = 6;
+/** Hard cap on the whole network fetch — it can never hang the app. */
+const FETCH_TIMEOUT_MS = 8000;
+/** How long `loadOpponentTeams` will wait for a cold fetch before rendering
+ *  from the built-in pool (the fetch keeps running to warm the cache). */
+const UI_WAIT_MS = 3500;
 
 export interface SampleTeamsOptions {
   store: KVStore;
@@ -31,6 +39,10 @@ export interface SampleTeamsOptions {
   now?: () => number;
   /** Override the index URL (tests). */
   indexUrl?: string;
+  /** Hard network timeout for the whole fetch (tests). */
+  timeoutMs?: number;
+  /** How long loadOpponentTeams waits before falling back to base (tests). */
+  uiWaitMs?: number;
 }
 
 interface SampleRef {
@@ -87,12 +99,16 @@ function toRef(item: unknown): SampleRef | undefined {
   return undefined;
 }
 
-async function resolveExport(ref: SampleRef, fetchFn: typeof fetch): Promise<ResolvedExport | undefined> {
+async function resolveExport(
+  ref: SampleRef,
+  fetchFn: typeof fetch,
+  signal?: AbortSignal
+): Promise<ResolvedExport | undefined> {
   if (ref.paste) return {text: ref.paste, title: ref.title, author: ref.author};
   if (!ref.url) return undefined;
   const jsonUrl = `${ref.url.replace(/\/+$/, '')}/json`;
   try {
-    const res = await fetchFn(jsonUrl);
+    const res = await fetchFn(jsonUrl, {signal});
     if (!res.ok) return undefined;
     const body = (await res.json()) as {paste?: string; title?: string; author?: string};
     if (!body.paste) return undefined;
@@ -139,26 +155,41 @@ async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise
   return out;
 }
 
-export async function fetchSampleTeams(opts: SampleTeamsOptions): Promise<Team[]> {
-  const {store, fetchFn = fetch, now = Date.now, indexUrl = SAMPLES_INDEX} = opts;
-
+/**
+ * Fresh cached sample teams, or undefined if none/stale. A non-empty result is
+ * good for 24h; an empty (failed) result is negative-cached for 1h.
+ */
+async function readCached(store: KVStore, now: () => number): Promise<Team[] | undefined> {
   try {
     const cached = await store.get(CACHE_KEY);
-    if (cached && now() - cached.fetchedAt < TTL_MS) return cached.payload as Team[];
+    if (!cached) return undefined;
+    const payload = cached.payload as Team[];
+    const ttl = payload.length > 0 ? TTL_MS : NEGATIVE_TTL_MS;
+    return now() - cached.fetchedAt < ttl ? payload : undefined;
   } catch {
-    // cache miss / unusable store — fetch fresh
+    return undefined;
   }
+}
 
+export async function fetchSampleTeams(opts: SampleTeamsOptions): Promise<Team[]> {
+  const {store, fetchFn = fetch, now = Date.now, indexUrl = SAMPLES_INDEX, timeoutMs = FETCH_TIMEOUT_MS} = opts;
+
+  const cached = await readCached(store, now);
+  if (cached) return cached;
+
+  // Hard timeout: aborting guarantees the fetch can never hang indefinitely.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   let teams: Team[] = [];
   try {
-    const res = await fetchFn(indexUrl);
+    const res = await fetchFn(indexUrl, {signal: controller.signal});
     if (res.ok) {
       const refs = toArray(await res.json())
         .map(toRef)
         .filter((r): r is SampleRef => !!r)
         .slice(0, MAX_TEAMS);
       const validator = new TeamValidator('gen9ou');
-      const exports = await mapPool(refs, CONCURRENCY, ref => resolveExport(ref, fetchFn));
+      const exports = await mapPool(refs, CONCURRENCY, ref => resolveExport(ref, fetchFn, controller.signal));
       teams = exports
         .filter((e): e is ResolvedExport => !!e)
         .map(e => toTeam(e, validator))
@@ -166,16 +197,16 @@ export async function fetchSampleTeams(opts: SampleTeamsOptions): Promise<Team[]
     }
   } catch {
     teams = [];
+  } finally {
+    clearTimeout(timer);
   }
 
-  // Only cache a non-empty result: a transient failure should retry next time,
-  // not be pinned as "no samples" for the full TTL.
-  if (teams.length > 0) {
-    try {
-      await store.set(CACHE_KEY, {fetchedAt: now(), payload: teams});
-    } catch {
-      // non-fatal
-    }
+  // Cache the outcome either way — empty results are negative-cached (short TTL
+  // via readCached) so a dead source doesn't re-hit the network every load.
+  try {
+    await store.set(CACHE_KEY, {fetchedAt: now(), payload: teams});
+  } catch {
+    // non-fatal
   }
   return teams;
 }
@@ -205,17 +236,36 @@ export function mergeTeams(...groups: Team[][]): Team[] {
 
 /**
  * The full opponent pool for a client: the built-in `/teams` set plus the
- * runtime-fetched sample teams, deduped. Never rejects on the sample path.
+ * runtime-fetched sample teams, deduped. **Never blocks the UI on the network**:
+ * returns cached samples if present, otherwise renders from the built-in pool
+ * immediately and warms the cache in the background (bounded by a UI wait), so a
+ * slow/unreachable source can't stall "Dealing your first hand…" or the pool
+ * table. Never rejects on the sample path.
  */
 export async function loadOpponentTeams(
   client: DataClient,
   opts: Partial<SampleTeamsOptions> = {}
 ): Promise<Team[]> {
   const base = await client.teams();
+  const now = opts.now ?? Date.now;
+  const uiWaitMs = opts.uiWaitMs ?? UI_WAIT_MS;
   let samples: Team[] = [];
   try {
     const store = opts.store ?? (await openStore());
-    samples = await fetchSampleTeams({...opts, store});
+    const cached = await readCached(store, now);
+    if (cached) {
+      samples = cached;
+    } else {
+      // Cold: race the fetch against a short UI wait. If the source is fast
+      // (or mocked) we get the bigger pool now; if it's slow/hung we fall back
+      // to base and the fetch keeps running to warm the cache for next time.
+      const fetchPromise = fetchSampleTeams({...opts, store});
+      fetchPromise.catch(() => {}); // background warm — never an unhandled rejection
+      samples = await Promise.race([
+        fetchPromise.catch(() => [] as Team[]),
+        new Promise<Team[]>(resolve => setTimeout(() => resolve([]), uiWaitMs)),
+      ]);
+    }
   } catch {
     samples = [];
   }
