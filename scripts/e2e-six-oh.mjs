@@ -1,12 +1,14 @@
 /**
- * Stage 4 end-to-end walkthrough of "Can you 6-0?":
- * landing -> normal draft (6 bundles, Species Clause, ladder preview) ->
- * gauntlet (simulating state, battle stage at 1x, instant/skip) -> result
- * (flawless or eliminated) with post-mortem -> Draft again. Plus a beginner
- * two-stage draft spot-check.
+ * Stage 4 (v-next) end-to-end walkthrough of "Can you 6-0?":
+ * landing -> Easy two-stage draft (10 species -> set, Species Clause, ladder) ->
+ * gauntlet (simulating state, retro battle stage at 1x, instant/skip) -> result
+ * (flawless or eliminated) with post-mortem -> Draft again. Plus a Hard-mode
+ * bundle spot-check. The opponent pool is the built-in teams merged with
+ * mocked external sample teams (crob.at + pokepaste).
  *
- * Uses ?config=fast&seed=41 — FAST battles keep the run ~6x quicker and the
- * config knob is real product surface (the Tera-tuning session tool).
+ * Uses ?config=fast&seed=41 — FAST battles keep the run quick and Easy mode's
+ * early rungs field random opponents, quicker still. config is real product
+ * surface (the Tera-tuning session tool).
  *
  * Usage:
  *   npm run build
@@ -25,6 +27,71 @@ const shotsDir = process.argv.includes('--shots-dir')
   ? process.argv[process.argv.indexOf('--shots-dir') + 1]
   : 'logs';
 
+// A valid gen9ou export served as a mocked external "sample team". Its species
+// set does not collide with the base fixture, so it survives dedup and grows
+// the pool (proving the runtime fetch/import/validate/merge path).
+const SAMPLE_EXPORT = `Great Tusk @ Heavy-Duty Boots
+Ability: Protosynthesis
+Tera Type: Water
+EVs: 252 Atk / 4 Def / 252 Spe
+Jolly Nature
+- Headlong Rush
+- Ice Spinner
+- Rapid Spin
+- Knock Off
+
+Kingambit @ Leftovers
+Ability: Supreme Overlord
+Tera Type: Ghost
+EVs: 112 HP / 252 Atk / 144 Spe
+Adamant Nature
+- Swords Dance
+- Kowtow Cleave
+- Sucker Punch
+- Iron Head
+
+Dragapult @ Choice Specs
+Ability: Infiltrator
+Tera Type: Ghost
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+- Shadow Ball
+- Draco Meteor
+- Flamethrower
+- U-turn
+
+Gholdengo @ Air Balloon
+Ability: Good as Gold
+Tera Type: Fighting
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+- Make It Rain
+- Shadow Ball
+- Nasty Plot
+- Recover
+
+Gliscor @ Toxic Orb
+Ability: Poison Heal
+Tera Type: Water
+EVs: 244 HP / 248 SpD / 16 Spe
+Careful Nature
+- Earthquake
+- Knock Off
+- Protect
+- Spikes
+
+Slowking-Galar @ Heavy-Duty Boots
+Ability: Regenerator
+Tera Type: Water
+EVs: 248 HP / 8 Def / 252 SpD
+Sassy Nature
+IVs: 0 Atk / 0 Spe
+- Chilly Reception
+- Future Sight
+- Sludge Bomb
+- Thunder Wave
+`;
+
 function fail(message) {
   console.error(`E2E FAIL: ${message}`);
   process.exit(1);
@@ -41,6 +108,25 @@ async function routeData(page) {
           ? 'test/fixtures/gen9ou.sets.full.json'
           : 'test/fixtures/stats.fixture.json';
     route.fulfill({status: 200, contentType: 'application/json', body: readFileSync(file, 'utf8')});
+  });
+  // External sample-teams source: crob.at index -> pokepaste JSON. Two refs to
+  // the same export exercise dedup (one survives).
+  await page.route(/crob\.at\/api\/samples\/gen9ou/, route => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {name: 'E2E Sample Team', author: 'e2e', url: 'https://pokepast.es/e2e1'},
+        {name: 'E2E Sample Dupe', author: 'e2e', url: 'https://pokepast.es/e2e2'},
+      ]),
+    });
+  });
+  await page.route(/pokepast\.es\/.*\/json/, route => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({paste: SAMPLE_EXPORT, title: 'E2E Sample Team', author: 'e2e'}),
+    });
   });
 }
 
@@ -63,28 +149,35 @@ async function main() {
     if (await page.locator('.mode-card.disabled').count()) fail('no card should be disabled anymore');
     ok('landing: both modes enabled');
 
-    // 2. Normal draft with dev params.
+    // 2. Draft screen. Default is Normal (two-stage, 10 species).
     await page.goto(`http://localhost:${PORT}/#/sixoh?config=fast&seed=41`);
     await page.waitForSelector('.offer-card', {timeout: 60_000});
-    const bundleCount = await page.locator('.offer-card').count();
-    if (bundleCount !== 6) fail(`normal mode should offer 6 bundles, got ${bundleCount}`);
-    const firstBundle = await page.locator('.offer-card').first().textContent();
-    if (!/·/.test(firstBundle)) fail('bundle should show item/nature meta');
-    ok('normal draft deals 6 complete bundles');
+    const normalCount = await page.locator('.offer-card').count();
+    if (normalCount !== 10) fail(`normal mode should offer 10 species, got ${normalCount}`);
+    ok('default Normal mode deals 10 species (two-stage)');
+
+    // Switch to Easy (same two-stage draft; opponents ramp in difficulty).
+    await page.locator('.mode-toggle button', {hasText: 'Easy'}).click();
+    await page.waitForTimeout(300);
+    const easyCount = await page.locator('.offer-card').count();
+    if (easyCount !== 10) fail(`easy mode should offer 10 species, got ${easyCount}`);
+    ok('Easy mode selected — 10 species offers');
 
     // Ladder preview visible pre-gauntlet.
     const rungs = await page.locator('.ladder-preview .ladder-rung').count();
     if (rungs !== 6) fail(`ladder preview should show 6 rungs, got ${rungs}`);
     ok('gauntlet ladder revealed during draft');
 
-    // Pick 6; Species Clause: collect names as we go.
+    // Draft 6 via the two-stage flow (species -> set); Species Clause check.
     const picked = [];
     for (let i = 0; i < 6; i++) {
       const name = await page.locator('.offer-card .offer-name').first().textContent();
       if (picked.includes(name)) fail(`species offered again after drafting: ${name}`);
       picked.push(name);
       if (i === 2) await page.screenshot({path: `${shotsDir}/e2e-sixoh-draft.png`, fullPage: true});
-      await page.locator('.offer-card').first().click();
+      await page.locator('.offer-card').first().click(); // pick species
+      await page.waitForSelector('.set-card', {timeout: 10_000});
+      await page.locator('.set-card').first().click(); // pick its set
       await page.waitForTimeout(150);
     }
     const filled = await page.locator('.tray-slot.filled').count();
@@ -97,15 +190,16 @@ async function main() {
     await page.waitForSelector('.simulating, .battle-stage', {timeout: 15_000});
     ok('gauntlet started (simulating or stage visible)');
 
-    // 4. First battle replays at 1x: HP bars + growing log.
+    // 4. First battle replays at 1x on the retro stage: HP windows + growing log.
     await page.waitForSelector('.battle-stage', {timeout: 120_000});
     await page.waitForSelector('.hp-bar', {timeout: 30_000});
+    if ((await page.locator('.stage-field .hp-block').count()) < 1) fail('retro HP windows should render on the field');
     const logLen1 = (await page.locator('.battle-log').textContent()).length;
     await page.waitForTimeout(4000);
     const logLen2 = (await page.locator('.battle-log').textContent()).length;
     if (logLen2 <= logLen1) fail('battle log should grow during 1x replay');
     await page.screenshot({path: `${shotsDir}/e2e-sixoh-battle.png`});
-    ok('battle stage replays with animated HP bars and a paced log');
+    ok('retro battle stage replays with HP windows and a paced log');
 
     // 5. Instant through the rest of the run.
     await page.locator('.playback-controls button', {hasText: 'Instant'}).click();
@@ -148,23 +242,21 @@ async function main() {
     await page.waitForSelector('.offer-card', {timeout: 60_000});
     ok('Draft again restarts to a fresh hand');
 
-    // 8. Beginner two-stage spot-check.
+    // 8. Hard-mode bundle spot-check (6 mon+set bundles, one-click picks).
     const page2 = await browser.newPage({viewport: {width: 1440, height: 1000}});
     await routeData(page2);
     await page2.goto(`http://localhost:${PORT}/#/sixoh?config=fast&seed=7`);
     await page2.waitForSelector('.offer-card', {timeout: 60_000});
-    await page2.locator('.mode-toggle button', {hasText: 'Beginner'}).click();
+    await page2.locator('.mode-toggle button', {hasText: 'Hard'}).click();
     await page2.waitForTimeout(300);
-    const speciesCount = await page2.locator('.offer-card').count();
-    if (speciesCount !== 10) fail(`beginner should offer 10 species, got ${speciesCount}`);
+    const bundleCount = await page2.locator('.offer-card').count();
+    if (bundleCount !== 6) fail(`hard mode should offer 6 bundles, got ${bundleCount}`);
+    const firstBundle = await page2.locator('.offer-card').first().textContent();
+    if (!/·/.test(firstBundle)) fail('bundle should show item/nature meta');
     await page2.locator('.offer-card').first().click();
-    await page2.waitForSelector('.set-card', {timeout: 10_000});
-    const setCards = await page2.locator('.set-card').count();
-    if (setCards < 1) fail('species pick should reveal its named sets');
-    await page2.locator('.set-card').first().click();
     await page2.waitForTimeout(200);
-    if ((await page2.locator('.tray-slot.filled').count()) !== 1) fail('set pick should fill tray slot 1');
-    ok(`beginner two-stage flow works (10 species -> ${setCards} sets -> tray)`);
+    if ((await page2.locator('.tray-slot.filled').count()) !== 1) fail('bundle pick should fill tray slot 1');
+    ok(`hard bundle flow works (6 bundles -> one-click pick fills tray)`);
     await page2.close();
 
     console.log('\nE2E PASS — Can you 6-0? walkthrough green');

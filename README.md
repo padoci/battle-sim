@@ -8,7 +8,7 @@ No server. Fully static-hostable. All simulation runs in a web worker in your br
 
 ## Two modes
 
-- **Can you 6-0?** — a draft roguelike. Draft six Pokémon from randomized, usage-weighted offers (beginner: pick species then set; normal: pick mon+set bundles), then watch the AI pilot your team through a six-battle gauntlet, cinematically. Win all six to go flawless. Post-mortem tells you what ended the run — with the calc to back it up.
+- **Can you 6-0?** — a draft roguelike. Draft six Pokémon from randomized, usage-weighted offers (easy/normal: pick species then set; hard: pick mon+set bundles), then watch the AI pilot your team through a six-battle gauntlet, cinematically, styled like a classic handheld battle. Win all six to go flawless. Difficulty sets how hard the gauntlet fights back: **easy** starts against weak opponents and ramps up over the six battles, **normal** and **hard** field full-strength opponents throughout. Post-mortem tells you what ended the run — with the calc to back it up.
 - **Test your team** — paste a Showdown export, simulate it against a configurable field of real meta teams, and get a matchup dashboard: best/worst matchups rolled up into archetypes, individual threats with damage ranges, a game plan per matchup, all exportable as JSON or Markdown.
 
 ## How it works
@@ -53,7 +53,7 @@ Three design choices carry the whole thing:
 | [`@pkmn/smogon`](https://github.com/pkmn/smogon) | wire types for data.pkmn.cc |
 | React + Vite + TypeScript | app shell (hand-rolled hash router, no other runtime deps) |
 
-Data comes from [data.pkmn.cc](https://data.pkmn.cc) per format: `/sets/gen9ou.json` (draft pool + pickable sets), `/stats/gen9ou.json` (usage weighting), `/teams/gen9ou.json` (opponent teams), cached client-side in IndexedDB with a ~24h TTL and a GitHub mirror fallback.
+Data comes from [data.pkmn.cc](https://data.pkmn.cc) per format: `/sets/gen9ou.json` (draft pool + pickable sets), `/stats/gen9ou.json` (usage weighting), `/teams/gen9ou.json` (opponent teams), cached client-side in IndexedDB with a ~24h TTL and a GitHub mirror fallback. The opponent pool is augmented at runtime with real [Smogon Sample Teams](https://crob.at) (resolved through pokepaste, imported + validated in the browser, merged and deduped) — best-effort, so the app still works from the built-in pool alone if that source is unreachable.
 
 ## Getting started
 

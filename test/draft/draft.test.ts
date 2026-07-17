@@ -23,8 +23,8 @@ const pool: PoolEntry[] = Object.entries(sets).map(([species, byName]) => ({
   usageWeighted: stats.pokemon[species]?.usage.weighted ?? 0,
 }));
 
-function draftWholeTeamNormal(seed: number): DraftState {
-  let state = createDraft(pool, sets, 'normal', seed);
+function draftWholeTeamHard(seed: number): DraftState {
+  let state = createDraft(pool, sets, 'hard', seed);
   while (state.phase !== 'complete') {
     state = pickBundle(state, pool, sets, 0);
   }
@@ -33,21 +33,22 @@ function draftWholeTeamNormal(seed: number): DraftState {
 
 describe('createDraft / offers', () => {
   it('deals the right offer counts per mode', () => {
-    expect(createDraft(pool, sets, 'beginner', 1).offers).toHaveLength(OFFERS_PER_ROUND.beginner);
+    expect(createDraft(pool, sets, 'easy', 1).offers).toHaveLength(OFFERS_PER_ROUND.easy);
     expect(createDraft(pool, sets, 'normal', 1).offers).toHaveLength(OFFERS_PER_ROUND.normal);
+    expect(createDraft(pool, sets, 'hard', 1).offers).toHaveLength(OFFERS_PER_ROUND.hard);
   });
 
   it('same seed + same picks -> identical offers (determinism, no reroll)', () => {
-    const a = draftWholeTeamNormal(1234);
-    const b = draftWholeTeamNormal(1234);
+    const a = draftWholeTeamHard(1234);
+    const b = draftWholeTeamHard(1234);
     expect(a.team).toEqual(b.team);
 
-    const c = createDraft(pool, sets, 'normal', 1234);
-    expect(c.offers).toEqual(createDraft(pool, sets, 'normal', 1234).offers);
+    const c = createDraft(pool, sets, 'hard', 1234);
+    expect(c.offers).toEqual(createDraft(pool, sets, 'hard', 1234).offers);
   });
 
-  it('normal bundles are complete concrete sets with visible slashes', () => {
-    const state = createDraft(pool, sets, 'normal', 5);
+  it('hard bundles are complete concrete sets with visible slashes', () => {
+    const state = createDraft(pool, sets, 'hard', 5);
     for (const offer of state.offers) {
       expect(offer.setName).toBeTruthy();
       expect(offer.set!.species).toBe(offer.species);
@@ -60,7 +61,7 @@ describe('createDraft / offers', () => {
 
 describe('Species Clause', () => {
   it('drafted species never reappear; final team has 6 distinct species', () => {
-    let state = createDraft(pool, sets, 'normal', 77);
+    let state = createDraft(pool, sets, 'hard', 77);
     const seen: string[] = [];
     while (state.phase !== 'complete') {
       for (const offer of state.offers) {
@@ -74,9 +75,9 @@ describe('Species Clause', () => {
   });
 });
 
-describe('beginner two-stage flow', () => {
+describe('two-stage flow (easy/normal)', () => {
   it('species pick reveals that species\' named sets; set pick fills the tray', () => {
-    let state = createDraft(pool, sets, 'beginner', 9);
+    let state = createDraft(pool, sets, 'easy', 9);
     const species = state.offers[3].species;
     state = pickSpecies(state, sets, species);
     expect(state.phase).toBe('set');
@@ -88,11 +89,20 @@ describe('beginner two-stage flow', () => {
     expect(state.team).toEqual([{species, setName: chosen.setName, set: chosen.set}]);
     expect(state.phase).toBe('species');
     expect(state.round).toBe(2);
-    expect(state.offers).toHaveLength(OFFERS_PER_ROUND.beginner);
+    expect(state.offers).toHaveLength(OFFERS_PER_ROUND.easy);
+  });
+
+  it('normal shares the two-stage flow (species pick reveals sets)', () => {
+    let state = createDraft(pool, sets, 'normal', 9);
+    expect(state.offers).toHaveLength(OFFERS_PER_ROUND.normal);
+    const species = state.offers[0].species;
+    state = pickSpecies(state, sets, species);
+    expect(state.phase).toBe('set');
+    expect(state.setOptions!.length).toBeGreaterThan(0);
   });
 
   it("the picked set IS the displayed 'first'-resolved set", () => {
-    let state = createDraft(pool, sets, 'beginner', 11);
+    let state = createDraft(pool, sets, 'easy', 11);
     const species = state.offers[0].species;
     state = pickSpecies(state, sets, species);
     const option = state.setOptions![0];

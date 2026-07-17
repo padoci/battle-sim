@@ -4,22 +4,26 @@ import {nextRng, offerWeight, sampleWithoutReplacement} from './sample';
 
 /**
  * The draft engine (ui-spec §4b): 6 rounds; offers are usage-weighted
- * softened samples excluding already-drafted species (Species Clause);
- * beginner picks species then set, normal picks (species, set) bundles.
+ * softened samples excluding already-drafted species (Species Clause).
+ * `easy`/`normal` pick a species then its set (10 options, more curation);
+ * `hard` picks (species, set) bundles (6 options, less help). `easy` and
+ * `normal` share the draft flow — they differ only in gauntlet difficulty
+ * (easy ramps the opponent AI up over the six battles).
  * Pure functional state — same seed + same picks = same offers. No reroll.
  *
  * Slash resolution is 'first' everywhere: what the picker displays is
  * exactly what battles (matches @pkmn/smogon's own resolution).
  */
-export type DraftMode = 'beginner' | 'normal';
+export type DraftMode = 'easy' | 'normal' | 'hard';
 
-export const OFFERS_PER_ROUND: Record<DraftMode, number> = {beginner: 10, normal: 6};
+/** `hard` is the only bundle mode; easy/normal share the two-stage flow. */
+export const OFFERS_PER_ROUND: Record<DraftMode, number> = {easy: 10, normal: 10, hard: 6};
 export const TEAM_SIZE = 6;
 
 export interface DraftOffer {
   species: string;
   usageWeighted: number;
-  /** Normal-mode bundles carry the concrete set. */
+  /** Hard-mode bundles carry the concrete set. */
   setName?: string;
   set?: PokemonSet;
   slashes?: SlashInfo;
@@ -44,7 +48,7 @@ export interface DraftState {
   round: number;
   phase: 'species' | 'set' | 'complete';
   offers: DraftOffer[];
-  /** Beginner stage 2: the chosen species' named dex sets. */
+  /** Two-stage (easy/normal) stage 2: the chosen species' named dex sets. */
   setOptions?: SetOption[];
   team: DraftPick[];
 }
@@ -67,14 +71,15 @@ function dealOffers(data: PoolData, state: Pick<DraftState, 'mode' | 'rngState' 
     state.rngState
   );
 
-  if (state.mode === 'beginner') {
+  if (state.mode !== 'hard') {
+    // Easy/normal: species-only offers; the set is chosen in stage 2.
     return {
       offers: picked.map(entry => ({species: entry.species, usageWeighted: entry.usageWeighted})),
       rngState,
     };
   }
 
-  // Normal: each offer is a concrete bundle — set name chosen uniformly
+  // Hard: each offer is a concrete bundle — set name chosen uniformly
   // from the species' named sets via the same rng stream.
   let rng = rngState;
   const offers = picked.map(entry => {
@@ -99,9 +104,9 @@ export function createDraft(pool: PoolEntry[], sets: SetsData, mode: DraftMode, 
   return {mode, rngState, round: 1, phase: 'species', offers, team: []};
 }
 
-/** Beginner stage 1: choose a species; reveals its named sets. */
+/** Two-stage (easy/normal) stage 1: choose a species; reveals its named sets. */
 export function pickSpecies(state: DraftState, sets: SetsData, species: string): DraftState {
-  if (state.mode !== 'beginner' || state.phase !== 'species') throw new Error('not picking species');
+  if (state.mode === 'hard' || state.phase !== 'species') throw new Error('not picking species');
   if (!state.offers.some(offer => offer.species === species)) throw new Error(`not offered: ${species}`);
   const bySet = sets[species] ?? {};
   const setOptions = Object.entries(bySet).map(([setName, moveset]: [string, Moveset]) => ({
@@ -129,18 +134,18 @@ function advance(state: DraftState, data: PoolData, pick: DraftPick): DraftState
   };
 }
 
-/** Beginner stage 2: choose one of the revealed sets. */
+/** Two-stage (easy/normal) stage 2: choose one of the revealed sets. */
 export function pickSet(state: DraftState, pool: PoolEntry[], sets: SetsData, setName: string): DraftState {
-  if (state.mode !== 'beginner' || state.phase !== 'set' || !state.setOptions) throw new Error('not picking a set');
+  if (state.mode === 'hard' || state.phase !== 'set' || !state.setOptions) throw new Error('not picking a set');
   const option = state.setOptions.find(o => o.setName === setName);
   if (!option) throw new Error(`unknown set: ${setName}`);
   const species = state.offers[0].species;
   return advance(state, {pool, sets}, {species, setName, set: option.set});
 }
 
-/** Normal mode: pick a whole bundle. */
+/** Hard mode: pick a whole bundle. */
 export function pickBundle(state: DraftState, pool: PoolEntry[], sets: SetsData, offerIndex: number): DraftState {
-  if (state.mode !== 'normal' || state.phase !== 'species') throw new Error('not picking a bundle');
+  if (state.mode !== 'hard' || state.phase !== 'species') throw new Error('not picking a bundle');
   const offer = state.offers[offerIndex];
   if (!offer?.set || !offer.setName) throw new Error(`invalid bundle index: ${offerIndex}`);
   return advance(state, {pool, sets}, {species: offer.species, setName: offer.setName, set: offer.set});

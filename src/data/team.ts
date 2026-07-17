@@ -22,3 +22,24 @@ export function teamMemberToSet(member: TeamMemberWire): PokemonSet {
     ...(member.teraType ? {teraType: member.teraType} : {}),
   };
 }
+
+/**
+ * Collapse a concrete `PokemonSet` (e.g. from `Teams.import`) back to the
+ * sparse `/teams` wire shape, so externally-sourced teams flow through the
+ * same `teamMemberToSet` path as the built-in pool. Inverse enough of
+ * `teamMemberToSet`: the round-trip re-normalizes defaults identically.
+ */
+export function setToTeamMember(set: PokemonSet): TeamMemberWire {
+  return {
+    species: set.species,
+    ...(set.item ? {item: set.item} : {}),
+    ability: set.ability,
+    ...(set.teraType ? {teraType: set.teraType} : {}),
+    ...(set.nature ? {nature: set.nature} : {}),
+    ...(set.gender ? {gender: set.gender} : {}),
+    ...(set.level ? {level: set.level} : {}),
+    ...(set.evs ? {evs: set.evs} : {}),
+    ...(set.ivs ? {ivs: set.ivs} : {}),
+    moves: [...set.moves],
+  };
+}

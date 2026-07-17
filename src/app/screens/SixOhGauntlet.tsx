@@ -1,6 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
 import {Icons, Sprites} from '@pkmn/img';
-import {gen9} from '../../data/gen';
 import type {PokemonSet} from '../../data/types';
 import {parseProtocol} from '../../replay/parse';
 import {toBeats} from '../../replay/pace';
@@ -28,14 +27,20 @@ function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
   );
 }
 
+/** Classic handheld HP colour: green > 50%, yellow > 20%, red below. */
+function hpColor(frac: number): string {
+  if (frac > 0.5) return '#48c451';
+  if (frac > 0.2) return '#f6c343';
+  return '#e83c2e';
+}
+
 function HpBar({mon}: {mon: MonView}) {
-  const gen = gen9();
-  const primaryType = mon.teraType ?? gen.species.get(mon.species)?.types[0];
   const frac = mon.maxhp > 0 ? mon.hp / mon.maxhp : 0;
   return (
     <div className="hp-block">
       <div className="hp-head">
         <span className="hp-name">{mon.species}</span>
+        <span className="mono hp-level">Lv100</span>
         {mon.teraType && <span className="tera-badge" style={{background: typeColor(mon.teraType)}}>Tera {mon.teraType}</span>}
         {mon.status && <span className="status-chip">{mon.status.toUpperCase()}</span>}
         {Object.entries(mon.boosts)
@@ -46,11 +51,14 @@ function HpBar({mon}: {mon: MonView}) {
             </span>
           ))}
       </div>
-      <div className="hp-bar">
-        <div
-          className="hp-fill"
-          style={{width: `${Math.max(0, frac * 100)}%`, background: typeColor(primaryType)}}
-        />
+      <div className="hp-row">
+        <span className="hp-hp mono">HP</span>
+        <div className="hp-bar">
+          <div
+            className="hp-fill"
+            style={{width: `${Math.max(0, frac * 100)}%`, background: hpColor(frac)}}
+          />
+        </div>
       </div>
       <span className="mono hp-label">{Math.round(frac * 100)}%</span>
     </div>

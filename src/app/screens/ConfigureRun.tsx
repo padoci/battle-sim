@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import {Icons} from '@pkmn/img';
 import {DataClient} from '../../data/client';
+import {loadOpponentTeams} from '../../data/sampleTeams';
 import {teamMemberToSet} from '../../data/team';
 import {gen9} from '../../data/gen';
 import {classifyTeam} from '../../analysis/archetype';
@@ -74,8 +75,7 @@ export function ConfigureRun() {
   useEffect(() => {
     if (state.pool.length > 0) return;
     const dataClient = new DataClient('gen9ou');
-    dataClient
-      .teams()
+    loadOpponentTeams(dataClient)
       .then(teams => {
         const pool: PoolEntryWithMeta[] = teams.map((team, index) => {
           const sets = team.data.map(teamMemberToSet);

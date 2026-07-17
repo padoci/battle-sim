@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import {Icons} from '@pkmn/img';
 import {DataClient} from '../../data/client';
+import {loadOpponentTeams} from '../../data/sampleTeams';
 import {teamMemberToSet} from '../../data/team';
 import {gen9} from '../../data/gen';
 import type {PoolEntry, SetsData} from '../../data/types';
@@ -80,7 +81,7 @@ export function SixOhDraft() {
   useEffect(() => {
     if (state.draft || data) return;
     const client = new DataClient('gen9ou');
-    Promise.all([client.pool(), client.sets(), client.teams()])
+    Promise.all([client.pool(), client.sets(), loadOpponentTeams(client)])
       .then(([pool, sets, teams]) => {
         const seed = dev.seed ?? Math.floor(Math.random() * 2 ** 31);
         const opponentIndices = sampleOpponents(teams.length, 6, seed ^ 0x0bb57);
@@ -142,18 +143,25 @@ export function SixOhDraft() {
 
       <div className="mode-toggle" role="group" aria-label="Difficulty">
         <button
-          className={draft.mode === 'beginner' ? 'active' : ''}
-          disabled={!canSwitchMode && draft.mode !== 'beginner'}
-          onClick={() => switchMode('beginner')}
+          className={draft.mode === 'easy' ? 'active' : ''}
+          disabled={!canSwitchMode && draft.mode !== 'easy'}
+          onClick={() => switchMode('easy')}
         >
-          Beginner <span className="hint">10 options — pick the species, then its set</span>
+          Easy <span className="hint">10 options — opponents start weak and ramp up</span>
         </button>
         <button
           className={draft.mode === 'normal' ? 'active' : ''}
           disabled={!canSwitchMode && draft.mode !== 'normal'}
           onClick={() => switchMode('normal')}
         >
-          Normal <span className="hint">6 options — mon and set together, whole package</span>
+          Normal <span className="hint">10 options — full-strength opponents all six</span>
+        </button>
+        <button
+          className={draft.mode === 'hard' ? 'active' : ''}
+          disabled={!canSwitchMode && draft.mode !== 'hard'}
+          onClick={() => switchMode('hard')}
+        >
+          Hard <span className="hint">6 options — mon and set together, full strength</span>
         </button>
       </div>
 
@@ -164,7 +172,7 @@ export function SixOhDraft() {
         </h2>
       )}
 
-      {draft.phase === 'species' && draft.mode === 'beginner' && (
+      {draft.phase === 'species' && draft.mode !== 'hard' && (
         <div className="offer-grid ten">
           {draft.offers.map(offer => (
             <button
@@ -193,7 +201,7 @@ export function SixOhDraft() {
         </div>
       )}
 
-      {draft.phase === 'species' && draft.mode === 'normal' && (
+      {draft.phase === 'species' && draft.mode === 'hard' && (
         <div className="offer-grid bundles">
           {draft.offers.map((offer, index) => (
             <button
