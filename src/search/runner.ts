@@ -3,9 +3,11 @@ import type {PokemonSet} from '../data/types';
 import {createBattle, isOver, makeJointChoice, winner} from '../engine/battle';
 import {legalActions, toChoice} from '../engine/actions';
 import {buildCalcTable, type CalcTable} from '../engine/calc/table';
+import {extractState} from '../engine/snapshot';
 import {makeRng, pick, type Rng, type Seed} from '../engine/rng';
 import type {SearchConfig} from './config';
 import {chooseAction, chooseTurn, type TurnTrace} from './search';
+import {emptyStats, recordTurn, type BattleStats} from './stats';
 
 export type Policy = {kind: 'search'; config: SearchConfig} | {kind: 'random'};
 
@@ -18,6 +20,14 @@ export interface BattleJob {
   maxTurns?: number;
   collectTrace?: boolean;
   collectLog?: boolean;
+  /** Record structured per-battle stats (faints, damage tally, speed race). */
+  collectStats?: boolean;
+  /**
+   * Stable opponent identity for CalcTable reuse across a bulk run's
+   * battles. Only meaningful while the OTHER team stays fixed for the whole
+   * run (a run-scoped cache) — see resolveTable.
+   */
+  opponentKey?: string;
 }
 
 export interface BattleResult {
@@ -31,6 +41,7 @@ export interface BattleResult {
   nodesPerDecision: number;
   trace?: TurnTrace[];
   protocolLog?: string[];
+  stats?: BattleStats;
 }
 
 function percentile(sorted: number[], p: number): number {
@@ -48,6 +59,26 @@ function samePolicies(policies: [Policy, Policy]): boolean {
 
 function randomChoice(battle: Parameters<typeof legalActions>[0], side: 0 | 1, rng: Rng): string {
   return toChoice(pick(rng, legalActions(battle, side)));
+}
+
+/**
+ * Get (or build and cache) the CalcTable for a job's `opponentKey`.
+ * The cache MUST be scoped to one batch/run where the user team is fixed:
+ * it is keyed by opponent identity alone, so reusing it across runs with a
+ * different first team would silently serve stale tables.
+ */
+export function resolveTable(
+  cache: Map<string, CalcTable>,
+  gen: Generation,
+  job: BattleJob
+): CalcTable | undefined {
+  if (!job.opponentKey) return undefined;
+  let table = cache.get(job.opponentKey);
+  if (!table) {
+    table = buildCalcTable(gen, job.teams);
+    cache.set(job.opponentKey, table);
+  }
+  return table;
 }
 
 /**
@@ -72,11 +103,14 @@ export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): B
 
   const traces: TurnTrace[] = [];
   const decisionMs: number[] = [];
+  const stats = job.collectStats ? emptyStats() : undefined;
   let nodes = 0;
   let decisions = 0;
 
   try {
     while (!isOver(battle) && decisions < maxTurns) {
+      const statePrev = stats ? extractState(battle) : undefined;
+      const logStart = stats ? battle.log.length : 0;
       let c1: string;
       let c2: string;
 
@@ -104,6 +138,9 @@ export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): B
 
       makeJointChoice(battle, c1, c2);
       decisions++;
+      if (stats && statePrev) {
+        recordTurn(stats, statePrev, extractState(battle), battle.log.slice(logStart), battle.turn);
+      }
     }
   } catch (error) {
     throw new Error(
@@ -129,18 +166,23 @@ export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): B
     nodesPerDecision: decisions ? nodes / decisions : 0,
     ...(job.collectTrace ? {trace: traces} : {}),
     ...(job.collectLog ? {protocolLog: [...battle.log]} : {}),
+    ...(stats ? {stats} : {}),
   };
 }
 
-/** Run a batch sequentially, invoking `onEach` after every battle. */
+/**
+ * Run a batch sequentially, invoking `onEach` after every battle. Jobs
+ * carrying an `opponentKey` share one CalcTable per key for the batch.
+ */
 export function runBattles(
   gen: Generation,
   jobs: BattleJob[],
   onEach?: (result: BattleResult, index: number) => void
 ): BattleResult[] {
+  const tables = new Map<string, CalcTable>();
   const results: BattleResult[] = [];
   for (const [index, job] of jobs.entries()) {
-    const result = runBattle(gen, job);
+    const result = runBattle(gen, job, resolveTable(tables, gen, job));
     results.push(result);
     onEach?.(result, index);
   }

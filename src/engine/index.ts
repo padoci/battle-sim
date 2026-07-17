@@ -8,6 +8,6 @@ export {buildCalcTable, ensureFresh, getEntry} from './calc/table';
 export type {CalcTable, DamageEntry, TeraSlices, MonIdentity} from './calc/table';
 export {damageScalar, modifiedFrac, koProb, stageMultiplier} from './calc/modifiers';
 export type {FieldContext} from './calc/modifiers';
-export {evaluate, evaluatePokemon, burnMultiplier, threat, raceSpeed, WEIGHTS} from './eval';
+export {evaluate, evaluatePokemon, burnMultiplier, threat, raceSpeed, fasterSide, WEIGHTS} from './eval';
 export {makeRng, pick, seedFromInts, randomSeed} from './rng';
 export type {Rng, Seed} from './rng';

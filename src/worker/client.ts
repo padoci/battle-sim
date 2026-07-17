@@ -1,13 +1,22 @@
 import type {BattleJob, BattleResult} from '../search/runner';
 import type {WorkerRequest, WorkerResponse} from './protocol';
 
+export interface RunOutcome {
+  results: BattleResult[];
+  totalMs: number;
+  /** True when the run stopped early via cancel(); results hold what finished. */
+  aborted: boolean;
+}
+
 export interface SimClient {
   /** Resolves once the worker has initialized (dex loaded). */
   ready: Promise<number>;
   run(
     jobs: BattleJob[],
     onProgress?: (done: number, total: number, result: BattleResult) => void
-  ): Promise<{results: BattleResult[]; totalMs: number}>;
+  ): Promise<RunOutcome>;
+  /** Ask the in-flight run to stop after the current battle (keeps the worker alive). */
+  cancel(): void;
   terminate(): void;
 }
 
@@ -15,6 +24,7 @@ export interface SimClient {
 export function createSimClient(): SimClient {
   const worker = new Worker(new URL('./sim.worker.ts', import.meta.url), {type: 'module'});
   let nextId = 1;
+  let inFlightId: number | null = null;
 
   let readyResolve!: (ms: number) => void;
   const ready = new Promise<number>(resolve => (readyResolve = resolve));
@@ -22,7 +32,7 @@ export function createSimClient(): SimClient {
   const pending = new Map<
     number,
     {
-      resolve: (value: {results: BattleResult[]; totalMs: number}) => void;
+      resolve: (value: RunOutcome) => void;
       reject: (error: Error) => void;
       onProgress?: (done: number, total: number, result: BattleResult) => void;
     }
@@ -40,9 +50,11 @@ export function createSimClient(): SimClient {
       job.onProgress?.(message.done, message.total, message.result);
     } else if (message.type === 'done') {
       pending.delete(message.id);
-      job.resolve({results: message.results, totalMs: message.totalMs});
+      if (inFlightId === message.id) inFlightId = null;
+      job.resolve({results: message.results, totalMs: message.totalMs, aborted: !!message.aborted});
     } else if (message.type === 'error') {
       pending.delete(message.id);
+      if (inFlightId === message.id) inFlightId = null;
       job.reject(new Error(message.message));
     }
   };
@@ -51,10 +63,16 @@ export function createSimClient(): SimClient {
     ready,
     run(jobs, onProgress) {
       const id = nextId++;
+      inFlightId = id;
       return new Promise((resolve, reject) => {
         pending.set(id, {resolve, reject, onProgress});
         worker.postMessage({type: 'run', id, jobs} satisfies WorkerRequest);
       });
+    },
+    cancel() {
+      if (inFlightId !== null) {
+        worker.postMessage({type: 'abort', id: inFlightId} satisfies WorkerRequest);
+      }
     },
     terminate() {
       worker.terminate();
