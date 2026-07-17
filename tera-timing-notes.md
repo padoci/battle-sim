@@ -120,9 +120,39 @@ a new decay parameter.
 
 ### Open questions
 
-- Exact decay shape (linear in turns? step by faints?) and magnitude — tune
-  empirically against win rate.
 - Metamon (RL, PokéAgent Challenge 2025) is a plausibly stronger baseline than
   PokéChamp and wasn't covered — worth a look if we want a comparison target.
 - Whether to add a small **"low future value" early-spend guard**: if no future
   KO-flip is reachable in the current matchup, don't over-hold.
+- A more literal KO-flip gate (compare Tera vs no-Tera KO odds for the active in
+  the still-holding state) if the decaying-bar proxy proves too blunt.
+
+## Part 4 — Implemented + measured (shipped)
+
+Implemented as a decaying option value in `src/engine/eval.ts`:
+`teraOptionValue = TERA_AVAILABLE × max(0, 1 − faints / TERA_DECAY_FAINTS)`,
+tunable per battle via `EvalOverrides` and the gauntlet `?tera=N` knob. Measured
+with `scripts/sim-gauntlet.ts` (timing) and `scripts/sim-tera-ab.ts` (head-to-head
+strength via per-side `evalOverridesBySide`).
+
+**Timing sweep** (normal mode, FAST, player p1 mean Tera turn):
+
+| eval | mean Tera turn | % through battle |
+|---|---|---|
+| old flat +10 | 3.3 | 13% |
+| 30 / decay 8 | 7.5 | 24% |
+| **50 / decay 8 (shipped)** | 12.8 | 42% |
+
+The base value monotonically controls timing; decay(8 faints) handles endgame
+spending. It still Teras ~100% *eventually* — the goal was to kill the turn-3
+reflex, not to hoard forever.
+
+**Strength A/B** (new eval vs old flat +10, side-swapped, FAST):
+
+- 30/8 vs old, N=40: 22–18 (55%, within noise).
+- **50/8 vs old, N=60: 30–30 (50%, dead neutral)** while Tera moved 6.2 → 10.6.
+
+Conclusion: holding Tera to ~mid-game is **win-rate-neutral** — a free behavioural
+improvement. **Shipped `TERA_AVAILABLE = 50`, `TERA_DECAY_FAINTS = 8`.** Applies
+to all modes and both sides (zero-sum preserved). Full suite (184) + six-oh e2e
+green.
