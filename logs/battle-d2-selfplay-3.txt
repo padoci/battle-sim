@@ -1,0 +1,279 @@
+=== P1 vs P2 — winner: P1 in 23 turns · 29 decisions · 18837 ms search · 241 nodes/decision ===
+
+  P1's Iron Treads switched in (100%)
+  P2's Darkrai switched in (100%)
+
+== Turn 1 ==
+P1 -> earthpower+tera  [p=0.15 | switch zamazenta 0.85]
+P2 -> switch zamazenta  [p=0.73 | darkpulse+tera 0.22, darkpulse 0.04]
+  root v=3.0  nodes=494  ms=1295
+  P2's Zamazenta switched in (100%)
+    P2's Zamazenta +1 def
+    P1's Iron Treads TERASTALLIZED -> Ghost
+  P1's Iron Treads used Earth Power
+    P2's Zamazenta -> 74%
+    P2's Zamazenta healed -> 80%
+
+== Turn 2 ==
+P1 -> stealthrock  [p=0.96 | switch enamorus 0.04]
+P2 -> irondefense  [p=0.85 | heavyslam 0.15]
+  root v=31.9  nodes=480  ms=1259
+  P1's Iron Treads used Stealth Rock
+    P2: P2 +move: Stealth Rock
+  P2's Zamazenta used Iron Defense
+    P2's Zamazenta +2 def
+    P2's Zamazenta healed -> 86%
+
+== Turn 3 ==
+P1 -> earthpower  [p=0.48 | switch skeledirge 0.52]
+P2 -> irondefense  [p=0.69 | heavyslam 0.22, roar 0.09]
+  root v=44.6  nodes=480  ms=1327
+  P1's Iron Treads used Earth Power
+    P2's Zamazenta -> 60%
+  P2's Zamazenta used Iron Defense
+    P2's Zamazenta +2 def
+    P2's Zamazenta healed -> 66%
+
+== Turn 4 ==
+P1 -> rapidspin  [p=0.68 | earthpower 0.21, steelbeam 0.11]
+P2 -> heavyslam  [p=0.77 | roar 0.17, bodypress+tera 0.06]
+  root v=52.5  nodes=480  ms=1257
+  P1's Iron Treads used Rapid Spin
+    P2's Zamazenta -> 63%
+    P1's Iron Treads +1 spe
+  P2's Zamazenta used Heavy Slam
+    (crit P1's Iron Treads)
+    P1's Iron Treads -> 86%
+    P2's Zamazenta healed -> 69%
+
+== Turn 5 ==
+P1 -> stealthrock  [p=1.00]
+P2 -> roar  [p=1.00]
+  root v=36.9  nodes=480  ms=1247
+  P1's Iron Treads used Stealth Rock
+  P2's Zamazenta used Roar
+  P1's Ogerpon switched in (100%)
+    P2's Zamazenta healed -> 76%
+
+== Turn 6 ==
+P1 -> powerwhip  [p=0.28 | switch skeledirge 0.72]
+P2 -> roar  [p=0.50 | bodypress 0.50]
+  root v=-27.6  nodes=288  ms=723
+  P1's Ogerpon used Power Whip
+    P2's Zamazenta -> 62%
+  P2's Zamazenta used Roar
+  P1's Roaring Moon switched in (100%)
+    P2's Zamazenta healed -> 68%
+
+== Turn 7 ==
+P1 -> switch skeledirge  [p=0.89 | earthquake 0.07, knockoff 0.03]
+P2 -> roar  [p=0.62 | bodypress 0.38]
+  root v=20.7  nodes=312  ms=1020
+  P1's Skeledirge switched in (100%)
+  P2's Zamazenta used Roar
+  P1's Roaring Moon switched in (100%)
+    P2's Zamazenta healed -> 74%
+
+== Turn 8 ==
+P1 -> switch skeledirge  [p=0.73 | earthquake 0.27]
+P2 -> roar  [p=0.49 | bodypress 0.51]
+  root v=-24.7  nodes=312  ms=932
+  P1's Skeledirge switched in (100%)
+  P2's Zamazenta used Roar
+  P1's Iron Treads switched in (86%)
+    P2's Zamazenta healed -> 80%
+
+== Turn 9 ==
+P1 -> steelbeam  [p=0.23 | earthpower 0.77]
+P2 -> heavyslam  [p=0.60 | irondefense 0.40]
+  root v=39.8  nodes=480  ms=1469
+  P2's Zamazenta used Heavy Slam
+    P1's Iron Treads -> 77%
+  P1's Iron Treads used Steel Beam
+    P2's Zamazenta -> 34%
+    P1's Iron Treads -> 27%
+    P2's Zamazenta healed -> 40%
+
+== Turn 10 ==
+P1 -> steelbeam  [p=0.65 | earthpower 0.35]
+P2 -> heavyslam  [p=0.93 | switch roaringmoon 0.07]
+  root v=45.1  nodes=388  ms=936
+P1 -> switch ogerponwellspring  [p=0.66 | switch zamazenta 0.34]
+P2 -> switch enamorus  [p=0.57 | switch roaringmoon 0.43]
+  root v=105.7  nodes=250  ms=637
+  P2's Zamazenta used Heavy Slam
+    P1's Iron Treads -> 17%
+  P1's Iron Treads used Steel Beam
+    P2's Zamazenta -> fainted
+    P1's Iron Treads -> fainted
+    P1's Iron Treads fainted!
+    P2's Zamazenta fainted!
+  P2's Enamorus switched in (100%)
+  P1's Ogerpon switched in (100%)
+    P2's Enamorus -> 76%
+
+== Turn 11 ==
+P1 -> uturn  [p=0.15 | ivycudgel 0.85]
+P2 -> moonblast  [p=0.46 | switch roaringmoon 0.54]
+  root v=111.0  nodes=212  ms=526
+P1 -> switch skeledirge  [p=1.00]
+P2 -> pass  [p=1.00]
+  root v=32.7  nodes=40  ms=104
+  P2's Enamorus used Moonblast
+    P1's Ogerpon -> 44%
+  P1's Ogerpon used U-turn
+    (resisted P2's Enamorus)
+    P2's Enamorus -> 66%
+  P1's Skeledirge switched in (100%)
+
+== Turn 12 ==
+P1 -> torchsong  [p=0.90 | alluringvoice 0.10]
+P2 -> moonblast+tera  [p=1.00]
+  root v=98.5  nodes=108  ms=293
+    P2's Enamorus TERASTALLIZED -> Ground
+  P2's Enamorus used Moonblast
+    (resisted P1's Skeledirge)
+    (crit P1's Skeledirge)
+    P1's Skeledirge -> 68%
+  P1's Skeledirge used Torch Song
+    P2's Enamorus -> 24%
+    P1's Skeledirge +1 spa
+
+== Turn 13 ==
+P1 -> slackoff  [p=0.28 | torchsong 0.72]
+P2 -> moonblast  [p=0.87 | switch darkrai 0.13]
+  root v=111.4  nodes=162  ms=432
+  P2's Enamorus used Moonblast
+    (resisted P1's Skeledirge)
+    P1's Skeledirge -> 49%
+  P1's Skeledirge used Slack Off
+    P1's Skeledirge healed -> 99%
+
+== Turn 14 ==
+P1 -> torchsong  [p=1.00]
+P2 -> moonblast  [p=1.00]
+  root v=167.6  nodes=168  ms=447
+P1 -> pass  [p=1.00]
+P2 -> switch glimmora  [p=1.00]
+  root v=130.2  nodes=40  ms=105
+  P2's Enamorus used Moonblast
+    (resisted P1's Skeledirge)
+    P1's Skeledirge -> 80%
+  P1's Skeledirge used Torch Song
+    P2's Enamorus -> fainted
+    P1's Skeledirge +1 spa
+    P2's Enamorus fainted!
+  P2's Glimmora switched in (100%)
+    P2's Glimmora -> 88%
+
+== Turn 15 ==
+P1 -> alluringvoice  [p=0.51 | switch roaringmoon 0.49]
+P2 -> powergem  [p=0.28 | stealthrock 0.45, mortalspin 0.27]
+  root v=179.9  nodes=234  ms=625
+  P2's Glimmora used Power Gem
+    (supereffective P1's Skeledirge)
+    P1's Skeledirge -> 15%
+  P1's Skeledirge used Alluring Voice
+    (resisted P2's Glimmora)
+    (crit P2's Glimmora)
+    P2's Glimmora -> 50%
+  P1's Roaring Moon switched in (100%)
+
+== Turn 16 ==
+P1 -> earthquake  [p=0.64 | switch zamazenta 0.36]
+P2 -> switch kingambit  [p=0.19 | mortalspin 0.81]
+  root v=191.5  nodes=276  ms=756
+  P2's Kingambit switched in (100%)
+    P2's Kingambit -> 94%
+  P1's Roaring Moon used Earthquake
+    (immune P2's Kingambit)
+
+== Turn 17 ==
+P1 -> switch zamazenta  [p=1.00]
+P2 -> ironhead  [p=1.00]
+  root v=278.9  nodes=244  ms=654
+  P1's Zamazenta switched in (100%)
+    P1's Zamazenta +1 def
+  P2's Kingambit used Iron Head
+    P1's Zamazenta -> 72%
+    P1's Zamazenta healed -> 78%
+
+== Turn 18 ==
+P1 -> bodypress  [p=0.55 | irondefense 0.45]
+P2 -> ironhead  [p=0.72 | suckerpunch 0.28]
+  root v=299.1  nodes=136  ms=347
+P1 -> pass  [p=1.00]
+P2 -> switch glimmora  [p=1.00]
+  root v=380.0  nodes=30  ms=151
+  P1's Zamazenta used Body Press
+    (supereffective P2's Kingambit)
+    P2's Kingambit -> fainted
+    P2's Kingambit fainted!
+    P1's Zamazenta healed -> 84%
+  P2's Glimmora switched in (50%)
+    P2's Glimmora -> 37%
+
+== Turn 19 ==
+P1 -> roar  [p=1.00]
+P2 -> mortalspin  [p=1.00]
+  root v=419.6  nodes=172  ms=425
+  P2's Glimmora used Mortal Spin
+    P1's Zamazenta -> 81%
+    P1's Zamazenta is now psn
+    P2: P2 -Stealth Rock
+  P1's Zamazenta used Roar
+  P2's Darkrai switched in (100%)
+    P1's Zamazenta healed -> 87%
+    P1's Zamazenta -> 75%
+
+== Turn 20 ==
+P1 -> roar  [p=0.37 | irondefense 0.33, bodypress 0.30]
+P2 -> switch glimmora  [p=0.69 | focusblast 0.24, sludgebomb 0.08]
+  root v=370.7  nodes=198  ms=495
+  P2's Glimmora switched in (37%)
+  P1's Zamazenta used Roar
+  P2's Darkrai switched in (100%)
+    P1's Zamazenta healed -> 81%
+    P1's Zamazenta -> 68%
+
+== Turn 21 ==
+P1 -> bodypress  [p=0.64 | roar 0.36]
+P2 -> switch glimmora  [p=0.70 | focusblast 0.30]
+  root v=363.2  nodes=198  ms=496
+P1 -> pass  [p=1.00]
+P2 -> switch roaringmoon  [p=1.00]
+  root v=490.7  nodes=20  ms=52
+  P2's Glimmora switched in (37%)
+  P1's Zamazenta used Body Press
+    P2's Glimmora -> fainted
+    P1: P1 +move: Toxic Spikes
+    P2's Glimmora fainted!
+    P1's Zamazenta healed -> 74%
+    P1's Zamazenta -> 62%
+  P2's Roaring Moon switched in (100%)
+
+== Turn 22 ==
+P1 -> bodypress  [p=1.00]
+P2 -> acrobatics  [p=1.00]
+  root v=504.6  nodes=160  ms=503
+P1 -> pass  [p=1.00]
+P2 -> switch darkrai  [p=1.00]
+  root v=10665.7  nodes=10  ms=25
+  P1's Zamazenta used Body Press
+    (supereffective P2's Roaring Moon)
+    P2's Roaring Moon -> fainted
+    P2's Roaring Moon fainted!
+    P1's Zamazenta healed -> 68%
+    P1's Zamazenta -> 56%
+  P2's Darkrai switched in (100%)
+
+== Turn 23 ==
+P1 -> bodypress  [p=1.00]
+P2 -> darkpulse  [p=1.00]
+  root v=10665.7  nodes=124  ms=298
+  P1's Zamazenta used Body Press
+    (supereffective P2's Darkrai)
+    P2's Darkrai -> fainted
+    P2's Darkrai fainted!
+
+** P1 wins **

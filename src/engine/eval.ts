@@ -114,7 +114,7 @@ function physicalShareOf(table: CalcTable, side: 0 | 1, mon: MonState): number {
 }
 
 /** Effective speed for the matchup speed race (approximate, scalar-level). */
-function raceSpeed(mon: MonState, side: SideState): number {
+export function raceSpeed(mon: MonState, side: SideState): number {
   let speed = mon.spe * stageMult(mon.boosts.spe);
   if (mon.status === 'par') speed *= 0.5;
   if (side.tailwind) speed *= 2;
@@ -130,7 +130,7 @@ function stageMult(stage: number): number {
  * best move's OHKO probability plus weighted expected chip, under the
  * current Tera slices.
  */
-function threat(
+export function threat(
   table: CalcTable,
   atkSide: 0 | 1,
   atk: MonState,
@@ -157,7 +157,12 @@ function threat(
  * each scaled by speed order (outspeeding a KO threat is worth more than
  * being outsped), x MATCHUP weight.
  */
-function matchupScore(state: BattleState, table: CalcTable, pov: 0 | 1): number {
+function matchupScore(
+  state: BattleState,
+  table: CalcTable,
+  pov: 0 | 1,
+  matchupWeight: number
+): number {
   const mySide = state.sides[pov];
   const theirSide = state.sides[1 - pov];
   const mine = mySide.mons[mySide.activeIndex];
@@ -182,7 +187,7 @@ function matchupScore(state: BattleState, table: CalcTable, pov: 0 | 1): number 
   }
 
   return (
-    WEIGHTS.MATCHUP *
+    matchupWeight *
     (threat(table, pov, mine, theirs, theirSide, field) * myFactor -
       threat(table, (1 - pov) as 0 | 1, theirs, mine, mySide, field) * theirFactor)
   );
@@ -201,9 +206,17 @@ function sideScore(state: BattleState, table: CalcTable, side: 0 | 1): number {
 /**
  * Zero-sum static evaluation from `pov`'s perspective:
  * `evaluate(s, t, 0) === -evaluate(s, t, 1)`.
+ *
+ * `matchupWeight` lets the search taper the horizon-shortcut matchup term
+ * with depth (eval spec §4a) — deeper leaves lean on it less.
  */
-export function evaluate(state: BattleState, table: CalcTable, pov: 0 | 1): number {
+export function evaluate(
+  state: BattleState,
+  table: CalcTable,
+  pov: 0 | 1,
+  matchupWeight: number = WEIGHTS.MATCHUP
+): number {
   const own = sideScore(state, table, pov);
   const opp = sideScore(state, table, (1 - pov) as 0 | 1);
-  return own - opp + matchupScore(state, table, pov);
+  return own - opp + matchupScore(state, table, pov, matchupWeight);
 }

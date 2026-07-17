@@ -1,0 +1,288 @@
+=== P1 vs P2 — winner: P2 in 25 turns · 32 decisions · 16862 ms search · 181 nodes/decision ===
+
+  P1's Ribombee switched in (100%)
+  P2's Iron Moth switched in (100%)
+
+== Turn 1 ==
+P1 -> switch roaringmoon  [p=0.86 | psychicnoise+tera 0.08, switch glimmora 0.06]
+P2 -> sludgewave+tera  [p=0.65 | substitute 0.18, sludgewave 0.16]
+  root v=-10.1  nodes=640  ms=2111
+  P1's Roaring Moon switched in (100%)
+    P2's Iron Moth TERASTALLIZED -> Ghost
+  P2's Iron Moth used Sludge Wave
+    P1's Roaring Moon -> 51%
+
+== Turn 2 ==
+P1 -> acrobatics+tera  [p=0.58 | switch glimmora 0.31, dragondance 0.11]
+P2 -> switch ogerponcornerstone  [p=0.93 | fierydance 0.07]
+  root v=-55.7  nodes=360  ms=1151
+  P2's Ogerpon switched in (100%)
+    P1's Roaring Moon TERASTALLIZED -> Flying
+  P1's Roaring Moon used Acrobatics
+    P2's Ogerpon -> 1%
+
+== Turn 3 ==
+P1 -> earthquake  [p=0.11 | switch zamazenta 0.89]
+P2 -> switch ragingbolt  [p=0.23 | powerwhip 0.58, ivycudgel 0.19]
+  root v=93.7  nodes=270  ms=711
+P1 -> pass  [p=1.00]
+P2 -> switch ogerponcornerstone  [p=1.00]
+  root v=109.7  nodes=50  ms=212
+  P2's Raging Bolt switched in (100%)
+  P1's Roaring Moon used Earthquake
+    (supereffective P2's Raging Bolt)
+    P2's Raging Bolt -> fainted
+    P2's Raging Bolt fainted!
+  P2's Ogerpon switched in (1%)
+
+== Turn 4 ==
+P1 -> switch zamazenta  [p=0.88 | dragondance 0.12]
+P2 -> powerwhip  [p=0.82 | ivycudgel 0.18]
+  root v=272.4  nodes=222  ms=567
+  P1's Zamazenta switched in (100%)
+    P1's Zamazenta +1 def
+  P2's Ogerpon used Power Whip
+    P1's Zamazenta -> 65%
+
+== Turn 5 ==
+P1 -> ironhead  [p=1.00]
+P2 -> switch ironvaliant  [p=1.00]
+  root v=219.9  nodes=168  ms=440
+  P2's Iron Valiant switched in (100%)
+  P1's Zamazenta used Iron Head
+    (supereffective P2's Iron Valiant)
+    P2's Iron Valiant -> 45%
+
+== Turn 6 ==
+P1 -> switch glimmora  [p=1.00]
+P2 -> moonblast  [p=1.00]
+  root v=213.9  nodes=324  ms=1094
+  P1's Glimmora switched in (100%)
+  P2's Iron Valiant used Moonblast
+    (resisted P1's Glimmora)
+    P1's Glimmora -> 71%
+
+== Turn 7 ==
+P1 -> meteorbeam  [p=0.76 | sludgebomb 0.24]
+P2 -> shadowball  [p=0.33 | substitute 0.67]
+  root v=307.1  nodes=294  ms=779
+P1 -> pass  [p=1.00]
+P2 -> switch ogerponcornerstone  [p=1.00]
+  root v=210.9  nodes=40  ms=177
+  P2's Iron Valiant used Shadow Ball
+    P1's Glimmora -> 34%
+  P1's Glimmora used Meteor Beam
+  · |-prepare|p1a: Glimmora|Meteor Beam
+    P1's Glimmora +1 spa
+    (resisted P2's Iron Valiant)
+    P2's Iron Valiant -> fainted
+    P2's Iron Valiant fainted!
+  P2's Ogerpon switched in (1%)
+
+== Turn 8 ==
+P1 -> switch zamazenta  [p=1.00]
+P2 -> powerwhip  [p=1.00]
+  root v=285.8  nodes=198  ms=504
+  P1's Zamazenta switched in (65%)
+  P2's Ogerpon used Power Whip
+    P1's Zamazenta -> 12%
+
+== Turn 9 ==
+P1 -> switch gholdengo  [p=0.93 | ironhead 0.07]
+P2 -> switch rillaboom  [p=0.32 | switch ironmoth 0.68]
+  root v=213.9  nodes=234  ms=685
+  P1's Gholdengo switched in (100%)
+  P2's Rillaboom switched in (100%)
+
+== Turn 10 ==
+P1 -> switch roaringmoon  [p=0.70 | makeitrain 0.30]
+P2 -> grassyglide  [p=0.45 | knockoff 0.55]
+  root v=180.0  nodes=156  ms=448
+  P1's Roaring Moon switched in (51%)
+  P2's Rillaboom used Grassy Glide
+    (resisted P1's Roaring Moon)
+    P1's Roaring Moon -> 13%
+
+== Turn 11 ==
+P1 -> acrobatics  [p=1.00]
+P2 -> grassyglide  [p=1.00]
+  root v=135.8  nodes=102  ms=244
+P1 -> switch gholdengo  [p=1.00]
+P2 -> pass  [p=1.00]
+  root v=143.1  nodes=50  ms=142
+  P2's Rillaboom used Grassy Glide
+    (resisted P1's Roaring Moon)
+    P1's Roaring Moon -> fainted
+    P1's Roaring Moon fainted!
+  P1's Gholdengo switched in (100%)
+
+== Turn 12 ==
+P1 -> makeitrain  [p=1.00]
+P2 -> grassyglide  [p=1.00]
+  root v=176.3  nodes=54  ms=167
+  P2's Rillaboom used Grassy Glide
+    (resisted P1's Gholdengo)
+    P1's Gholdengo -> 74%
+  P1's Gholdengo used Make It Rain
+    P2's Rillaboom -> 25%
+    P1's Gholdengo -1 spa
+    P2's Rillaboom healed -> 31%
+    P1's Gholdengo healed -> 80%
+
+== Turn 13 ==
+P1 -> makeitrain  [p=1.00]
+P2 -> switch kingambit  [p=1.00]
+  root v=113.6  nodes=138  ms=434
+  P2's Kingambit switched in (100%)
+  P1's Gholdengo used Make It Rain
+    (resisted P2's Kingambit)
+    P2's Kingambit -> 78%
+    P1's Gholdengo -1 spa
+    P1's Gholdengo healed -> 86%
+    P2's Kingambit healed -> 84%
+
+== Turn 14 ==
+P1 -> switch manaphy  [p=1.00]
+P2 -> swordsdance  [p=1.00]
+  root v=160.6  nodes=264  ms=748
+  P1's Manaphy switched in (100%)
+  P2's Kingambit used Swords Dance
+    P2's Kingambit +2 atk
+
+== Turn 15 ==
+P1 -> acidarmor  [p=0.80 | surf 0.20]
+P2 -> switch rillaboom  [p=0.76 | kowtowcleave 0.24]
+  root v=149.6  nodes=258  ms=748
+  P2's Rillaboom switched in (31%)
+  P1's Manaphy used Acid Armor
+    P1's Manaphy +2 def
+    P2's Rillaboom healed -> 37%
+
+== Turn 16 ==
+P1 -> acidarmor  [p=0.69 | surf 0.30]
+P2 -> woodhammer  [p=0.35 | grassyglide 0.65]
+  root v=210.8  nodes=258  ms=782
+  P1's Manaphy used Acid Armor
+    P1's Manaphy +2 def
+  P2's Rillaboom used Wood Hammer
+    (supereffective P1's Manaphy)
+    P1's Manaphy -> 20%
+    P2's Rillaboom -> 8%
+    P1's Manaphy healed -> 27%
+    P1's Manaphy healed -> 33%
+    P2's Rillaboom healed -> 15%
+
+== Turn 17 ==
+P1 -> surf  [p=0.55 | acidarmor 0.45]
+P2 -> switch ironmoth  [p=0.86 | woodhammer 0.14]
+  root v=183.3  nodes=132  ms=370
+  P2's Iron Moth switched in (100%)
+  P1's Manaphy used Surf
+    P2's Iron Moth -> 58%
+    P2's Iron Moth healed -> 64%
+    P1's Manaphy healed -> 39%
+    P1's Manaphy healed -> 45%
+
+== Turn 18 ==
+P1 -> storedpower  [p=0.71 | switch gholdengo 0.29]
+P2 -> fierydance  [p=0.55 | sludgewave 0.45]
+  root v=127.7  nodes=216  ms=618
+  P2's Iron Moth used Fiery Dance
+    (resisted P1's Manaphy)
+    P1's Manaphy -> 25%
+    P2's Iron Moth +1 spa
+  P1's Manaphy used Stored Power
+    P2's Iron Moth -> 34%
+    P2's Iron Moth healed -> 40%
+    P1's Manaphy healed -> 31%
+    P1's Manaphy healed -> 38%
+
+== Turn 19 ==
+P1 -> switch zamazenta  [p=1.00]
+P2 -> psychic  [p=1.00]
+  root v=101.8  nodes=198  ms=514
+P1 -> switch ribombee  [p=1.00]
+P2 -> pass  [p=1.00]
+  root v=36.0  nodes=40  ms=111
+  P1's Zamazenta switched in (12%)
+  P2's Iron Moth used Psychic
+    (supereffective P1's Zamazenta)
+    P1's Zamazenta -> fainted
+    P1's Zamazenta fainted!
+    P2's Iron Moth healed -> 46%
+  P1's Ribombee switched in (100%)
+
+== Turn 20 ==
+P1 -> moonblast  [p=1.00]
+P2 -> fierydance  [p=1.00]
+  root v=134.0  nodes=282  ms=795
+  P1's Ribombee used Moonblast
+    P2's Iron Moth -> 10%
+  P2's Iron Moth used Fiery Dance
+    (supereffective P1's Ribombee)
+    P1's Ribombee -> 1%
+    P2's Iron Moth +1 spa
+
+== Turn 21 ==
+P1 -> moonblast  [p=1.00]
+P2 -> switch kingambit  [p=1.00]
+  root v=87.4  nodes=144  ms=412
+  P2's Kingambit switched in (84%)
+  P1's Ribombee used Moonblast
+    P2's Kingambit -> 41%
+
+== Turn 22 ==
+P1 -> switch manaphy  [p=0.50 | moonblast 0.50]
+P2 -> kowtowcleave  [p=0.40 | suckerpunch 0.60]
+  root v=109.5  nodes=252  ms=620
+P1 -> switch ribombee  [p=1.00]
+P2 -> pass  [p=1.00]
+  root v=-22.0  nodes=30  ms=75
+  P1's Manaphy switched in (38%)
+  P2's Kingambit used Kowtow Cleave
+    P1's Manaphy -> fainted
+    P1's Manaphy fainted!
+  P1's Ribombee switched in (1%)
+
+== Turn 23 ==
+P1 -> stickyweb  [p=0.85 | moonblast 0.15]
+P2 -> ironhead  [p=0.24 | suckerpunch 0.76]
+  root v=-30.9  nodes=188  ms=508
+P1 -> switch glimmora  [p=1.00]
+P2 -> pass  [p=1.00]
+  root v=-147.9  nodes=20  ms=55
+  P1's Ribombee used Sticky Web
+    P2: P2 +move: Sticky Web
+  P2's Kingambit used Iron Head
+    (supereffective P1's Ribombee)
+    P1's Ribombee -> fainted
+    P1's Ribombee fainted!
+  P1's Glimmora switched in (34%)
+
+== Turn 24 ==
+P1 -> earthpower  [p=1.00]
+P2 -> suckerpunch  [p=1.00]
+  root v=-151.3  nodes=88  ms=239
+P1 -> switch gholdengo  [p=1.00]
+P2 -> pass  [p=1.00]
+  root v=-239.8  nodes=10  ms=38
+  P2's Kingambit used Sucker Punch
+    P1's Glimmora -> fainted
+    P2: P2 +move: Toxic Spikes
+    P1's Glimmora fainted!
+  P1's Gholdengo switched in (86%)
+
+== Turn 25 ==
+P1 -> makeitrain  [p=1.00]
+P2 -> kowtowcleave  [p=1.00]
+  root v=-10271.0  nodes=124  ms=365
+  P1's Gholdengo used Make It Rain
+    (resisted P2's Kingambit)
+    P2's Kingambit -> 6%
+    P1's Gholdengo -1 spa
+  P2's Kingambit used Kowtow Cleave
+    (supereffective P1's Gholdengo)
+    P1's Gholdengo -> fainted
+    P1's Gholdengo fainted!
+
+** P2 wins **

@@ -1,0 +1,204 @@
+=== P1 vs P2 — winner: P2 in 17 turns · 22 decisions · 1901 ms search · 26 nodes/decision ===
+
+  P1's Iron Moth switched in (100%)
+  P2's Iron Treads switched in (100%)
+
+== Turn 1 ==
+P1 -> fierydance+tera  [p=0.62 | sludgewave 0.26, switch rillaboom 0.12]
+P2 -> switch roaringmoon  [p=0.74 | earthpower+tera 0.14, switch zamazenta 0.12]
+  root v=1.3  nodes=64  ms=312
+  P2's Roaring Moon switched in (100%)
+    P1's Iron Moth TERASTALLIZED -> Ghost
+  P1's Iron Moth used Fiery Dance
+    (resisted P2's Roaring Moon)
+    P2's Roaring Moon -> 81%
+
+== Turn 2 ==
+P1 -> substitute  [p=1.00]
+P2 -> knockoff  [p=1.00]
+  root v=-42.2  nodes=36  ms=167
+  P1's Iron Moth used Substitute
+    P1's Iron Moth -> 76%
+  P2's Roaring Moon used Knock Off
+    (supereffective P1's Iron Moth)
+
+== Turn 3 ==
+P1 -> substitute  [p=1.00]
+P2 -> knockoff  [p=0.97 | earthquake 0.03]
+  root v=-67.1  nodes=36  ms=95
+  P1's Iron Moth used Substitute
+    P1's Iron Moth -> 51%
+  P2's Roaring Moon used Knock Off
+    (supereffective P1's Iron Moth)
+
+== Turn 4 ==
+P1 -> substitute  [p=1.00]
+P2 -> acrobatics  [p=0.76 | earthquake 0.24]
+  root v=-92.0  nodes=42  ms=114
+  P1's Iron Moth used Substitute
+    P1's Iron Moth -> 26%
+  P2's Roaring Moon used Acrobatics
+
+== Turn 5 ==
+P1 -> sludgewave  [p=1.00]
+P2 -> earthquake  [p=0.75 | acrobatics 0.25]
+  root v=-109.3  nodes=42  ms=118
+P1 -> switch ogerponcornerstone  [p=1.00]
+P2 -> pass  [p=1.00]
+  root v=-72.5  nodes=5  ms=10
+  P1's Iron Moth used Sludge Wave
+    P2's Roaring Moon -> 32%
+    P2's Roaring Moon is now psn
+  P2's Roaring Moon used Earthquake
+    P1's Iron Moth -> fainted
+    P1's Iron Moth fainted!
+    P2's Roaring Moon -> 19%
+  P1's Ogerpon switched in (100%)
+
+== Turn 6 ==
+P1 -> ivycudgel  [p=0.40 | powerwhip 0.44, spikes 0.16]
+P2 -> switch zamazenta  [p=0.57 | acrobatics+tera 0.28, knockoff 0.15]
+  root v=-105.0  nodes=48  ms=124
+  P2's Zamazenta switched in (100%)
+    P2's Zamazenta +1 def
+  P1's Ogerpon used Ivy Cudgel
+    (resisted P2's Zamazenta)
+    P2's Zamazenta -> 87%
+    P2's Zamazenta healed -> 93%
+
+== Turn 7 ==
+P1 -> switch ironvaliant  [p=1.00]
+P2 -> bodypress  [p=1.00]
+  root v=-132.5  nodes=36  ms=95
+  P1's Iron Valiant switched in (100%)
+  P2's Zamazenta used Body Press
+    (resisted P1's Iron Valiant)
+    P1's Iron Valiant -> 67%
+    P2's Zamazenta healed -> 99%
+
+== Turn 8 ==
+P1 -> substitute  [p=0.87 | moonblast 0.13]
+P2 -> bodypress+tera  [p=0.90 | bodypress 0.10]
+  root v=-150.6  nodes=40  ms=181
+    P2's Zamazenta TERASTALLIZED -> Steel
+  P1's Iron Valiant used Substitute
+    P1's Iron Valiant -> 42%
+  P2's Zamazenta used Body Press
+    (resisted P1's Iron Valiant)
+    P2's Zamazenta healed -> 100%
+
+== Turn 9 ==
+P1 -> shadowball  [p=1.00]
+P2 -> bodypress  [p=1.00]
+  root v=-173.2  nodes=36  ms=92
+  P1's Iron Valiant used Shadow Ball
+    P2's Zamazenta -> 78%
+  P2's Zamazenta used Body Press
+    (resisted P1's Iron Valiant)
+    P1's Iron Valiant -> 5%
+    P2's Zamazenta healed -> 84%
+
+== Turn 10 ==
+P1 -> switch ragingbolt  [p=0.08 | moonblast 0.92]
+P2 -> bodypress  [p=0.38 | crunch 0.62]
+  root v=-220.1  nodes=24  ms=63
+  P1's Raging Bolt switched in (100%)
+  P2's Zamazenta used Body Press
+    P1's Raging Bolt -> 39%
+    P2's Zamazenta healed -> 90%
+
+== Turn 11 ==
+P1 -> thunderclap  [p=1.00]
+P2 -> bodypress  [p=1.00]
+  root v=-312.6  nodes=30  ms=150
+P1 -> switch rillaboom  [p=1.00]
+P2 -> pass  [p=1.00]
+  root v=-313.5  nodes=4  ms=7
+  P1's Raging Bolt used Thunderclap
+    P2's Zamazenta -> 43%
+  P2's Zamazenta used Body Press
+    P1's Raging Bolt -> fainted
+    P1's Raging Bolt fainted!
+    P2's Zamazenta healed -> 49%
+  P1's Rillaboom switched in (100%)
+
+== Turn 12 ==
+P1 -> knockoff  [p=1.00]
+P2 -> bodypress  [p=1.00]
+  root v=-376.9  nodes=20  ms=56
+  P2's Zamazenta used Body Press
+    P1's Rillaboom -> 36%
+  P1's Rillaboom used Knock Off
+    P2's Zamazenta -> 25%
+    P2's Zamazenta healed -> 31%
+    P1's Rillaboom healed -> 42%
+
+== Turn 13 ==
+P1 -> switch ironvaliant  [p=1.00]
+P2 -> bodypress  [p=1.00]
+  root v=-433.8  nodes=12  ms=102
+P1 -> switch rillaboom  [p=1.00]
+P2 -> pass  [p=1.00]
+  root v=-459.1  nodes=3  ms=6
+  P1's Iron Valiant switched in (5%)
+  P2's Zamazenta used Body Press
+    (resisted P1's Iron Valiant)
+    (crit P1's Iron Valiant)
+    P1's Iron Valiant -> fainted
+    P1's Iron Valiant fainted!
+    P2's Zamazenta healed -> 37%
+  P1's Rillaboom switched in (42%)
+
+== Turn 14 ==
+P1 -> grassyglide  [p=1.00]
+P2 -> bodypress  [p=1.00]
+  root v=-541.8  nodes=24  ms=61
+P1 -> switch kingambit  [p=1.00]
+P2 -> pass  [p=1.00]
+  root v=-570.3  nodes=2  ms=4
+  P1's Rillaboom used Grassy Glide
+    (resisted P2's Zamazenta)
+    P2's Zamazenta -> 22%
+  P2's Zamazenta used Body Press
+    P1's Rillaboom -> fainted
+    P1's Rillaboom fainted!
+    P2's Zamazenta healed -> 28%
+  P1's Kingambit switched in (100%)
+
+== Turn 15 ==
+P1 -> switch ogerponcornerstone  [p=1.00]
+P2 -> bodypress  [p=1.00]
+  root v=-670.2  nodes=20  ms=53
+  P1's Ogerpon switched in (100%)
+  P2's Zamazenta used Body Press
+    (supereffective P1's Ogerpon)
+    P1's Ogerpon -> 1%
+    P2's Zamazenta healed -> 34%
+    P1's Ogerpon healed -> 7%
+
+== Turn 16 ==
+P1 -> ivycudgel  [p=1.00]
+P2 -> bodypress  [p=1.00]
+  root v=-728.3  nodes=20  ms=47
+P1 -> switch kingambit  [p=1.00]
+P2 -> pass  [p=1.00]
+  root v=-757.4  nodes=1  ms=4
+  P2's Zamazenta used Body Press
+    (supereffective P1's Ogerpon)
+    P1's Ogerpon -> fainted
+    P1's Ogerpon fainted!
+    P2's Zamazenta healed -> 40%
+  P1's Kingambit switched in (100%)
+
+== Turn 17 ==
+P1 -> suckerpunch  [p=1.00]
+P2 -> bodypress  [p=1.00]
+  root v=-10875.6  nodes=16  ms=39
+  P1's Kingambit used Sucker Punch
+    P2's Zamazenta -> 15%
+  P2's Zamazenta used Body Press
+    (supereffective P1's Kingambit)
+    P1's Kingambit -> fainted
+    P1's Kingambit fainted!
+
+** P2 wins **
