@@ -45,6 +45,8 @@ const CONFIG: SearchConfig = CONFIG_NAME === 'strong' ? STRONG : FAST;
 const MODES = flag('modes', 'easy,normal').split(',') as DraftMode[];
 const DRAFT = flag('draft', 'greedy') as 'greedy' | 'random';
 const BASE_SEED = Number(flag('seed', '1000'));
+/** Easy ramp shape: `cliff` = shipped (random/FAST/config), `smooth` = mix-based. */
+const RAMP = flag('ramp', 'cliff') as 'cliff' | 'smooth';
 
 const search = (config: SearchConfig): Policy => ({kind: 'search', config});
 
@@ -58,13 +60,25 @@ const pool: PoolEntry[] = Object.entries(sets).map(([species, byName]) => ({
   usageWeighted: stats.pokemon[species]?.usage.weighted ?? 0,
 }));
 
+/** Blunder rate per rung for the `smooth` ramp (75% → 0% across the six). */
+const SMOOTH_EPSILON = [0.75, 0.55, 0.4, 0.25, 0.1, 0];
+
 /**
- * The Easy difficulty ramp, mirroring src/app/sixoh/session.ts `opponentPolicy`:
- * normal/hard field the player's config every rung; easy starts random, then
- * FAST, then matches the player at the top.
+ * The Easy difficulty ramp. `cliff` mirrors the shipped
+ * src/app/sixoh/session.ts `opponentPolicy` (random → FAST → player config).
+ * `smooth` uses a mix player whose blunder rate decays each rung, so the
+ * curve slopes instead of jumping from random pushover to full FAST. Both
+ * end at a fair mirror on the last rung. normal/hard are full strength.
  */
 function opponentPolicy(mode: DraftMode, index: number): Policy {
   if (mode !== 'easy') return search(CONFIG);
+  if (RAMP === 'smooth') {
+    const epsilon = SMOOTH_EPSILON[index];
+    if (epsilon <= 0) return search(CONFIG);
+    // Weakened rungs search shallowly (FAST) under the blunders; the last
+    // ramped rung uses the player's own config so it eases into the mirror.
+    return {kind: 'mix', epsilon, config: index >= 4 ? CONFIG : FAST};
+  }
   if (index <= 1) return {kind: 'random'};
   if (index <= 3) return search(FAST);
   return search(CONFIG);
@@ -96,6 +110,22 @@ interface RunResult {
   endedAt: number;
   wins: boolean[];
   turns: number[];
+  /** Turn the PLAYER (p1) Tera'd in each battle, or undefined if never. */
+  teraTurns: (number | undefined)[];
+}
+
+/** The turn side p1 (the player) terastallized, scanning the protocol log. */
+function playerTeraTurn(log: string[] | undefined): number | undefined {
+  if (!log) return undefined;
+  let turn = 0;
+  for (const line of log) {
+    if (line.startsWith('|turn|')) {
+      const n = Number(line.slice(6));
+      if (Number.isFinite(n)) turn = n;
+    }
+    if (line.startsWith('|-terastallize|p1a')) return turn;
+  }
+  return undefined;
 }
 
 function runGauntlet(mode: DraftMode, runSeed: number): RunResult {
@@ -105,6 +135,7 @@ function runGauntlet(mode: DraftMode, runSeed: number): RunResult {
 
   const wins: boolean[] = [];
   const turns: number[] = [];
+  const teraTurns: (number | undefined)[] = [];
   for (let i = 0; i < 6; i++) {
     const seed = runSeed + i;
     const job: BattleJob = {
@@ -113,14 +144,16 @@ function runGauntlet(mode: DraftMode, runSeed: number): RunResult {
       searchSeed: runSeed + i * 7919,
       policies: [search(CONFIG), opponentPolicy(mode, i)],
       maxTurns: 300,
+      collectLog: true,
     };
     const result = runBattle(gen, job);
     const won = result.winner === 0;
     wins.push(won);
     turns.push(result.turns);
-    if (!won) return {outcome: 'eliminated', endedAt: i + 1, wins, turns};
+    teraTurns.push(playerTeraTurn(result.protocolLog));
+    if (!won) return {outcome: 'eliminated', endedAt: i + 1, wins, turns, teraTurns};
   }
-  return {outcome: 'flawless', endedAt: 7, wins, turns};
+  return {outcome: 'flawless', endedAt: 7, wins, turns, teraTurns};
 }
 
 interface ModeSummary {
@@ -134,6 +167,15 @@ interface ModeSummary {
   perRung: {played: number; won: number; rate: number}[];
   meanBattlesPerRun: number;
   meanTurns: number;
+  /** Tera usage by the player (p1) across all battles played. */
+  tera: {
+    battles: number;
+    teraedBattles: number;
+    teraRate: number;
+    meanTeraTurn: number;
+    /** Mean fraction through the battle (teraTurn / battleTurns). */
+    meanTeraFraction: number;
+  };
 }
 
 function summarize(mode: DraftMode, results: RunResult[]): ModeSummary {
@@ -153,6 +195,21 @@ function summarize(mode: DraftMode, results: RunResult[]): ModeSummary {
     allTurns.push(...r.turns);
   }
   perRung.forEach(p => (p.rate = p.played ? p.won / p.played : 0));
+
+  // Tera timing: over every battle the player fought, when did p1 Tera?
+  let teraedBattles = 0;
+  const teraTurnsAll: number[] = [];
+  const teraFractions: number[] = [];
+  for (const r of results) {
+    r.teraTurns.forEach((t, i) => {
+      if (t === undefined) return;
+      teraedBattles++;
+      teraTurnsAll.push(t);
+      if (r.turns[i] > 0) teraFractions.push(t / r.turns[i]);
+    });
+  }
+  const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+
   return {
     mode,
     runs: results.length,
@@ -162,6 +219,13 @@ function summarize(mode: DraftMode, results: RunResult[]): ModeSummary {
     perRung,
     meanBattlesPerRun: battlesTotal / results.length,
     meanTurns: allTurns.reduce((a, b) => a + b, 0) / (allTurns.length || 1),
+    tera: {
+      battles: battlesTotal,
+      teraedBattles,
+      teraRate: battlesTotal ? teraedBattles / battlesTotal : 0,
+      meanTeraTurn: avg(teraTurnsAll),
+      meanTeraFraction: avg(teraFractions),
+    },
   };
 }
 
@@ -172,7 +236,7 @@ function pct(x: number): string {
 function main() {
   mkdirSync(LOGS, {recursive: true});
   console.log(
-    `sim-gauntlet: ${RUNS} runs/mode · player=${CONFIG_NAME} · draft=${DRAFT} · modes=${MODES.join(',')}\n`
+    `sim-gauntlet: ${RUNS} runs/mode · player=${CONFIG_NAME} · draft=${DRAFT} · ramp=${RAMP} · modes=${MODES.join(',')}\n`
   );
   const start = performance.now();
   const summaries: ModeSummary[] = [];
@@ -193,7 +257,7 @@ function main() {
 
   // ---- Report ----
   let md = `# Gauntlet simulation — Can you 6-0?\n\n`;
-  md += `${RUNS} runs/mode · player search = **${CONFIG_NAME}** · draft = **${DRAFT}** · `;
+  md += `${RUNS} runs/mode · player search = **${CONFIG_NAME}** · draft = **${DRAFT}** · easy ramp = **${RAMP}** · `;
   md += `${elapsed.toFixed(0)}s total.\n\n`;
   md += `_Auto-drafted teams (${DRAFT}); real search + the shipped Easy ramp. `;
   md += `FAST understates the STRONG default — read the shape, not the absolute win rate._\n\n`;
@@ -218,10 +282,16 @@ function main() {
     md += `| ${s.mode} | ${s.eliminatedAt.join(' | ')} | ${s.flawless} |\n`;
   }
 
+  md += `\n## Tera timing (player, p1)\n\n`;
+  md += `| mode | Tera'd in | mean Tera turn | mean % through battle |\n|---|---|---|---|\n`;
+  for (const s of summaries) {
+    md += `| ${s.mode} | ${pct(s.tera.teraRate)} of battles (${s.tera.teraedBattles}/${s.tera.battles}) | turn ${s.tera.meanTeraTurn.toFixed(1)} | ${pct(s.tera.meanTeraFraction)} |\n`;
+  }
+
   md += `\nmean turns/battle: ${summaries.map(s => `${s.mode} ${s.meanTurns.toFixed(0)}`).join(' · ')}\n`;
 
   writeFileSync(`${LOGS}/gauntlet-sim.md`, md);
-  writeFileSync(`${LOGS}/gauntlet-sim.json`, JSON.stringify({config: CONFIG_NAME, draft: DRAFT, runs: RUNS, summaries}, null, 2));
+  writeFileSync(`${LOGS}/gauntlet-sim.json`, JSON.stringify({config: CONFIG_NAME, draft: DRAFT, ramp: RAMP, runs: RUNS, summaries}, null, 2));
   console.log(`\n${md}`);
   console.log(`wrote ${LOGS}/gauntlet-sim.md and .json`);
 }

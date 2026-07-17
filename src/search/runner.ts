@@ -10,7 +10,19 @@ import type {SearchConfig} from './config';
 import {chooseAction, chooseTurn, type TurnTrace} from './search';
 import {emptyStats, recordTurn, type BattleStats} from './stats';
 
-export type Policy = {kind: 'search'; config: SearchConfig} | {kind: 'random'};
+/**
+ * How a side chooses its move:
+ * - `search`: full policy at the given config (the real AI).
+ * - `random`: a uniform legal move (the baseline / a "fish").
+ * - `mix`: a competent `search` player that blunders into a random move with
+ *   probability `epsilon` — a tunable "weak but coherent" opponent. epsilon 0
+ *   is pure search, epsilon 1 is pure random; values between give a smooth
+ *   difficulty dial (used to ramp Easy-mode opponents without a cliff).
+ */
+export type Policy =
+  | {kind: 'search'; config: SearchConfig}
+  | {kind: 'random'}
+  | {kind: 'mix'; epsilon: number; config: SearchConfig};
 
 export interface BattleJob {
   teams: [PokemonSet[], PokemonSet[]];
@@ -132,6 +144,12 @@ export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): B
           const policy = job.policies[side];
           const rng = side === 0 ? rng1 : rng2;
           if (policy.kind === 'random') return randomChoice(battle, side, rng);
+          // A mix player blunders into a random legal move with prob epsilon.
+          // The epsilon>0 guard short-circuits the draw so mix(0) consumes no
+          // RNG and is bit-for-bit identical to plain search.
+          if (policy.kind === 'mix' && policy.epsilon > 0 && rng.next() < policy.epsilon) {
+            return randomChoice(battle, side, rng);
+          }
           const decision = chooseAction(battle, side, calcTable, policy.config, rng, job.searchSeed);
           decisionMs.push(decision.trace.ms);
           nodes += decision.trace.nodes;
