@@ -54,11 +54,35 @@ describe('parseProtocol on a real battle log', () => {
     expect(win?.kind === 'win' && win.side).toBe((fixture as {winner: number}).winner);
   });
 
-  it('never drops a line silently: every line is consumed, skipped by rule, or noted', () => {
-    // Accounting: parse a tiny synthetic log with an unknown line kind.
+  it('accounts for every line but never leaks raw protocol into the log', () => {
     const parsed = parseProtocol(['|turn|1', '|-madeupthing|p1a: X|stuff']);
     expect(parsed).toHaveLength(2);
-    expect(parsed[1]).toMatchObject({kind: 'note', text: 'unknown:-madeupthing'});
+    // Still a note event (accounted), but no raw `·` protocol string shown.
+    expect(parsed[1]).toMatchObject({kind: 'note', text: 'unknown:-madeupthing', logText: ''});
+    expect(parsed[1].kind === 'note' && parsed[1].logText).not.toMatch(/·|madeupthing/);
+  });
+
+  it('drops [silent] lines (e.g. the upstream fallenundefined) from the log', () => {
+    const parsed = parseProtocol(['|-end|p1a: Kingambit|fallenundefined|[silent]']);
+    expect(parsed[0]).toMatchObject({kind: 'note', logText: ''});
+    expect(parsed.every(e => !('logText' in e) || !/fallenundefined|·/.test(e.logText))).toBe(true);
+  });
+
+  it('translates common notes to clean text and uses possessive-position labels', () => {
+    const parsed = parseProtocol(
+      [
+        '|switch|p1a: Great Tusk|Great Tusk, M|100/100',
+        '|-ability|p2a: Landorus|Intimidate|boost',
+        '|-enditem|p1a: Great Tusk|Heavy-Duty Boots|[from] move: Knock Off',
+      ],
+      ['Your', 'The opposing']
+    );
+    const text = parsed.map(e => ('logText' in e ? e.logText : '')).filter(Boolean);
+    expect(text).toContain('Your Great Tusk switched in!'); // not "You's ..."
+    expect(text).toContain('The opposing Landorus\'s Intimidate!');
+    expect(text).toContain('Your Great Tusk lost its Heavy-Duty Boots!');
+    expect(text.every(t => !t.includes("'s "))).toBe(false); // possessive still used where correct
+    expect(text.some(t => /You's|Them's/.test(t))).toBe(false); // but never the broken form
   });
 
   it('move annotations tag the pending move', () => {

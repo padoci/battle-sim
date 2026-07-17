@@ -61,7 +61,11 @@ function download(filename: string, content: string, type: string): void {
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = filename;
+  // Some browsers require the anchor to be in the document for the click to
+  // trigger a download.
+  document.body.appendChild(anchor);
   anchor.click();
+  anchor.remove();
   URL.revokeObjectURL(url);
 }
 
@@ -146,6 +150,7 @@ export function Dashboard() {
   const state = useAppState();
   const [expanded, setExpanded] = useState<string>();
   const [enrichments, setEnrichments] = useState<Record<string, Enrichment>>({});
+  const [downloaded, setDownloaded] = useState<string>();
 
   const {team, pool, run} = state;
 
@@ -208,11 +213,13 @@ export function Dashboard() {
       cards: enrichedCards,
       poolMeta: pool.map(p => ({teamId: p.teamId, teamName: p.teamName, weight: p.weight})),
     });
+    const filename = format === 'json' ? 'team-report.json' : 'team-report.md';
     if (format === 'json') {
-      download('team-report.json', JSON.stringify(json, null, 2), 'application/json');
+      download(filename, JSON.stringify(json, null, 2), 'application/json');
     } else {
-      download('team-report.md', buildExportMarkdown(json), 'text/markdown');
+      download(filename, buildExportMarkdown(json), 'text/markdown');
     }
+    setDownloaded(filename);
   };
 
   const column = (title: string, list: ArchetypeCard[]) => (
@@ -259,6 +266,9 @@ export function Dashboard() {
         <button onClick={() => navigate('test-import')}>Tweak team</button>
         <button onClick={() => navigate('test-configure')}>Re-run</button>
       </footer>
+      {downloaded && (
+        <p className="hint mono download-note" role="status">Downloaded {downloaded} ✓</p>
+      )}
     </main>
   );
 }

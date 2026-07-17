@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {MemoryStore} from '../../src/data/cache';
-import {fetchSampleTeams, mergeTeams} from '../../src/data/sampleTeams';
+import type {DataClient} from '../../src/data/client';
+import {fetchSampleTeams, loadOpponentTeams, mergeTeams} from '../../src/data/sampleTeams';
 import {setToTeamMember, teamMemberToSet} from '../../src/data/team';
 import type {Team} from '../../src/data/types';
 
@@ -191,5 +192,35 @@ describe('fetchSampleTeams', () => {
     const fetchFn = (async () => ({ok: false, status: 500, json: async () => ({})}) as Response) as unknown as typeof fetch;
     const teams = await fetchSampleTeams({store: new MemoryStore(), fetchFn});
     expect(teams).toEqual([]);
+  });
+
+  it('aborts a hung fetch via the hard timeout and resolves to []', async () => {
+    const hanging = ((_url: unknown, init?: {signal?: AbortSignal}) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+      })) as unknown as typeof fetch;
+    const teams = await fetchSampleTeams({store: new MemoryStore(), fetchFn: hanging, timeoutMs: 40});
+    expect(teams).toEqual([]);
+  });
+});
+
+describe('loadOpponentTeams — never blocks the UI', () => {
+  const baseTeam: Team = {name: 'Base', data: ['A', 'B', 'C', 'D', 'E', 'F'].map(s => ({species: s, ability: '', moves: []}))};
+
+  it('returns the built-in pool fast even when the sample source hangs', async () => {
+    const hanging = ((_url: unknown, init?: {signal?: AbortSignal}) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+      })) as unknown as typeof fetch;
+    const client = {teams: async () => [baseTeam]} as unknown as DataClient;
+    const start = Date.now();
+    const teams = await loadOpponentTeams(client, {
+      store: new MemoryStore(),
+      fetchFn: hanging,
+      uiWaitMs: 30,
+      timeoutMs: 80,
+    });
+    expect(teams).toEqual([baseTeam]); // base only — no hang
+    expect(Date.now() - start).toBeLessThan(1500);
   });
 });

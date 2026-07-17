@@ -196,10 +196,13 @@ async function main() {
     if ((await page.locator('.stage-field .hp-block').count()) < 1) fail('retro HP windows should render on the field');
     const logLen1 = (await page.locator('.battle-log').textContent()).length;
     await page.waitForTimeout(4000);
-    const logLen2 = (await page.locator('.battle-log').textContent()).length;
-    if (logLen2 <= logLen1) fail('battle log should grow during 1x replay');
+    const logText = await page.locator('.battle-log').textContent();
+    if (logText.length <= logLen1) fail('battle log should grow during 1x replay');
+    // No raw protocol leaks (· -end|..., -ability|...) and no broken possessive.
+    if (/·|\|p[12]a:/.test(logText)) fail(`battle log leaks raw protocol: ${logText.slice(0, 120)}`);
+    if (/You's|Them's|undefined/.test(logText)) fail(`battle log has a grammar/interp bug: ${logText.slice(0, 120)}`);
     await page.screenshot({path: `${shotsDir}/e2e-sixoh-battle.png`});
-    ok('retro battle stage replays with HP windows and a paced log');
+    ok('retro battle stage replays with HP windows and a clean, paced log');
 
     // 5. Instant through the rest of the run.
     await page.locator('.playback-controls button', {hasText: 'Instant'}).click();
