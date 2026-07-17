@@ -29,3 +29,5 @@ _Auto-drafted teams (greedy); real search + the shipped Easy ramp. FAST understa
 | easy | 100% of battles (112/112) | turn 3.3 | 13% |
 
 mean turns/battle: easy 30
+
+wrote logs/gauntlet-sim.md and .json
