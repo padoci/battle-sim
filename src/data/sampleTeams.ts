@@ -1,9 +1,12 @@
 import {Teams, TeamValidator} from '@pkmn/sim';
 import type {KVStore} from './cache';
-import {openStore} from './cache';
 import type {DataClient} from './client';
 import {setToTeamMember} from './team';
 import type {PokemonSet, Team} from './types';
+import vendoredTeamsJson from './vendored-teams.gen9ou.json';
+
+/** Real sample teams shipped as a static asset (see scripts/build-sample-teams.ts). */
+const vendoredTeams = vendoredTeamsJson as unknown as Team[];
 
 /**
  * Augment the built-in opponent pool with real, externally-sourced teams
@@ -27,11 +30,8 @@ const NEGATIVE_TTL_MS = 60 * 60 * 1000;
 /** Cap the fan-out: bounded fetches, aggressively cached. */
 const MAX_TEAMS = 12;
 const CONCURRENCY = 6;
-/** Hard cap on the whole network fetch — it can never hang the app. */
+/** Hard cap on the whole network fetch — it can never hang. */
 const FETCH_TIMEOUT_MS = 8000;
-/** How long `loadOpponentTeams` will wait for a cold fetch before rendering
- *  from the built-in pool (the fetch keeps running to warm the cache). */
-const UI_WAIT_MS = 3500;
 
 export interface SampleTeamsOptions {
   store: KVStore;
@@ -41,8 +41,6 @@ export interface SampleTeamsOptions {
   indexUrl?: string;
   /** Hard network timeout for the whole fetch (tests). */
   timeoutMs?: number;
-  /** How long loadOpponentTeams waits before falling back to base (tests). */
-  uiWaitMs?: number;
 }
 
 interface SampleRef {
@@ -236,38 +234,14 @@ export function mergeTeams(...groups: Team[][]): Team[] {
 
 /**
  * The full opponent pool for a client: the built-in `/teams` set plus the
- * runtime-fetched sample teams, deduped. **Never blocks the UI on the network**:
- * returns cached samples if present, otherwise renders from the built-in pool
- * immediately and warms the cache in the background (bounded by a UI wait), so a
- * slow/unreachable source can't stall "Dealing your first hand…" or the pool
- * table. Never rejects on the sample path.
+ * **vendored** sample teams (`vendored-teams.gen9ou.json`, built server-side by
+ * scripts/build-sample-teams.ts and shipped as a static import), deduped.
+ *
+ * This is synchronous once `client.teams()` resolves — no runtime network fetch,
+ * so it can never stall "Dealing your first hand…" or CORS-fail in the browser
+ * (the reasons the old crob.at runtime fetch never populated the pool live).
  */
-export async function loadOpponentTeams(
-  client: DataClient,
-  opts: Partial<SampleTeamsOptions> = {}
-): Promise<Team[]> {
+export async function loadOpponentTeams(client: DataClient): Promise<Team[]> {
   const base = await client.teams();
-  const now = opts.now ?? Date.now;
-  const uiWaitMs = opts.uiWaitMs ?? UI_WAIT_MS;
-  let samples: Team[] = [];
-  try {
-    const store = opts.store ?? (await openStore());
-    const cached = await readCached(store, now);
-    if (cached) {
-      samples = cached;
-    } else {
-      // Cold: race the fetch against a short UI wait. If the source is fast
-      // (or mocked) we get the bigger pool now; if it's slow/hung we fall back
-      // to base and the fetch keeps running to warm the cache for next time.
-      const fetchPromise = fetchSampleTeams({...opts, store});
-      fetchPromise.catch(() => {}); // background warm — never an unhandled rejection
-      samples = await Promise.race([
-        fetchPromise.catch(() => [] as Team[]),
-        new Promise<Team[]>(resolve => setTimeout(() => resolve([]), uiWaitMs)),
-      ]);
-    }
-  } catch {
-    samples = [];
-  }
-  return mergeTeams(base, samples);
+  return mergeTeams(base, vendoredTeams);
 }

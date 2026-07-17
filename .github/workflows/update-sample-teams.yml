@@ -1,0 +1,42 @@
+name: Update sample teams
+
+# Refreshes the vendored opponent-team pack (src/data/vendored-teams.gen9ou.json)
+# from the live source. Runs SERVER-SIDE (no browser CORS) and only ever ADDS to
+# the curated seed, so the pool can grow but never shrink. Run it by hand now to
+# populate it; it also refreshes weekly. A change here lands on main and triggers
+# the normal Pages deploy.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-sample-teams
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Fetch + rebuild vendored teams
+        run: npx vite-node scripts/build-sample-teams.ts --fetch
+      - name: Commit if changed
+        run: |
+          if [[ -n "$(git status --porcelain src/data/vendored-teams.gen9ou.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/data/vendored-teams.gen9ou.json
+            git commit -m "chore: refresh vendored sample teams"
+            git push
+          else
+            echo "vendored teams unchanged"
+          fi

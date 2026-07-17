@@ -1,0 +1,567 @@
+[
+  {
+    "name": "Gholdengo Balance",
+    "author": "curated",
+    "data": [
+      {
+        "species": "Great Tusk",
+        "item": "Heavy-Duty Boots",
+        "ability": "Protosynthesis",
+        "teraType": "Water",
+        "nature": "Jolly",
+        "gender": "N",
+        "level": 100,
+        "evs": {
+          "hp": 0,
+          "atk": 252,
+          "def": 4,
+          "spa": 0,
+          "spd": 0,
+          "spe": 252
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Headlong Rush",
+          "Ice Spinner",
+          "Rapid Spin",
+          "Knock Off"
+        ]
+      },
+      {
+        "species": "Gholdengo",
+        "item": "Choice Scarf",
+        "ability": "Good as Gold",
+        "teraType": "Steel",
+        "nature": "Timid",
+        "gender": "N",
+        "level": 100,
+        "evs": {
+          "hp": 0,
+          "atk": 0,
+          "def": 0,
+          "spa": 252,
+          "spd": 4,
+          "spe": 252
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Make It Rain",
+          "Shadow Ball",
+          "Focus Blast",
+          "Trick"
+        ]
+      },
+      {
+        "species": "Slowking-Galar",
+        "item": "Heavy-Duty Boots",
+        "ability": "Regenerator",
+        "teraType": "Water",
+        "nature": "Sassy",
+        "level": 100,
+        "evs": {
+          "hp": 252,
+          "atk": 0,
+          "def": 16,
+          "spa": 0,
+          "spd": 240,
+          "spe": 0
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 0,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 0
+        },
+        "moves": [
+          "Future Sight",
+          "Chilly Reception",
+          "Sludge Bomb",
+          "Thunder Wave"
+        ]
+      },
+      {
+        "species": "Kingambit",
+        "item": "Leftovers",
+        "ability": "Supreme Overlord",
+        "teraType": "Fire",
+        "nature": "Adamant",
+        "level": 100,
+        "evs": {
+          "hp": 236,
+          "atk": 252,
+          "def": 0,
+          "spa": 0,
+          "spd": 0,
+          "spe": 20
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Swords Dance",
+          "Kowtow Cleave",
+          "Sucker Punch",
+          "Iron Head"
+        ]
+      },
+      {
+        "species": "Ting-Lu",
+        "item": "Leftovers",
+        "ability": "Vessel of Ruin",
+        "teraType": "Water",
+        "nature": "Careful",
+        "gender": "N",
+        "level": 100,
+        "evs": {
+          "hp": 252,
+          "atk": 0,
+          "def": 4,
+          "spa": 0,
+          "spd": 252,
+          "spe": 0
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Earthquake",
+          "Ruination",
+          "Whirlwind",
+          "Stealth Rock"
+        ]
+      },
+      {
+        "species": "Dragapult",
+        "item": "Choice Specs",
+        "ability": "Infiltrator",
+        "teraType": "Ghost",
+        "nature": "Timid",
+        "level": 100,
+        "evs": {
+          "hp": 0,
+          "atk": 0,
+          "def": 0,
+          "spa": 252,
+          "spd": 4,
+          "spe": 252
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Shadow Ball",
+          "Draco Meteor",
+          "Flamethrower",
+          "U-turn"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Gliscor Stall-ish",
+    "author": "curated",
+    "data": [
+      {
+        "species": "Gliscor",
+        "item": "Toxic Orb",
+        "ability": "Poison Heal",
+        "teraType": "Water",
+        "nature": "Impish",
+        "level": 100,
+        "evs": {
+          "hp": 244,
+          "atk": 0,
+          "def": 248,
+          "spa": 0,
+          "spd": 0,
+          "spe": 16
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Earthquake",
+          "Knock Off",
+          "Protect",
+          "Spikes"
+        ]
+      },
+      {
+        "species": "Dondozo",
+        "item": "Heavy-Duty Boots",
+        "ability": "Unaware",
+        "teraType": "Fairy",
+        "nature": "Impish",
+        "level": 100,
+        "evs": {
+          "hp": 252,
+          "atk": 4,
+          "def": 252,
+          "spa": 0,
+          "spd": 0,
+          "spe": 0
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Wave Crash",
+          "Body Press",
+          "Rest",
+          "Sleep Talk"
+        ]
+      },
+      {
+        "species": "Clodsire",
+        "item": "Heavy-Duty Boots",
+        "ability": "Water Absorb",
+        "teraType": "Steel",
+        "nature": "Careful",
+        "level": 100,
+        "evs": {
+          "hp": 252,
+          "atk": 0,
+          "def": 4,
+          "spa": 0,
+          "spd": 252,
+          "spe": 0
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Earthquake",
+          "Toxic",
+          "Recover",
+          "Stealth Rock"
+        ]
+      },
+      {
+        "species": "Corviknight",
+        "item": "Leftovers",
+        "ability": "Pressure",
+        "teraType": "Dragon",
+        "nature": "Impish",
+        "level": 100,
+        "evs": {
+          "hp": 252,
+          "atk": 4,
+          "def": 252,
+          "spa": 0,
+          "spd": 0,
+          "spe": 0
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Body Press",
+          "Brave Bird",
+          "Roost",
+          "Defog"
+        ]
+      },
+      {
+        "species": "Gholdengo",
+        "item": "Leftovers",
+        "ability": "Good as Gold",
+        "teraType": "Flying",
+        "nature": "Calm",
+        "gender": "N",
+        "level": 100,
+        "evs": {
+          "hp": 252,
+          "atk": 0,
+          "def": 0,
+          "spa": 4,
+          "spd": 252,
+          "spe": 0
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Make It Rain",
+          "Shadow Ball",
+          "Recover",
+          "Nasty Plot"
+        ]
+      },
+      {
+        "species": "Slowking-Galar",
+        "item": "Heavy-Duty Boots",
+        "ability": "Regenerator",
+        "teraType": "Water",
+        "nature": "Sassy",
+        "level": 100,
+        "evs": {
+          "hp": 252,
+          "atk": 0,
+          "def": 16,
+          "spa": 0,
+          "spd": 240,
+          "spe": 0
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 0,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 0
+        },
+        "moves": [
+          "Future Sight",
+          "Chilly Reception",
+          "Sludge Bomb",
+          "Thunder Wave"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Rain Offense",
+    "author": "curated",
+    "data": [
+      {
+        "species": "Pelipper",
+        "item": "Damp Rock",
+        "ability": "Drizzle",
+        "teraType": "Ground",
+        "nature": "Bold",
+        "level": 100,
+        "evs": {
+          "hp": 248,
+          "atk": 0,
+          "def": 252,
+          "spa": 8,
+          "spd": 0,
+          "spe": 0
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Hurricane",
+          "Surf",
+          "U-turn",
+          "Roost"
+        ]
+      },
+      {
+        "species": "Barraskewda",
+        "item": "Choice Band",
+        "ability": "Swift Swim",
+        "teraType": "Water",
+        "nature": "Jolly",
+        "level": 100,
+        "evs": {
+          "hp": 0,
+          "atk": 252,
+          "def": 4,
+          "spa": 0,
+          "spd": 0,
+          "spe": 252
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Liquidation",
+          "Close Combat",
+          "Flip Turn",
+          "Aqua Jet"
+        ]
+      },
+      {
+        "species": "Zapdos",
+        "item": "Heavy-Duty Boots",
+        "ability": "Static",
+        "teraType": "Electric",
+        "nature": "Timid",
+        "gender": "N",
+        "level": 100,
+        "evs": {
+          "hp": 0,
+          "atk": 0,
+          "def": 0,
+          "spa": 252,
+          "spd": 4,
+          "spe": 252
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Hurricane",
+          "Thunder",
+          "Volt Switch",
+          "Roost"
+        ]
+      },
+      {
+        "species": "Great Tusk",
+        "item": "Heavy-Duty Boots",
+        "ability": "Protosynthesis",
+        "teraType": "Water",
+        "nature": "Jolly",
+        "gender": "N",
+        "level": 100,
+        "evs": {
+          "hp": 0,
+          "atk": 252,
+          "def": 4,
+          "spa": 0,
+          "spd": 0,
+          "spe": 252
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Headlong Rush",
+          "Ice Spinner",
+          "Rapid Spin",
+          "Knock Off"
+        ]
+      },
+      {
+        "species": "Kingambit",
+        "item": "Black Glasses",
+        "ability": "Supreme Overlord",
+        "teraType": "Dark",
+        "nature": "Adamant",
+        "level": 100,
+        "evs": {
+          "hp": 0,
+          "atk": 252,
+          "def": 4,
+          "spa": 0,
+          "spd": 0,
+          "spe": 252
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Swords Dance",
+          "Kowtow Cleave",
+          "Sucker Punch",
+          "Iron Head"
+        ]
+      },
+      {
+        "species": "Ogerpon",
+        "item": "Heavy-Duty Boots",
+        "ability": "Defiant",
+        "teraType": "Grass",
+        "nature": "Jolly",
+        "gender": "F",
+        "level": 100,
+        "evs": {
+          "hp": 0,
+          "atk": 252,
+          "def": 4,
+          "spa": 0,
+          "spd": 0,
+          "spe": 252
+        },
+        "ivs": {
+          "hp": 31,
+          "atk": 31,
+          "def": 31,
+          "spa": 31,
+          "spd": 31,
+          "spe": 31
+        },
+        "moves": [
+          "Ivy Cudgel",
+          "Power Whip",
+          "Knock Off",
+          "U-turn"
+        ]
+      }
+    ]
+  }
+]

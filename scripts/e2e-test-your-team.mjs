@@ -176,16 +176,19 @@ async function main() {
     await page.locator('button.primary').click();
 
     // 3. Configure: pool with archetype tags — built-in teams merged with the
-    // mocked external sample team (proves the runtime fetch + merge path).
+    // vendored sample teams (proves the merge; teams ship statically, no fetch).
     await page.waitForSelector('.pool-table tbody tr', {timeout: 30_000});
     const baseTeams = JSON.parse(require('fs').readFileSync('test/fixtures/gen9ou.teams.full.json', 'utf8')).length;
+    const vendored = JSON.parse(require('fs').readFileSync('src/data/vendored-teams.gen9ou.json', 'utf8'));
     const poolRows = await page.locator('.pool-table tbody tr').count();
-    if (poolRows <= baseTeams) fail(`expected external teams merged in: ${poolRows} rows vs ${baseTeams} built-in`);
+    if (poolRows <= baseTeams) fail(`expected vendored teams merged in: ${poolRows} rows vs ${baseTeams} built-in`);
     const poolNames = await page.locator('.pool-name').allTextContents();
-    if (!poolNames.some(n => /E2E Sample Team/.test(n))) fail('merged pool should include the external sample team');
+    if (!vendored.some(v => poolNames.some(n => n.includes(v.name)))) {
+      fail('merged pool should include a vendored sample team');
+    }
     const archetypeTags = await page.locator('.archetype-tag').allTextContents();
     if (!archetypeTags.every(tag => tag.length > 0)) fail('every pool team needs an archetype tag');
-    ok(`pool lists ${poolRows} teams (${baseTeams} built-in + external) with archetypes: ${[...new Set(archetypeTags)].join(', ')}`);
+    ok(`pool lists ${poolRows} teams (${baseTeams} built-in + ${vendored.length} vendored) with archetypes: ${[...new Set(archetypeTags)].join(', ')}`);
 
     // Weight one matchup up, disable one team.
     await page.locator('.weight-input').first().fill('3');
