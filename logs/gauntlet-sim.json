@@ -1,117 +1,62 @@
 {
-  "config": "strong",
+  "config": "fast",
   "draft": "greedy",
-  "ramp": "smooth",
-  "runs": 12,
+  "ramp": "cliff",
+  "runs": 20,
   "summaries": [
     {
-      "mode": "easy",
-      "runs": 12,
-      "flawless": 2,
-      "flawlessRate": 0.16666666666666666,
+      "mode": "normal",
+      "runs": 20,
+      "flawless": 0,
+      "flawlessRate": 0,
       "eliminatedAt": [
+        14,
+        4,
         1,
         0,
         1,
-        1,
-        3,
-        4
+        0
       ],
       "perRung": [
         {
-          "played": 12,
-          "won": 11,
-          "rate": 0.9166666666666666
-        },
-        {
-          "played": 11,
-          "won": 11,
-          "rate": 1
-        },
-        {
-          "played": 11,
-          "won": 10,
-          "rate": 0.9090909090909091
-        },
-        {
-          "played": 10,
-          "won": 9,
-          "rate": 0.9
-        },
-        {
-          "played": 9,
+          "played": 20,
           "won": 6,
-          "rate": 0.6666666666666666
+          "rate": 0.3
         },
         {
           "played": 6,
           "won": 2,
           "rate": 0.3333333333333333
-        }
-      ],
-      "meanBattlesPerRun": 4.916666666666667,
-      "meanTurns": 31.864406779661017,
-      "tera": {
-        "battles": 59,
-        "teraedBattles": 59,
-        "teraRate": 1,
-        "meanTeraTurn": 4.101694915254237,
-        "meanTeraFraction": 0.14813050688171533
-      }
-    },
-    {
-      "mode": "normal",
-      "runs": 12,
-      "flawless": 1,
-      "flawlessRate": 0.08333333333333333,
-      "eliminatedAt": [
-        2,
-        5,
-        2,
-        1,
-        0,
-        1
-      ],
-      "perRung": [
-        {
-          "played": 12,
-          "won": 10,
-          "rate": 0.8333333333333334
-        },
-        {
-          "played": 10,
-          "won": 5,
-          "rate": 0.5
-        },
-        {
-          "played": 5,
-          "won": 3,
-          "rate": 0.6
-        },
-        {
-          "played": 3,
-          "won": 2,
-          "rate": 0.6666666666666666
-        },
-        {
-          "played": 2,
-          "won": 2,
-          "rate": 1
         },
         {
           "played": 2,
           "won": 1,
           "rate": 0.5
+        },
+        {
+          "played": 1,
+          "won": 1,
+          "rate": 1
+        },
+        {
+          "played": 1,
+          "won": 0,
+          "rate": 0
+        },
+        {
+          "played": 0,
+          "won": 0,
+          "rate": 0
         }
       ],
-      "meanBattlesPerRun": 2.8333333333333335,
-      "meanTurns": 38.76470588235294,
+      "meanBattlesPerRun": 1.5,
+      "meanTurns": 33.1,
       "tera": {
-        "battles": 34,
-        "teraedBattles": 34,
+        "battles": 30,
+        "teraedBattles": 30,
         "teraRate": 1,
-        "meanTeraTurn": 4.852941176470588,
-        "meanTeraFraction": 0.13286667405953667
+        "meanTeraTurn": 12.8,
+        "meanTeraFraction": 0.4222603901774068
       }
     }
   ]
