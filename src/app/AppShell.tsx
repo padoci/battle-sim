@@ -51,7 +51,7 @@ export function AppShell() {
               <div className="tier-control" role="group" aria-label="Format">
                 <button className="tier active">Gen 9 OU</button>
                 <button className="tier" disabled title="Coming later">
-                  VGC
+                  VGC<span className="soon-badge">soon</span>
                 </button>
               </div>
             </header>

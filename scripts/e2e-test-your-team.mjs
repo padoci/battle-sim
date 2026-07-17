@@ -134,14 +134,11 @@ async function main() {
   page.on('pageerror', error => fail(`page error: ${error.message}`));
 
   try {
-    // 1. Landing.
+    // 1. Landing. (Both modes are enabled as of Stage 4 — click Test your team.)
     await page.goto(`http://localhost:${PORT}/`);
     await page.waitForSelector('.mode-card');
-    if (!(await page.locator('.mode-card.disabled').textContent()).includes('coming soon')) {
-      fail('6-0 card should be disabled/coming soon');
-    }
-    ok('landing shows both mode cards, 6-0 disabled');
-    await page.locator('.mode-card:not(.disabled)').click();
+    ok('landing shows both mode cards');
+    await page.locator('.mode-card', {hasText: 'Test your team'}).click();
 
     // 2. Paste import — bad team first (banned in OU), then good.
     await page.waitForSelector('.team-input');

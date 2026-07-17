@@ -166,9 +166,10 @@ export function Dashboard() {
   if (!team || !analysis) {
     return (
       <main className="screen">
-        <p>
-          No results yet — <a href="#/test/configure">run some battles first</a>.
-        </p>
+        <div className="empty-state">
+          No results yet — <a href="#/test/configure">run some battles</a> and the matchup reads
+          land here.
+        </div>
       </main>
     );
   }
@@ -212,7 +213,7 @@ export function Dashboard() {
   const column = (title: string, list: ArchetypeCard[]) => (
     <section className="matchup-column">
       <h2>{title}</h2>
-      {list.length === 0 && <p className="hint">None yet.</p>}
+      {list.length === 0 && <p className="hint">None in this band yet — run more battles to fill it in.</p>}
       {list.map(card => (
         <MatchupCardView
           key={card.archetype}

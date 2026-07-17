@@ -11,6 +11,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fontsource-variable/archivo": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@fontsource/ibm-plex-sans": "^5.2.8",
     "@pkmn/data": "~0.10.11",
     "@pkmn/dex": "~0.10.11",
     "@pkmn/img": "^0.3.4",
