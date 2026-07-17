@@ -1,0 +1,10 @@
+export {classifyTeam, extractFeatures, THRESHOLDS} from './archetype';
+export type {ArchetypeId, ArchetypeResult, ArchetypeFeatures} from './archetype';
+export {buildPairingContext, bestThreat, threatFacts, bestAnswer} from './threats';
+export type {PairingContext, BestThreat, ThreatFact} from './threats';
+export {aggregateMatchup, rollUpByArchetype, summarize} from './stats';
+export type {RecordedBattle, MatchupAggregate, ArchetypeCard, OverallSummary} from './stats';
+export {deriveGamePlanFacts, renderGamePlan} from './gameplan';
+export type {GamePlan, GamePlanFacts} from './gameplan';
+export {buildExportJson, buildExportMarkdown} from './export';
+export type {DashboardExportJsonV1, ExportInputs} from './export';

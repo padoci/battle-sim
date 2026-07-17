@@ -1,10 +1,10 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
-import {AppShell} from './app/AppShell';
-import './app/app.css';
+import {App} from './App';
+import './demo.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AppShell />
+    <App />
   </StrictMode>
 );

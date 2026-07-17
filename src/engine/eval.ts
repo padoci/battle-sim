@@ -126,6 +126,25 @@ function stageMult(stage: number): number {
 }
 
 /**
+ * Which side's active is faster right now (Trick-Room aware); 'tie' on
+ * exact effective-speed equality. The decomposed fact behind the matchup
+ * term's speed factor — used by analysis/stats surfaces.
+ */
+export function fasterSide(state: BattleState, sideA: 0 | 1): 0 | 1 | 'tie' {
+  const a = state.sides[sideA];
+  const b = state.sides[(1 - sideA) as 0 | 1];
+  const monA = a.mons[a.activeIndex];
+  const monB = b.mons[b.activeIndex];
+  if (!monA || !monB) return 'tie';
+  const speedA = raceSpeed(monA, a);
+  const speedB = raceSpeed(monB, b);
+  if (speedA === speedB) return 'tie';
+  let aFaster = speedA > speedB;
+  if (state.trickRoom) aFaster = !aFaster;
+  return aFaster ? sideA : ((1 - sideA) as 0 | 1);
+}
+
+/**
  * How threatening `atk` (active on atkSide) is to `def` right now:
  * best move's OHKO probability plus weighted expected chip, under the
  * current Tera slices.
