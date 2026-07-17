@@ -1,7 +1,7 @@
 import type {Generation} from '@pkmn/data';
 import type {PokemonSet} from '../data/types';
 import {createBattle, isOver, makeJointChoice, winner} from '../engine/battle';
-import {setEvalOverrides} from '../engine/eval';
+import {setEvalOverrides, type EvalOverrides} from '../engine/eval';
 import {legalActions, toChoice} from '../engine/actions';
 import {buildCalcTable, type CalcTable} from '../engine/calc/table';
 import {extractState} from '../engine/snapshot';
@@ -10,7 +10,19 @@ import type {SearchConfig} from './config';
 import {chooseAction, chooseTurn, type TurnTrace} from './search';
 import {emptyStats, recordTurn, type BattleStats} from './stats';
 
-export type Policy = {kind: 'search'; config: SearchConfig} | {kind: 'random'};
+/**
+ * How a side chooses its move:
+ * - `search`: full policy at the given config (the real AI).
+ * - `random`: a uniform legal move (the baseline / a "fish").
+ * - `mix`: a competent `search` player that blunders into a random move with
+ *   probability `epsilon` — a tunable "weak but coherent" opponent. epsilon 0
+ *   is pure search, epsilon 1 is pure random; values between give a smooth
+ *   difficulty dial (used to ramp Easy-mode opponents without a cliff).
+ */
+export type Policy =
+  | {kind: 'search'; config: SearchConfig}
+  | {kind: 'random'}
+  | {kind: 'mix'; epsilon: number; config: SearchConfig};
 
 export interface BattleJob {
   teams: [PokemonSet[], PokemonSet[]];
@@ -30,7 +42,13 @@ export interface BattleJob {
    */
   opponentKey?: string;
   /** Dev-only eval tuning knobs (e.g. the gauntlet's ?tera=N). */
-  evalOverrides?: {teraAvailable?: number};
+  evalOverrides?: EvalOverrides;
+  /**
+   * Per-side eval overrides for A/B strength tests (e.g. new Tera eval vs old).
+   * When set, each side searches under its own worldview and the symmetric
+   * fast path is disabled. Falls back to `evalOverrides` for an unset side.
+   */
+  evalOverridesBySide?: [EvalOverrides | undefined, EvalOverrides | undefined];
 }
 
 export interface BattleResult {
@@ -103,7 +121,9 @@ export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): B
   });
 
   const maxTurns = job.maxTurns ?? 300;
-  const symmetric = samePolicies(job.policies);
+  // Per-side eval overrides force the asymmetric path (each side needs its own
+  // eval worldview, which the joint chooseTurn cannot express).
+  const symmetric = samePolicies(job.policies) && !job.evalOverridesBySide;
   const rng1 = makeRng(job.searchSeed ^ 0x1111);
   const rng2 = makeRng(job.searchSeed ^ 0x2222);
 
@@ -132,6 +152,14 @@ export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): B
           const policy = job.policies[side];
           const rng = side === 0 ? rng1 : rng2;
           if (policy.kind === 'random') return randomChoice(battle, side, rng);
+          // A mix player blunders into a random legal move with prob epsilon.
+          // The epsilon>0 guard short-circuits the draw so mix(0) consumes no
+          // RNG and is bit-for-bit identical to plain search.
+          if (policy.kind === 'mix' && policy.epsilon > 0 && rng.next() < policy.epsilon) {
+            return randomChoice(battle, side, rng);
+          }
+          // Apply this side's eval worldview for the search (A/B tests).
+          if (job.evalOverridesBySide) setEvalOverrides(job.evalOverridesBySide[side] ?? job.evalOverrides);
           const decision = chooseAction(battle, side, calcTable, policy.config, rng, job.searchSeed);
           decisionMs.push(decision.trace.ms);
           nodes += decision.trace.nodes;

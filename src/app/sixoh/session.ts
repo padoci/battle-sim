@@ -32,17 +32,28 @@ export function resetSixOhSession(): void {
 }
 
 /**
+ * Per-rung blunder rate for Easy: a competent opponent that misplays into a
+ * random move this fraction of the time, decaying to 0 by the last rung.
+ * Tuned from headless gauntlet sims (scripts/sim-gauntlet.ts) — this smooth
+ * decay gives a gentle-to-fair difficulty slope with no cliff, unlike the
+ * old random→FAST→full jump which was two free wins then a wall at rung 3.
+ */
+const EASY_BLUNDER = [0.75, 0.55, 0.4, 0.25, 0.1, 0];
+
+/**
  * The opponent's policy for a given gauntlet rung. Normal/hard field the
- * player's own config (a full-strength mirror) every battle. Easy ramps:
- * the first two rungs move randomly, the middle two search shallowly (FAST),
- * and only the last two match the player — so a run starts gentle and builds
- * to a fair fight. The player is always `dev.config` (STRONG by default).
+ * player's own config (a full-strength mirror) every battle. Easy ramps the
+ * opponent from weak-but-coherent to a fair fight: each rung is a real
+ * searcher that just blunders sometimes, blundering less each battle. Early
+ * rungs search shallowly (FAST) under the blunders to stay cheap; the top
+ * rungs use the player's own config so Easy eases into a genuine mirror.
+ * The player is always `dev.config` (STRONG by default).
  */
 export function opponentPolicy(mode: DraftMode, index: number, dev: DevParams): Policy {
   if (mode !== 'easy') return {kind: 'search', config: dev.config};
-  if (index <= 1) return {kind: 'random'};
-  if (index <= 3) return {kind: 'search', config: FAST};
-  return {kind: 'search', config: dev.config};
+  const epsilon = EASY_BLUNDER[index] ?? 0;
+  if (epsilon <= 0) return {kind: 'search', config: dev.config};
+  return {kind: 'mix', epsilon, config: index >= 4 ? dev.config : FAST};
 }
 
 function jobFor(state: SixOhState, index: number, dev: DevParams): BattleJob {
