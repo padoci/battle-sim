@@ -191,10 +191,26 @@ describe('evaluate (spec §3b + §4)', () => {
     expect(tw - clean).toBeGreaterThanOrEqual(7);
   });
 
-  it('an unused Tera is worth a held-threat bonus', () => {
+  it('an unused Tera is worth its full option value at a fresh board', () => {
     const clean = score(balancedState());
     const spent = score(balancedState({teraUsed: true}));
     expect(clean - spent).toBeCloseTo(WEIGHTS.TERA_AVAILABLE, 5);
+  });
+
+  it('the Tera option value decays as the game progresses (fewer future windows)', () => {
+    // Held-Tera value = clean (both hold, nets to 0) minus side-0-spent (nets to
+    // -value), isolating one side's option value. Faint mons to advance phase.
+    const faint4 = (s: BattleState) => {
+      for (const side of [0, 1] as const)
+        for (const i of [4, 5]) s.sides[side].mons[i] = {...s.sides[side].mons[i], fainted: true, hp: 0};
+      return s;
+    };
+    const freshHeld = score(balancedState()) - score(balancedState({teraUsed: true}));
+    const midHeld = score(faint4(balancedState())) - score(faint4(balancedState({teraUsed: true})));
+
+    expect(freshHeld).toBeCloseTo(WEIGHTS.TERA_AVAILABLE, 5); // 0 faints → full value
+    expect(midHeld).toBeCloseTo(WEIGHTS.TERA_AVAILABLE * 0.5, 5); // 4/8 faints → half
+    expect(midHeld).toBeLessThan(freshHeld);
   });
 
   it('matchup: a faster guaranteed-OHKO active scores higher than a slower one', () => {

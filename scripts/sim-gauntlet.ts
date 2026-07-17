@@ -47,6 +47,16 @@ const DRAFT = flag('draft', 'greedy') as 'greedy' | 'random';
 const BASE_SEED = Number(flag('seed', '1000'));
 /** Easy ramp shape: `cliff` = shipped (random/FAST/config), `smooth` = mix-based. */
 const RAMP = flag('ramp', 'cliff') as 'cliff' | 'smooth';
+/** Tera eval overrides (default = code weights). teraDecay ≤0 disables decay (flat baseline). */
+const TERA_BASE = flag('tera-base', '');
+const TERA_DECAY = flag('tera-decay', '');
+const EVAL_OVERRIDES =
+  TERA_BASE || TERA_DECAY
+    ? {
+        ...(TERA_BASE ? {teraAvailable: Number(TERA_BASE)} : {}),
+        ...(TERA_DECAY ? {teraDecayFaints: Number(TERA_DECAY)} : {}),
+      }
+    : undefined;
 
 const search = (config: SearchConfig): Policy => ({kind: 'search', config});
 
@@ -145,6 +155,7 @@ function runGauntlet(mode: DraftMode, runSeed: number): RunResult {
       policies: [search(CONFIG), opponentPolicy(mode, i)],
       maxTurns: 300,
       collectLog: true,
+      ...(EVAL_OVERRIDES ? {evalOverrides: EVAL_OVERRIDES} : {}),
     };
     const result = runBattle(gen, job);
     const won = result.winner === 0;
@@ -258,6 +269,7 @@ function main() {
   // ---- Report ----
   let md = `# Gauntlet simulation — Can you 6-0?\n\n`;
   md += `${RUNS} runs/mode · player search = **${CONFIG_NAME}** · draft = **${DRAFT}** · easy ramp = **${RAMP}** · `;
+  md += `tera eval = **${EVAL_OVERRIDES ? JSON.stringify(EVAL_OVERRIDES) : 'default'}** · `;
   md += `${elapsed.toFixed(0)}s total.\n\n`;
   md += `_Auto-drafted teams (${DRAFT}); real search + the shipped Easy ramp. `;
   md += `FAST understates the STRONG default — read the shape, not the absolute win rate._\n\n`;

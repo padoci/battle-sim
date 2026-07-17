@@ -1,7 +1,7 @@
 import type {Generation} from '@pkmn/data';
 import type {PokemonSet} from '../data/types';
 import {createBattle, isOver, makeJointChoice, winner} from '../engine/battle';
-import {setEvalOverrides} from '../engine/eval';
+import {setEvalOverrides, type EvalOverrides} from '../engine/eval';
 import {legalActions, toChoice} from '../engine/actions';
 import {buildCalcTable, type CalcTable} from '../engine/calc/table';
 import {extractState} from '../engine/snapshot';
@@ -42,7 +42,13 @@ export interface BattleJob {
    */
   opponentKey?: string;
   /** Dev-only eval tuning knobs (e.g. the gauntlet's ?tera=N). */
-  evalOverrides?: {teraAvailable?: number};
+  evalOverrides?: EvalOverrides;
+  /**
+   * Per-side eval overrides for A/B strength tests (e.g. new Tera eval vs old).
+   * When set, each side searches under its own worldview and the symmetric
+   * fast path is disabled. Falls back to `evalOverrides` for an unset side.
+   */
+  evalOverridesBySide?: [EvalOverrides | undefined, EvalOverrides | undefined];
 }
 
 export interface BattleResult {
@@ -115,7 +121,9 @@ export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): B
   });
 
   const maxTurns = job.maxTurns ?? 300;
-  const symmetric = samePolicies(job.policies);
+  // Per-side eval overrides force the asymmetric path (each side needs its own
+  // eval worldview, which the joint chooseTurn cannot express).
+  const symmetric = samePolicies(job.policies) && !job.evalOverridesBySide;
   const rng1 = makeRng(job.searchSeed ^ 0x1111);
   const rng2 = makeRng(job.searchSeed ^ 0x2222);
 
@@ -150,6 +158,8 @@ export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): B
           if (policy.kind === 'mix' && policy.epsilon > 0 && rng.next() < policy.epsilon) {
             return randomChoice(battle, side, rng);
           }
+          // Apply this side's eval worldview for the search (A/B tests).
+          if (job.evalOverridesBySide) setEvalOverrides(job.evalOverridesBySide[side] ?? job.evalOverrides);
           const decision = chooseAction(battle, side, calcTable, policy.config, rng, job.searchSeed);
           decisionMs.push(decision.trace.ms);
           nodes += decision.trace.nodes;

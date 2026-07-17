@@ -31,8 +31,18 @@ export const WEIGHTS = {
   CHIP_WEIGHT: 0.5,
   /** Threat discount when the threatening mon is slower. */
   SLOWER_DISCOUNT: 0.6,
-  /** Held-threat bonus for an unused Tera (spec §4b). */
-  TERA_AVAILABLE: 10,
+  /**
+   * Base option value of an unused Tera at full board (spec §4b). Decays with
+   * game phase (see teraOptionValue): holding Tera is worth a lot early — many
+   * future high-value windows remain, so wait — and ~nothing at the endgame,
+   * where it's use-it-or-lose-it. Sized above a typical incremental Tera swing
+   * so the AI only cashes Tera when it clearly changes an interaction (which,
+   * because KO probability dominates the matchup term, is ~a KO-flip), rather
+   * than on the first decent attack.
+   */
+  TERA_AVAILABLE: 30,
+  /** The Tera option value decays to 0 by this many total faints (game phase). */
+  TERA_DECAY_FAINTS: 8,
 } as const;
 
 /**
@@ -50,10 +60,39 @@ export function burnMultiplier(physicalShare: number): number {
  * zero-sum property is preserved by construction. Callers that run many
  * battles (the worker) must set this per battle — including clearing it.
  */
-let evalOverrides: {teraAvailable?: number} | undefined;
+export interface EvalOverrides {
+  /** Base Tera option value (WEIGHTS.TERA_AVAILABLE). */
+  teraAvailable?: number;
+  /** Faints over which the Tera option value decays (WEIGHTS.TERA_DECAY_FAINTS); ≤0 disables decay. */
+  teraDecayFaints?: number;
+}
 
-export function setEvalOverrides(overrides?: {teraAvailable?: number}): void {
+let evalOverrides: EvalOverrides | undefined;
+
+export function setEvalOverrides(overrides?: EvalOverrides): void {
   evalOverrides = overrides;
+}
+
+/** Total Pokémon fainted across both sides — a coarse game-phase clock. */
+function totalFainted(state: BattleState): number {
+  let n = 0;
+  for (const side of state.sides) for (const mon of side.mons) if (mon.fainted) n++;
+  return n;
+}
+
+/**
+ * Option value of still holding Tera (spec §4b, redesigned). A base bonus that
+ * decays with game phase: early (few faints) it's near full — holding Tera
+ * preserves the option to spend it on the single highest-impact turn still to
+ * come — and by the endgame it decays to 0, so the AI stops hoarding a resource
+ * it can no longer profitably time. Global (both-side) faint count keeps it
+ * symmetric, so the zero-sum property is preserved.
+ */
+function teraOptionValue(state: BattleState): number {
+  const base = evalOverrides?.teraAvailable ?? WEIGHTS.TERA_AVAILABLE;
+  const decayFaints = evalOverrides?.teraDecayFaints ?? WEIGHTS.TERA_DECAY_FAINTS;
+  if (decayFaints <= 0) return base; // decay disabled → flat (A/B baseline)
+  return base * Math.max(0, 1 - totalFainted(state) / decayFaints);
 }
 
 function boostScore(mon: MonState): number {
@@ -230,7 +269,7 @@ function sideScore(state: BattleState, table: CalcTable, side: 0 | 1): number {
   for (const mon of sideState.mons) {
     score += evaluatePokemon(mon, physicalShareOf(table, side, mon));
   }
-  if (!sideState.teraUsed) score += evalOverrides?.teraAvailable ?? WEIGHTS.TERA_AVAILABLE;
+  if (!sideState.teraUsed) score += teraOptionValue(state);
   return score;
 }
 
