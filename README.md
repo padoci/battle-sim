@@ -72,6 +72,22 @@ Pages:
 
 Dev/tuning knobs on the gauntlet: `#/sixoh?seed=123&config=fast&tera=25` (reproducible run / d1 search / eval `TERA_AVAILABLE` override — for watching how Tera timing changes with the weight).
 
+## Deploys & previews
+
+- **Production** — `main` builds and deploys to GitHub Pages (`.github/workflows/deploy.yml`), which sets `DEPLOY_BASE=/battle-sim/` so assets resolve under the repo subpath.
+- **Per-PR previews** — Cloudflare Pages builds every PR to its own throwaway URL (real network → real sprites, fully interactive), so a PR can be checked with one click instead of pulling the branch. Production on GitHub Pages is untouched.
+
+The Vite `base` is environment-driven (`vite.config.ts`): it defaults to `/`, and only the GitHub Pages job sets `DEPLOY_BASE`. Cloudflare doesn't, so its builds serve correctly from the root — no per-host config. Routing is hash-based (`#/…`), so no SPA-fallback/redirects file is needed on either host.
+
+One-time Cloudflare setup (dashboard → Workers & Pages → Create → Pages → Connect to Git):
+
+- **Repository:** `padoci/battle-sim`
+- **Build command:** `npm run build`
+- **Build output directory:** `dist`
+- Node version comes from `.nvmrc` (22); nothing else to configure.
+
+Cloudflare posts each preview URL back onto the PR as a deployment status once it's connected.
+
 ## Scripts
 
 - `npx vite-node scripts/measure.ts` — Node-side search gate numbers (ms/turn, nodes/turn, strength vs baselines) + rendered battle logs into `logs/`
