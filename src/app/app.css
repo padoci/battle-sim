@@ -927,6 +927,14 @@ button.primary:disabled {
   background: var(--arena-raised);
 }
 
+/* Suspense fallback while a route's code-split chunk loads. */
+.route-loading {
+  padding: 4rem 1.5rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .simulating .pulse {
   width: 44px;
   height: 44px;
