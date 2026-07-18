@@ -1,14 +1,13 @@
 name: Deploy to GitHub Pages
 
-# Deploys the built app to GitHub Pages. Fires when main updates (e.g. a PR
-# merges) and can be run by hand from the Actions tab.
-#
-# One-time setup by a repo admin: Settings → Pages → Build and deployment →
-# Source: "GitHub Actions". (The configure-pages step below also attempts to
-# enable it automatically.)
+# RETIRED as the production deploy: GitHub Pages was disabled on the repo
+# when production moved to Cloudflare Pages (battle-sim-eo1.pages.dev, which
+# builds main automatically). With Pages disabled, every push-triggered run
+# failed at configure-pages ("Resource not accessible by integration"), so
+# the push trigger is removed. To bring GitHub Pages back: a repo admin
+# re-enables it (Settings → Pages → Build and deployment → Source: "GitHub
+# Actions"), then runs this workflow by hand from the Actions tab.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 # Least privilege for the Pages deploy.
