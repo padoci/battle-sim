@@ -232,6 +232,10 @@ async function main() {
     const etaText = await page.locator('.run-controls p.mono').first().textContent();
     if (!/≈/.test(etaText)) fail(`expected an ETA estimate after calibration, got: ${etaText}`);
     ok(`calibration done -> ${etaText.trim()}`);
+    if (!(await page.locator('input[type=number].n-input').count())) {
+      fail('battle-count number input should accompany the slider');
+    }
+    ok('numeric battle-count input present beside the slider');
 
     // 5. Pick a small N and run.
     await page.locator('input[type=range]').fill('30');
@@ -254,6 +258,12 @@ async function main() {
     );
     await page.screenshot({path: `${shotsDir}/e2e-dashboard.png`, fullPage: true});
     ok('run complete, dashboard settled');
+    const bars = await page.locator('.matchup-head .rate-bar').count();
+    if (!bars) fail('matchup cards should show a W-L-D rate bar');
+    if (!(await page.locator('.verdict [role=status], .verdict[role=status], .verdict p[role=status]').count())) {
+      fail('verdict line should be a live status region');
+    }
+    ok(`W-L-D rate bars on ${bars} matchup card(s) + live status region`);
 
     // 7. Expand the first matchup card: game plan + mono evidence.
     await page.locator('.matchup-head').first().click();

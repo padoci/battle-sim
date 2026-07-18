@@ -149,6 +149,19 @@ export function aggregateMatchup(
 }
 
 /** Roll matchups up into archetype cards, sorted worst-first. */
+/** W-L-D for a card: the card only carries wins/battles, so sum its matchups. */
+export function cardRecord(card: ArchetypeCard): {wins: number; losses: number; draws: number} {
+  let wins = 0;
+  let losses = 0;
+  let draws = 0;
+  for (const m of card.matchups) {
+    wins += m.wins;
+    losses += m.losses;
+    draws += m.draws;
+  }
+  return {wins, losses, draws};
+}
+
 export function rollUpByArchetype(matchups: MatchupAggregate[]): ArchetypeCard[] {
   const groups = new Map<ArchetypeId, MatchupAggregate[]>();
   for (const matchup of matchups) {

@@ -7,6 +7,7 @@ import {gen9} from '../../data/gen';
 import {classifyTeam} from '../../analysis/archetype';
 import {CALIBRATION_BATTLES, etaMs, formatEta} from '../../run/calibration';
 import {cancelRun, getRunner} from '../simSession';
+import {clampN} from '../clamp';
 import {navigate} from '../router';
 import {useAppDispatch, useAppState, type PoolEntryWithMeta} from '../state';
 
@@ -70,6 +71,9 @@ export function ConfigureRun() {
   const dispatch = useAppDispatch();
   const gen = useMemo(() => gen9(), []);
   const [poolError, setPoolError] = useState<string>();
+  // In-progress text of the battle-count number input; committed (clamped to
+  // the slider's contract) on blur/Enter, then cleared to resync with run.n.
+  const [nDraft, setNDraft] = useState<string>();
 
   // Load + classify the opponent pool once.
   useEffect(() => {
@@ -190,7 +194,7 @@ export function ConfigureRun() {
 
       {run.status === 'calibrating' && (
         <section className="run-controls">
-          <p className="mono">
+          <p className="mono" role="status" aria-live="polite">
             Calibrating… {done}/{Math.min(CALIBRATION_BATTLES, enabledCount * 3)}
           </p>
         </section>
@@ -209,6 +213,27 @@ export function ConfigureRun() {
               onChange={event => dispatch({type: 'SET_N', n: Number(event.target.value)})}
             />
           </label>
+          <label className="n-input-label mono">
+            or type a count:{' '}
+            <input
+              type="number"
+              className="n-input mono"
+              min={Math.max(10, done)}
+              max={500}
+              step={10}
+              value={nDraft ?? run.n}
+              aria-label="Number of battles"
+              onChange={event => setNDraft(event.target.value)}
+              onBlur={() => {
+                const clamped = clampN(Number(nDraft), Math.max(10, done));
+                if (!Number.isNaN(clamped)) dispatch({type: 'SET_N', n: clamped});
+                setNDraft(undefined); // resync display to run.n either way
+              }}
+              onKeyDown={event => {
+                if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
+              }}
+            />
+          </label>
           <p className="mono">
             {done} done · {remainingEta} for the rest
           </p>
@@ -224,7 +249,7 @@ export function ConfigureRun() {
       {run.status === 'running' && (
         <section className="run-controls">
           <progress value={done} max={run.n} />
-          <p className="mono">
+          <p className="mono" role="status" aria-live="polite">
             {done}/{run.n} · {remainingEta} remaining
           </p>
           <button onClick={cancelRun}>Cancel (keep partial results)</button>

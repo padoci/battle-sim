@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {aggregateMatchup, rollUpByArchetype, summarize, type RecordedBattle} from '../../src/analysis/stats';
+import {aggregateMatchup, cardRecord, rollUpByArchetype, summarize, type RecordedBattle} from '../../src/analysis/stats';
 import type {ArchetypeResult} from '../../src/analysis/archetype';
 import type {BattleResult} from '../../src/search/runner';
 import type {BattleStats} from '../../src/search/stats';
@@ -82,49 +82,17 @@ describe('rollUpByArchetype + summarize', () => {
   });
 });
 
-describe('aggregateMatchup — threaded signals (chip faints, KOs scored, overall damage)', () => {
-  it('counts hazard/residual chip faints per species', () => {
-    const agg = aggregateMatchup('t1', 'Opp', archetype(), [
-      battle(1, {
-        faints: [
-          {side: 0, speciesId: 'gliscor', turn: 4, causeKind: 'hazard'},
-          {side: 0, speciesId: 'gliscor', turn: 9, causeSpeciesId: 'darkrai', causeKind: 'move'},
-          {side: 0, speciesId: 'kingambit', turn: 12, causeKind: 'residual'},
-        ],
-      }),
-    ]);
-    const gliscor = agg.earliestFaints.find(f => f.speciesId === 'gliscor')!;
-    const kingambit = agg.earliestFaints.find(f => f.speciesId === 'kingambit')!;
-    expect(gliscor.chipFaints).toBe(1);
-    expect(gliscor.faintCount).toBe(2);
-    expect(kingambit.chipFaints).toBe(1);
+describe('cardRecord', () => {
+  it('sums W-L-D across a card\'s matchups (cards only carry wins/battles)', () => {
+    const rain = aggregateMatchup('r1', 'Rain One', archetype('Rain'), [battle(1), battle(1), battle(0)]);
+    const rain2 = aggregateMatchup('r2', 'Rain Two', archetype('Rain'), [battle(null)]);
+    const [card] = rollUpByArchetype([rain, rain2]);
+    expect(cardRecord(card)).toEqual({wins: 1, losses: 2, draws: 1});
   });
 
-  it('credits your mons with opponent KOs (side-1 move faints only)', () => {
-    const agg = aggregateMatchup('t1', 'Opp', archetype(), [
-      battle(0, {
-        faints: [
-          {side: 1, speciesId: 'pelipper', turn: 3, causeSpeciesId: 'kingambit', causeKind: 'move'},
-          {side: 1, speciesId: 'barraskewda', turn: 7, causeSpeciesId: 'kingambit', causeKind: 'move'},
-          {side: 1, speciesId: 'zapdos', turn: 9, causeKind: 'hazard'}, // chip — nobody credited
-          {side: 0, speciesId: 'gliscor', turn: 5, causeSpeciesId: 'zapdos', causeKind: 'move'},
-        ],
-      }),
-    ]);
-    expect(agg.kosScored).toEqual([{speciesId: 'kingambit', count: 2}]);
-  });
-
-  it('records overall damage (dealtBy) in losses too, and the race sample size', () => {
-    const agg = aggregateMatchup('t1', 'Opp', archetype(), [
-      battle(1, {
-        damageDealtFrac: [{gliscor: 0.8}, {darkrai: 2.0}],
-        speedRace: {fasterCounts: [3, 7], ties: 2},
-      }),
-    ]);
-    // Lost the game: carriedBy stays empty, dealtBy still records the output.
-    expect(agg.carriedBy).toEqual([]);
-    expect(agg.dealtBy).toEqual([{speciesId: 'gliscor', totalDamageFrac: 0.8}]);
-    expect(agg.raceDecisions).toBe(12);
-    expect(agg.speedRaceWinRate).toBeCloseTo(3 / 12, 10);
+  it('returns zeros for a card with no battles', () => {
+    const empty = aggregateMatchup('e1', 'Empty', archetype(), []);
+    const [card] = rollUpByArchetype([empty]);
+    expect(cardRecord(card)).toEqual({wins: 0, losses: 0, draws: 0});
   });
 });

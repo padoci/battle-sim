@@ -178,6 +178,9 @@ async function main() {
     if (!cards[0].includes('Can you 6-0?')) fail('6-0 card should be present and enabled');
     if (await page.locator('.mode-card.disabled').count()) fail('no card should be disabled anymore');
     ok('landing: both modes enabled');
+    const footer = await page.locator('.shell-footer').textContent();
+    if (!/not affiliated/i.test(footer ?? '')) fail('footer should carry the attribution/disclaimer');
+    ok('footer attribution present');
 
     // 2. Draft screen. Default is Normal (two-stage, 10 species).
     await page.goto(`http://localhost:${PORT}/#/sixoh?config=fast&seed=41`);
