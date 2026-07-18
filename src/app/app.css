@@ -1383,6 +1383,35 @@ button.primary:disabled {
   padding-top: 0.75rem;
 }
 
+/* "What to change" — prescriptive reads. Reuses the pm-read structure; these
+   overrides retheme it for the light lab surfaces (the dashboard). */
+.suggestions h2,
+.suggestions h4 {
+  margin: 0 0 0.25rem;
+}
+
+.top-suggestions {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--signal);
+  border-radius: var(--r-m);
+  background: var(--surface);
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.top-suggestions h2 {
+  font-size: 1.05rem;
+}
+
+.suggestions .pm-toggle {
+  color: var(--signal);
+}
+
+.suggestions .pm-evidence {
+  background: var(--paper-2);
+  color: var(--ink-2);
+}
+
 .pm-read p {
   margin: 0.4rem 0 0.2rem;
 }

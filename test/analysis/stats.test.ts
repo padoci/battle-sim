@@ -81,3 +81,50 @@ describe('rollUpByArchetype + summarize', () => {
     expect(overall.verdict).toMatch(/Rain/);
   });
 });
+
+describe('aggregateMatchup — threaded signals (chip faints, KOs scored, overall damage)', () => {
+  it('counts hazard/residual chip faints per species', () => {
+    const agg = aggregateMatchup('t1', 'Opp', archetype(), [
+      battle(1, {
+        faints: [
+          {side: 0, speciesId: 'gliscor', turn: 4, causeKind: 'hazard'},
+          {side: 0, speciesId: 'gliscor', turn: 9, causeSpeciesId: 'darkrai', causeKind: 'move'},
+          {side: 0, speciesId: 'kingambit', turn: 12, causeKind: 'residual'},
+        ],
+      }),
+    ]);
+    const gliscor = agg.earliestFaints.find(f => f.speciesId === 'gliscor')!;
+    const kingambit = agg.earliestFaints.find(f => f.speciesId === 'kingambit')!;
+    expect(gliscor.chipFaints).toBe(1);
+    expect(gliscor.faintCount).toBe(2);
+    expect(kingambit.chipFaints).toBe(1);
+  });
+
+  it('credits your mons with opponent KOs (side-1 move faints only)', () => {
+    const agg = aggregateMatchup('t1', 'Opp', archetype(), [
+      battle(0, {
+        faints: [
+          {side: 1, speciesId: 'pelipper', turn: 3, causeSpeciesId: 'kingambit', causeKind: 'move'},
+          {side: 1, speciesId: 'barraskewda', turn: 7, causeSpeciesId: 'kingambit', causeKind: 'move'},
+          {side: 1, speciesId: 'zapdos', turn: 9, causeKind: 'hazard'}, // chip — nobody credited
+          {side: 0, speciesId: 'gliscor', turn: 5, causeSpeciesId: 'zapdos', causeKind: 'move'},
+        ],
+      }),
+    ]);
+    expect(agg.kosScored).toEqual([{speciesId: 'kingambit', count: 2}]);
+  });
+
+  it('records overall damage (dealtBy) in losses too, and the race sample size', () => {
+    const agg = aggregateMatchup('t1', 'Opp', archetype(), [
+      battle(1, {
+        damageDealtFrac: [{gliscor: 0.8}, {darkrai: 2.0}],
+        speedRace: {fasterCounts: [3, 7], ties: 2},
+      }),
+    ]);
+    // Lost the game: carriedBy stays empty, dealtBy still records the output.
+    expect(agg.carriedBy).toEqual([]);
+    expect(agg.dealtBy).toEqual([{speciesId: 'gliscor', totalDamageFrac: 0.8}]);
+    expect(agg.raceDecisions).toBe(12);
+    expect(agg.speedRaceWinRate).toBeCloseTo(3 / 12, 10);
+  });
+});
