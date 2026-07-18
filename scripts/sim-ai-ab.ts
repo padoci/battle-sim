@@ -11,7 +11,10 @@
  *   eval    — same search config both sides; OLD side zeroes the new eval
  *             terms via evalOverridesBySide (statusThreat/sweeperDanger/
  *             speedTier = 0 reproduces the old eval bit-for-bit).
- *   breadth — no eval overrides; OLD side searches with the old rootSwitchK=2.
+ *   breadth — no eval overrides; OLD side searches with rootSwitchK=2.
+ *             (This lever LOST its A/B — 19/40 — so shipped FAST keeps
+ *             rootSwitchK=2 and the lever is now a no-op unless the config
+ *             is re-widened; see logs/ai-round-report.md.)
  *   all     — OLD side gets both the old eval AND the old breadth (the
  *             headline old-brain-vs-new-brain number).
  *
