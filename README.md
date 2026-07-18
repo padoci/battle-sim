@@ -53,14 +53,14 @@ Three design choices carry the whole thing:
 | [`@pkmn/smogon`](https://github.com/pkmn/smogon) | wire types for data.pkmn.cc |
 | React + Vite + TypeScript | app shell (hand-rolled hash router, no other runtime deps) |
 
-Data comes from [data.pkmn.cc](https://data.pkmn.cc) per format: `/sets/gen9ou.json` (draft pool + pickable sets), `/stats/gen9ou.json` (usage weighting), `/teams/gen9ou.json` (opponent teams), cached client-side in IndexedDB with a ~24h TTL and a GitHub mirror fallback. The opponent pool is augmented at runtime with real [Smogon Sample Teams](https://crob.at) (resolved through pokepaste, imported + validated in the browser, merged and deduped) — best-effort, so the app still works from the built-in pool alone if that source is unreachable.
+Data comes from [data.pkmn.cc](https://data.pkmn.cc) per format: `/sets/gen9ou.json` (draft pool + pickable sets), `/stats/gen9ou.json` (usage weighting), `/teams/gen9ou.json` (opponent teams), cached client-side in IndexedDB with a ~24h TTL and a GitHub mirror fallback. The opponent pool is augmented with a **vendored pack of real sample teams** (`src/data/vendored-teams.gen9ou.json`, built and validated by `scripts/build-sample-teams.ts`, shipped statically — no runtime fetch, no CORS exposure), currently 10 built-in + 8 vendored = 18 teams.
 
 ## Getting started
 
 ```bash
 npm install
 npm run dev      # the app
-npm test         # ~180 vitest tests, fully offline
+npm test         # the vitest suite (200+ tests), fully offline
 npm run build    # production build (three pages)
 ```
 
@@ -111,6 +111,11 @@ Baselines (`test/visual/**/*.png`) **are committed but are generated in CI**, ne
 
 Dynamic, RNG-driven regions (HP windows, the battle log) are masked, and the suite runs under `prefers-reduced-motion` with animations frozen, so frames are stable.
 
+**Two CI-trigger quirks to know** (both hit in practice):
+
+1. A commit pushed by a workflow's `GITHUB_TOKEN` (e.g. the baseline-regen bot commit) **never auto-triggers CI** — GitHub's recursion guard. If a bot commit becomes a PR head, dispatch the `CI` workflow on the branch by hand.
+2. A push whose commit **modifies `.github/workflows/`** may not spawn a `pull_request` run either. Same fix: `workflow_dispatch` the `CI` workflow on the branch.
+
 ## Status
 
 Built in staged sessions, each ending in a reviewed PR (plan in `HANDOFF.md`):
@@ -121,10 +126,12 @@ Built in staged sessions, each ending in a reviewed PR (plan in `HANDOFF.md`):
 | 1 | Engine substrate + eval + calc precompute | ✅ PR #2 |
 | 2 | Search v1 + the measurement gate (browser: d1 ≈ 61 ms/turn, d2 ≈ 467 ms/turn) | ✅ PR #3 |
 | 3 | Test your team, end to end | ✅ PR #4 |
-| 4 | Can you 6-0?, end to end + this README | this PR |
-| 5 | Visual identity + quality floor | next |
-
-Current styling is deliberately functional only — the visual identity (the "lab × arena" design system in `ui-spec-v1.md` §2) lands in Stage 5.
+| 4 | Can you 6-0?, end to end | ✅ PR #5 |
+| 5 | Visual identity ("lab × arena") + quality floor | ✅ PR #6 |
+| 6 | Feedback rounds: difficulty ladder, retro battle stage, perf + UX fixes | ✅ PRs #7–#11 |
+| 7 | Dev process: CI (tests/e2e/visual regression), per-PR previews, vendored 18-team pool | ✅ PRs #12–#13 |
+| 8 | Code-split landing (~9 MB → ~150 KB initial JS) | ✅ PR #14 |
+| 9 | Polish (footer/attribution, W-L-D bars, a11y) · what-to-change suggestions · move-typed battle cinematics | ✅ PRs #15–#17 |
 
 ## Specs
 
