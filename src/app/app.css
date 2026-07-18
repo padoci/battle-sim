@@ -217,6 +217,17 @@ main.landing {
   padding: 1.5rem;
 }
 
+/* Landing has nothing below the hero/mode-cards, so without this the
+   shell's pinned footer (margin-top: auto) eats all remaining viewport
+   height as a blank gap. Center the hero block instead of top-aligning
+   it. Scoped to .landing only — .screen is shared by every other screen. */
+main.landing {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 /* Data-dense screens (the dashboard) get more room on desktop. */
 main.screen.wide {
   max-width: 1120px;
@@ -258,6 +269,23 @@ main.screen.wide {
 .screen-sub {
   font-size: 0.95rem;
   max-width: 60ch;
+}
+
+.load-sample {
+  display: inline-block;
+  margin: 0.5rem 0 0.9rem;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.load-sample:hover {
+  border-color: var(--signal);
 }
 
 .mode-cards {
@@ -721,7 +749,8 @@ button.primary:disabled {
 }
 
 .mode-toggle button:disabled {
-  opacity: 0.5;
+  color: var(--muted-2);
+  background: var(--paper-2);
   cursor: not-allowed;
 }
 
