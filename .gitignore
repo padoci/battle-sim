@@ -6,6 +6,12 @@ dist/
 coverage/
 *.tsbuildinfo
 
+# Playwright visual-regression run output (baselines under test/visual ARE committed)
+playwright-report/
+test-results/
+test/visual/**/*-actual.png
+test/visual/**/*-diff.png
+
 # Transient sim stdout captures (final data -> logs/gauntlet-sim.*, logs/*.md)
 logs/sim-*.txt
 logs/tera-*.txt
