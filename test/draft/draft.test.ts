@@ -8,7 +8,7 @@ import {
   TEAM_SIZE,
   type DraftState,
 } from '../../src/draft/draft';
-import {resolveMoveset} from '../../src/data/resolve';
+
 import type {PoolEntry, SetsData} from '../../src/data/types';
 import setsFull from '../fixtures/gen9ou.sets.full.json';
 import statsFixture from '../fixtures/stats.fixture.json';
@@ -101,12 +101,60 @@ describe('two-stage flow (easy/normal)', () => {
     expect(state.setOptions!.length).toBeGreaterThan(0);
   });
 
-  it("the picked set IS the displayed 'first'-resolved set", () => {
+  it('the picked set IS the displayed set (display == battle by construction)', () => {
     let state = createDraft(pool, sets, 'easy', 11);
     const species = state.offers[0].species;
     state = pickSpecies(state, sets, species);
     const option = state.setOptions![0];
-    expect(option.set).toEqual(resolveMoveset(species, sets[species][option.setName]));
+    const picked = pickSet(state, pool, sets, option.setName);
+    expect(picked.team[0].set).toBe(option.set);
+  });
+
+  it('set options are committed builds: deterministic, pure, alternatives from the wire set', () => {
+    const base = createDraft(pool, sets, 'easy', 11);
+    const species = base.offers[0].species;
+
+    // Same state -> deeply identical options (pure), and rngState untouched.
+    const a = pickSpecies(base, sets, species);
+    const b = pickSpecies(base, sets, species);
+    expect(a.setOptions).toEqual(b.setOptions);
+    expect(a.rngState).toBe(base.rngState);
+
+    // Every resolved move is a member of its wire slot's alternatives.
+    for (const option of a.setOptions!) {
+      const wire = sets[species][option.setName];
+      option.set.moves.forEach(move => {
+        const inSomeSlot = wire.moves.some(slot =>
+          Array.isArray(slot) ? slot.includes(move) : slot === move
+        );
+        expect(inSomeSlot).toBe(true);
+      });
+    }
+
+    // Species offers after a pick are unchanged vs the unforked stream: the
+    // resolution rng is forked, so later rounds deal identical species.
+    const picked = pickSet(a, pool, sets, a.setOptions![0].setName);
+    const pickedAgain = pickSet(pickSpecies(base, sets, species), pool, sets, a.setOptions![0].setName);
+    expect(picked.offers.map(o => o.species)).toEqual(pickedAgain.offers.map(o => o.species));
+  });
+
+  it("different seeds eventually resolve a slashed set differently (proves 'sample' is live)", () => {
+    // Kingambit "Swords Dance" carries slashed moves + 4 tera types in the fixture.
+    const resolutions = new Set<string>();
+    for (let seed = 0; seed < 40 && resolutions.size < 2; seed++) {
+      let state: DraftState = {
+        mode: 'easy',
+        rngState: seed >>> 0,
+        round: 1,
+        phase: 'species',
+        offers: [{species: 'Kingambit', usageWeighted: 1}],
+        team: [],
+      };
+      state = pickSpecies(state, sets, 'Kingambit');
+      const sd = state.setOptions!.find(o => o.setName === 'Swords Dance');
+      if (sd) resolutions.add(JSON.stringify([sd.set.moves, sd.set.teraType]));
+    }
+    expect(resolutions.size).toBeGreaterThan(1);
   });
 });
 

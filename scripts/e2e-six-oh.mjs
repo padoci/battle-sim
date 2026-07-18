@@ -200,6 +200,11 @@ async function main() {
     const rungs = await page.locator('.ladder-preview .ladder-rung').count();
     if (rungs !== 6) fail(`ladder preview should show 6 rungs, got ${rungs}`);
     ok('gauntlet ladder revealed during draft');
+    // Every opponent has a real display name, never the index placeholder.
+    const rungNames = await page.locator('.ladder-preview .rung-name').allTextContents();
+    const placeholder = rungNames.find(n => /^Team #\d+$/.test(n.trim()));
+    if (placeholder) fail(`opponent shows placeholder name: ${placeholder}`);
+    ok('all opponents have real display names (no "Team #N")');
 
     // Draft 6 via the two-stage flow (species -> set); Species Clause check.
     const picked = [];
@@ -210,6 +215,17 @@ async function main() {
       if (i === 2) await page.screenshot({path: `${shotsDir}/e2e-sixoh-draft.png`, fullPage: true});
       await page.locator('.offer-card').first().click(); // pick species
       await page.waitForSelector('.set-card', {timeout: 10_000});
+      if (i === 0) {
+        // Set cards show ONE committed build: no slashed alternatives in the
+        // move list or the Tera line (the EV line legitimately uses ' / ').
+        const moveLines = await page.locator('.set-card .set-moves li').allTextContents();
+        const slashedMove = moveLines.find(m => m.includes('/'));
+        if (slashedMove) fail(`set card shows unresolved move alternatives: ${slashedMove}`);
+        const teraLines = await page.locator('.set-card .set-meta', {hasText: 'Tera'}).allTextContents();
+        const slashedTera = teraLines.find(t => t.includes(' / '));
+        if (slashedTera) fail(`set card shows unresolved tera alternatives: ${slashedTera}`);
+        ok(`set cards show committed builds (${moveLines.length} move lines, no slashes)`);
+      }
       await page.locator('.set-card').first().click(); // pick its set
       await page.waitForTimeout(150);
     }

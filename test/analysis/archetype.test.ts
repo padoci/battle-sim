@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {gen9} from '../../src/data/gen';
 import {teamMemberToSet} from '../../src/data/team';
 import type {Team} from '../../src/data/types';
-import {classifyTeam, extractFeatures} from '../../src/analysis/archetype';
+import {classifyTeam, extractFeatures, fallbackTeamName} from '../../src/analysis/archetype';
 import {makeSet} from '../engine/helpers';
 import fullTeams from '../fixtures/gen9ou.teams.full.json';
 
@@ -112,5 +112,20 @@ describe('classifyTeam', () => {
     });
     // At least two distinct archetypes across the real pool (sanity, not gospel).
     expect(new Set(labels).size).toBeGreaterThan(1);
+  });
+});
+
+describe('fallbackTeamName', () => {
+  it('derives a deterministic, friendly name — never the index placeholder', () => {
+    const gen = gen9();
+    const teams = fullTeams as Team[];
+    for (const team of teams) {
+      const sets = team.data.map(teamMemberToSet);
+      const name = fallbackTeamName(gen, sets);
+      expect(name.length).toBeGreaterThan(0);
+      expect(name).not.toMatch(/^Team #\d+$/);
+      expect(name).toContain(sets[0].species);
+      expect(fallbackTeamName(gen, sets)).toBe(name); // deterministic
+    }
   });
 });
