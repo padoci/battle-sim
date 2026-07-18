@@ -25,6 +25,9 @@ export const PACE = {
   win: 1500,
 } as const;
 
+/** Extra hold on a big hit (crit / super-effective) so it lands visually. */
+export const BIG_HIT_BONUS_MS = 150;
+
 /**
  * Group events into presentation beats: a move plus its immediate
  * consequences (direct damage, effectiveness notes) lands as ONE beat so
@@ -52,7 +55,10 @@ export function toBeats(events: ReplayEvent[]): Beat[] {
           j++;
         } else break;
       }
-      beats.push({events: group, durationMs: PACE.move});
+      // Crits and super-effective hits get a slightly longer hold — the tags
+      // are populated during parsing, before beats are built.
+      const bigHit = event.tags.crit || event.tags.supereffective;
+      beats.push({events: group, durationMs: PACE.move + (bigHit ? BIG_HIT_BONUS_MS : 0)});
       i = j;
       continue;
     }

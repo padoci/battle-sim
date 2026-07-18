@@ -1056,7 +1056,8 @@ button.primary:disabled {
   100% { transform: translateX(0) scale(1); filter: none; }
 }
 
-/* Hit spark: a burst over the struck sprite (no extra DOM — pseudo-element). */
+/* Hit spark: a burst over the struck sprite (no extra DOM — pseudo-element).
+   Colored by the incoming move's type via --fx-color (yellow-white default). */
 .impact::before {
   content: '';
   position: absolute;
@@ -1066,7 +1067,13 @@ button.primary:disabled {
   height: 76px;
   transform: translate(-50%, -50%) scale(0.2);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 240, 0.95) 0%, rgba(255, 210, 92, 0.6) 38%, rgba(255, 210, 92, 0) 70%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 240, 0.95) 0%,
+    var(--fx-color, rgba(255, 210, 92, 0.6)) 38%,
+    transparent 70%
+  );
+  opacity: 0;
   z-index: 2;
   pointer-events: none;
   animation: hitSpark 0.34s ease-out;
@@ -1075,6 +1082,59 @@ button.primary:disabled {
 @keyframes hitSpark {
   0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
   100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+
+/* Special moves: a type-colored beam streak instead of the contact spark,
+   plus a colored glow folded into the impact. Attacker keeps a shorter lunge
+   (a caster step, not a body slam). */
+.fx-special.impact::before {
+  width: 120px;
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(90deg, transparent, var(--fx-color, #ffd94a), transparent);
+  animation: beamIn 0.36s ease-out;
+}
+
+@keyframes beamIn {
+  0% { transform: translate(-50%, -50%) scaleX(0.15); opacity: 0.95; }
+  60% { transform: translate(-50%, -50%) scaleX(1); opacity: 0.85; }
+  100% { transform: translate(-50%, -50%) scaleX(1.15); opacity: 0; }
+}
+
+.fx-special.lunge-right {
+  animation-name: lungeRightSoft;
+}
+
+.fx-special.lunge-left {
+  animation-name: lungeLeftSoft;
+}
+
+@keyframes lungeRightSoft {
+  35% { transform: translate(18px, -7px); }
+}
+
+@keyframes lungeLeftSoft {
+  35% { transform: translate(-18px, 7px); }
+}
+
+/* Status moves: the user glows in the move's type color; no defender impact. */
+.fx-status.lunge-right,
+.fx-status.lunge-left {
+  animation: statusGlow 0.5s ease-out;
+}
+
+@keyframes statusGlow {
+  35% { filter: drop-shadow(0 0 10px var(--fx-color, #b9a6f5)) brightness(1.18); }
+}
+
+/* Mid-battle switch-in: a small pop up from the platform. */
+.switch-pop {
+  animation: switchPop 0.35s ease-out;
+}
+
+@keyframes switchPop {
+  0% { transform: translateY(14px) scale(0.6); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 .tera-flash {
@@ -1427,10 +1487,16 @@ button.primary:disabled {
   .tera-flash,
   .faint-drop,
   .float-num,
+  .switch-pop,
+  .fx-status.lunge-right,
+  .fx-status.lunge-left,
+  .fx-special.lunge-right,
+  .fx-special.lunge-left,
   .simulating .pulse {
     animation: none;
   }
-  .impact::before {
+  .impact::before,
+  .fx-special.impact::before {
     display: none;
   }
   .hp-fill,
