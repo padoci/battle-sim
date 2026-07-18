@@ -10,3 +10,5 @@ export {buildExportJson, buildExportMarkdown} from './export';
 export type {DashboardExportJsonV1, ExportInputs} from './export';
 export {buildPostMortem} from './postmortem';
 export type {PostMortem, PostMortemRead, PlayedBattle} from './postmortem';
+export {statSuggestions, calcSuggestions, rankSuggestions} from './suggestions';
+export type {Suggestion, SuggestionKind} from './suggestions';

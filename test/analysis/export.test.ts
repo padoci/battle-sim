@@ -36,6 +36,14 @@ function inputs(): ExportInputs {
     overall: summarize(cards, [matchup]),
     cards,
     poolMeta: [{teamId: 'r1', teamName: 'Rain One', weight: 2}],
+    suggestions: [
+      {
+        kind: 'dead-weight',
+        severity: 'high',
+        sentence: 'Gliscor is the weakest slot; consider replacing it.',
+        evidence: ['Gliscor: 5 faints in 3 battles'],
+      },
+    ],
     now: () => new Date('2026-07-17T12:00:00Z'),
   };
 }
@@ -55,8 +63,21 @@ describe('export builders', () => {
       gamePlan: {sentences: ['Lead X to pressure Y.']},
     });
     expect(json.archetypes[0].threats[0].evidence).toMatch(/Barraskewda/);
+    expect(json.suggestions).toEqual([
+      {
+        kind: 'dead-weight',
+        severity: 'high',
+        sentence: 'Gliscor is the weakest slot; consider replacing it.',
+        evidence: ['Gliscor: 5 faints in 3 battles'],
+      },
+    ]);
     // Round-trips as JSON.
     expect(JSON.parse(JSON.stringify(json))).toEqual(json);
+  });
+
+  it('omits the suggestions key when none are provided', () => {
+    const json = buildExportJson({...inputs(), suggestions: undefined});
+    expect(json.suggestions).toBeUndefined();
   });
 
   it('Markdown carries the report sections', () => {
@@ -69,5 +90,8 @@ describe('export builders', () => {
     expect(md).toContain('**Game plan:** Lead X to pressure Y.');
     expect(md).toContain('| Rain One | Rain | 2 | 3 | 33% |');
     expect(md).toContain('Direction, not gospel');
+    expect(md).toContain('## What to change');
+    expect(md).toContain('- **[high]** Gliscor is the weakest slot; consider replacing it.');
+    expect(md).toContain('  - Gliscor: 5 faints in 3 battles');
   });
 });
