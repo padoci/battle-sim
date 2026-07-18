@@ -10,6 +10,11 @@ export interface Playback {
   fx: FxItem[];
   /** Monotonic key so identical consecutive fx retrigger CSS animations. */
   fxKey: number;
+  /**
+   * Log lines pushed by the CURRENT beat — the on-stage message box text.
+   * Empty after instant/skip (the box then falls back to the last log line).
+   */
+  caption: string[];
   speed: PlaybackSpeed;
   setSpeed: (speed: PlaybackSpeed) => void;
   skipToEnd: () => void;
@@ -31,6 +36,7 @@ export function usePlayback(
   const [view, setView] = useState<ViewState | undefined>();
   const [fx, setFx] = useState<FxItem[]>([]);
   const [fxKey, setFxKey] = useState(0);
+  const [caption, setCaption] = useState<string[]>([]);
   const [done, setDone] = useState(false);
   const indexRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -58,16 +64,19 @@ export function usePlayback(
       indexRef.current = beats.length;
       setView(viewRef.current);
       setFx([]);
+      setCaption([]);
       finish();
       return;
     }
     const beat = beats[index];
+    const spokenBefore = viewRef.current.logLines.length;
     const applied = applyBeat(viewRef.current, beat);
     viewRef.current = applied.state;
     indexRef.current = index + 1;
     setView(applied.state);
     setFx(applied.fx);
     setFxKey(k => k + 1);
+    setCaption(applied.state.logLines.slice(spokenBefore));
     timerRef.current = setTimeout(step, beat.durationMs / (speedRef.current === 2 ? 2 : 1));
   }, [beats, finish]);
 
@@ -80,6 +89,7 @@ export function usePlayback(
     viewRef.current = initView(teams);
     setView(viewRef.current);
     setFx([]);
+    setCaption([]);
     timerRef.current = setTimeout(step, 300);
     return () => clearTimeout(timerRef.current);
   }, [teams, beats, step]);
@@ -91,6 +101,7 @@ export function usePlayback(
     indexRef.current = beats.length;
     setView(viewRef.current);
     setFx([]);
+    setCaption([]);
     finish();
   }, [beats, finish]);
 
@@ -106,6 +117,7 @@ export function usePlayback(
     view: view ?? initView(teams ?? [[], []]),
     fx,
     fxKey,
+    caption,
     speed,
     setSpeed: changeSpeed,
     skipToEnd,

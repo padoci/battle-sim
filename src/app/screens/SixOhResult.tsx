@@ -1,10 +1,22 @@
 import {useMemo} from 'react';
+import {Icons} from '@pkmn/img';
 import {gen9} from '../../data/gen';
 import {buildPostMortem} from '../../analysis/postmortem';
+import type {PokemonSet} from '../../data/types';
 import type {DraftMode} from '../../draft/draft';
 import {ReadItem as Read} from '../components/ReadItem';
 import {resetSixOhSession} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState} from '../sixoh/state';
+
+function RosterIcons({sets, className}: {sets: PokemonSet[]; className?: string}) {
+  return (
+    <span className={className ?? 'roster-icons'}>
+      {sets.map((set, i) => (
+        <span key={i} className="team-icon" style={Icons.getPokemon(set.species).css} title={set.species} />
+      ))}
+    </span>
+  );
+}
 
 export function SixOhResult() {
   const state = useSixOhState();
@@ -38,12 +50,50 @@ export function SixOhResult() {
     location.hash = `#/sixoh?${params.toString()}`;
   };
 
+  const played = state.battles
+    .map((battle, i) => ({index: i, battle}))
+    .filter(({battle}) => battle.phase === 'done' && battle.result);
+  // The game that ended an eliminated run: the last played loss.
+  const killerIndex =
+    state.outcome === 'eliminated' && played.length ? played[played.length - 1].index : undefined;
+
   return (
     <main className="arena result-screen">
       <div className={`result-card ${state.outcome}`}>
         <div className="mono result-record">{postMortem.record}</div>
         <h1>{postMortem.headline}</h1>
         {state.outcome === 'flawless' && <p className="flawless-sub">Every rung. No losses. Go touch grass, champion.</p>}
+
+        {state.team && (
+          <div className="team-recap">
+            <span className="recap-label">Your six</span>
+            <RosterIcons sets={state.team} className="roster-icons recap-roster" />
+          </div>
+        )}
+
+        <ol className="game-strip">
+          {played.map(({index, battle}) => {
+            const won = battle.result!.winner === 0;
+            const opponent = state.opponents[index];
+            return (
+              <li
+                key={index}
+                className={`game-row ${won ? 'won' : 'lost'} ${index === killerIndex ? 'killer' : ''}`}
+              >
+                <span className="mono game-num">{index + 1}</span>
+                <span className="game-name">{opponent?.name}</span>
+                {opponent && <RosterIcons sets={opponent.sets} />}
+                <span className="mono game-turns">{battle.result!.turns} turns</span>
+                <span className={`mono game-mark ${won ? 'won' : 'lost'}`}>{won ? 'W' : 'L'}</span>
+              </li>
+            );
+          })}
+        </ol>
+        {killerIndex !== undefined && (
+          <p className="killer-note">
+            Run ended by <strong>{state.opponents[killerIndex]?.name}</strong> on rung {killerIndex + 1}.
+          </p>
+        )}
 
         <section className="post-mortem">
           <h3>Post-mortem</h3>

@@ -57,6 +57,8 @@ test('retro battle stage — chrome + sprites', async ({page}, testInfo) => {
       page.locator('.float-num'),
       page.locator('.turn-label'),
       page.locator('.field-strip'),
+      page.locator('.message-box'),
+      page.locator('.hazard-corner'),
     ],
     maxDiffPixelRatio: 0.03,
   });

@@ -250,6 +250,13 @@ async function main() {
     // No raw protocol leaks (· -end|..., -ability|...) and no broken possessive.
     if (/·|\|p[12]a:/.test(logText)) fail(`battle log leaks raw protocol: ${logText.slice(0, 120)}`);
     if (/You's|Them's|undefined/.test(logText)) fail(`battle log has a grammar/interp bug: ${logText.slice(0, 120)}`);
+    // On-stage message box: present, speaking, and as clean as the log.
+    if (!(await page.locator('.message-box').count())) fail('battle stage should render the message box');
+    const spoken = (await page.locator('.message-box').textContent()) ?? '';
+    if (!spoken.trim()) fail('message box should carry in-battle text during 1x replay');
+    if (/·|\|p[12]a:/.test(spoken)) fail(`message box leaks raw protocol: ${spoken.slice(0, 120)}`);
+    if (/You's|Them's|undefined/.test(spoken)) fail(`message box has a grammar/interp bug: ${spoken.slice(0, 120)}`);
+    ok(`message box speaks the current beat ("${spoken.trim().split('\n')[0].slice(0, 60)}")`);
     await page.screenshot({path: `${shotsDir}/e2e-sixoh-battle.png`});
     ok('retro battle stage replays with HP windows and a clean, paced log');
 
@@ -283,6 +290,19 @@ async function main() {
     if (!/^\d–\d$/.test(record.trim())) fail(`record should render like 4–2, got: ${record}`);
     const headline = await page.locator('.result-card h1').textContent();
     if (!/(Flawless|Eliminated|Stalled)/.test(headline)) fail(`unexpected headline: ${headline}`);
+    // Per-game strip: one row per played rung, consistent with the record.
+    const [wins, losses] = record.trim().split('–').map(Number);
+    const gameRows = await page.locator('.game-row').count();
+    if (gameRows < 1 || gameRows > 6) fail(`game strip should show 1..6 played rungs, got ${gameRows}`);
+    if (gameRows !== wins + losses) fail(`game strip rows (${gameRows}) disagree with the record (${record.trim()})`);
+    const marks = await page.locator('.game-mark').allTextContents();
+    const markWins = marks.filter(m => m.trim() === 'W').length;
+    if (markWins !== wins) fail(`game strip W marks (${markWins}) disagree with the record (${record.trim()})`);
+    ok(`game strip lists ${gameRows} played rung(s), matching the record`);
+    // Drafted-team recap: your six as icons.
+    const recapIcons = await page.locator('.team-recap .team-icon').count();
+    if (recapIcons !== 6) fail(`team recap should show 6 drafted mons, got ${recapIcons}`);
+    ok('drafted-team recap shows all six');
     const reads = await page.locator('.pm-read').count();
     if (reads < 1) fail('post-mortem should have at least one read');
     const toggle = page.locator('.pm-toggle').first();

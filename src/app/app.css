@@ -1064,6 +1064,114 @@ button.primary:disabled {
   overflow: hidden;
 }
 
+/* Background scenes — one per rung (battleIndex % 4), same horizon split.
+   scene-0 keeps the daylight meadow above. */
+.stage-field.scene-1 {
+  /* Dusk: violet sky over dry grass. */
+  background:
+    linear-gradient(#8b6bb5 0%, #c78faa 44%, #c9b968 44%, #a89a52 100%);
+}
+
+.stage-field.scene-2 {
+  /* Cave: stone ceiling over rocky floor. */
+  background:
+    linear-gradient(#5a6273 0%, #7d8497 44%, #8a7a68 44%, #6e6053 100%);
+}
+
+.stage-field.scene-3 {
+  /* Shore: bright sky over sand and shallow water. */
+  background:
+    linear-gradient(#6fc0e8 0%, #b6e0f2 44%, #e8d9a8 44%, #7fc9c0 100%);
+}
+
+/* Weather tint: a translucent wash over the whole scene. */
+.stage-field[class*='wx-']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.stage-field.wx-raindance::before {
+  background: linear-gradient(rgba(40, 80, 160, 0.28), rgba(30, 60, 130, 0.18));
+}
+
+.stage-field.wx-sunnyday::before {
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 200, 60, 0.3), rgba(255, 150, 40, 0.08));
+}
+
+.stage-field.wx-sandstorm::before {
+  background: linear-gradient(rgba(190, 150, 70, 0.32), rgba(160, 120, 50, 0.22));
+}
+
+.stage-field.wx-snowscape::before,
+.stage-field.wx-snow::before,
+.stage-field.wx-hail::before {
+  background: linear-gradient(rgba(220, 235, 255, 0.32), rgba(200, 220, 250, 0.16));
+}
+
+/* Terrain tint: colors the ground half only. */
+.stage-field[class*='terrain-']::after {
+  content: '';
+  position: absolute;
+  inset: 44% 0 0 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.stage-field.terrain-electric::after {
+  background: rgba(250, 220, 60, 0.25);
+}
+
+.stage-field.terrain-grassy::after {
+  background: rgba(80, 200, 90, 0.28);
+}
+
+.stage-field.terrain-psychic::after {
+  background: rgba(220, 100, 200, 0.24);
+}
+
+.stage-field.terrain-misty::after {
+  background: rgba(240, 180, 220, 0.28);
+}
+
+/* KO screen-shake: the whole field jolts when a mon goes down. */
+.stage-shake {
+  animation: stageShake 0.5s ease-out;
+}
+
+@keyframes stageShake {
+  10% { transform: translate(-5px, 2px); }
+  30% { transform: translate(4px, -3px); }
+  50% { transform: translate(-3px, 1px); }
+  70% { transform: translate(2px, -1px); }
+  90% { transform: translate(-1px, 0); }
+}
+
+/* Entry-hazard glyphs: one character per layer, sat on each side's field
+   corner (their side top-left, ours bottom-right — clear of sprites/HP). */
+.hazard-corner {
+  position: absolute;
+  display: flex;
+  gap: 2px;
+  font-size: 0.85rem;
+  color: rgba(35, 32, 27, 0.75);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.hazard-corner.theirs {
+  top: 8px;
+  left: 12px;
+}
+
+.hazard-corner.mine {
+  bottom: 8px;
+  right: 12px;
+}
+
 .stage-half {
   display: flex;
   align-items: center;
@@ -1209,6 +1317,76 @@ button.primary:disabled {
 
 @keyframes statusGlow {
   35% { filter: drop-shadow(0 0 10px var(--fx-color, #b9a6f5)) brightness(1.18); }
+}
+
+/* Per-type FX shapes: five signature types swap the generic spark/beam for
+   a silhouette in the move's palette (still driven by --fx-color). */
+.fx-move-fire.impact::before {
+  width: 54px;
+  height: 66px;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  background: radial-gradient(ellipse at 50% 75%, #fff3c0 0%, var(--fx-color, #f08030) 45%, transparent 75%);
+  animation: emberRise 0.38s ease-out;
+}
+
+@keyframes emberRise {
+  0% { transform: translate(-50%, -30%) scale(0.4); opacity: 1; }
+  100% { transform: translate(-50%, -85%) scale(1.25); opacity: 0; }
+}
+
+.fx-move-water.impact::before {
+  width: 96px;
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 255, 255, 0.9) 0%, var(--fx-color, #6890f0) 45%, transparent 72%);
+  animation: splashOut 0.36s ease-out;
+}
+
+@keyframes splashOut {
+  0% { transform: translate(-50%, -50%) scale(0.3, 0.8); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5, 1.1); opacity: 0; }
+}
+
+.fx-move-electric.impact::before {
+  width: 14px;
+  height: 84px;
+  border-radius: 0;
+  clip-path: polygon(60% 0, 100% 0, 45% 45%, 75% 45%, 15% 100%, 35% 55%, 0 55%);
+  background: linear-gradient(var(--fx-color, #f8d030), #fff8c0);
+  animation: arcStrike 0.3s ease-out;
+}
+
+@keyframes arcStrike {
+  0% { transform: translate(-50%, -80%) scaleY(0.3); opacity: 1; }
+  55% { transform: translate(-50%, -50%) scaleY(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scaleY(1); opacity: 0; }
+}
+
+.fx-move-ice.impact::before {
+  width: 46px;
+  height: 46px;
+  border-radius: 4px;
+  transform-origin: center;
+  background: linear-gradient(135deg, #eafaff 0%, var(--fx-color, #98d8d8) 60%, transparent 90%);
+  animation: shardSpin 0.36s ease-out;
+}
+
+@keyframes shardSpin {
+  0% { transform: translate(-50%, -50%) rotate(45deg) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(135deg) scale(1.2); opacity: 0; }
+}
+
+.fx-move-grass.impact::before {
+  width: 52px;
+  height: 52px;
+  border-radius: 0 70% 0 70%;
+  background: linear-gradient(135deg, #eaffd0 0%, var(--fx-color, #78c850) 55%, transparent 88%);
+  animation: leafCut 0.36s ease-out;
+}
+
+@keyframes leafCut {
+  0% { transform: translate(-90%, -20%) rotate(-25deg) scale(0.5); opacity: 1; }
+  100% { transform: translate(-10%, -80%) rotate(20deg) scale(1.15); opacity: 0; }
 }
 
 /* Mid-battle switch-in: a small pop up from the platform. */
@@ -1388,6 +1566,21 @@ button.primary:disabled {
   color: var(--arena-muted);
 }
 
+/* On-stage message box — the light double-framed textbox of the handheld
+   games, speaking the current beat under the field. */
+.message-box {
+  min-height: 2.9em;
+  background: var(--retro-menu);
+  color: var(--retro-menu-ink);
+  border: 2px solid var(--retro-frame);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 2px var(--retro-menu-sub);
+  padding: 0.45rem 0.75rem;
+  margin-top: 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 /* Message window — the bottom textbox, double-framed like the games. */
 .battle-log {
   height: 170px;
@@ -1458,6 +1651,102 @@ button.primary:disabled {
 
 .flawless-sub {
   color: var(--signal-bright);
+}
+
+/* Drafted-team recap: your six, one icon row under the headline. */
+.team-recap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.recap-label {
+  font-size: 0.78rem;
+  color: var(--arena-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.roster-icons {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Per-game strip: every played rung with opponent name, roster and length. */
+.game-strip {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  text-align: left;
+  border: 1px solid var(--arena-line);
+  border-radius: var(--r-m);
+  overflow: hidden;
+}
+
+.game-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.7rem;
+  border-left: 3px solid transparent;
+}
+
+.game-row + .game-row {
+  border-top: 1px solid var(--arena-line);
+}
+
+.game-row.won {
+  border-left-color: var(--signal);
+}
+
+.game-row.lost {
+  border-left-color: #e05252;
+}
+
+.game-row.killer {
+  background: rgba(224, 82, 82, 0.12);
+}
+
+.game-num {
+  color: var(--arena-muted);
+  width: 1.2em;
+}
+
+.game-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
+
+.game-turns {
+  font-size: 0.72rem;
+  color: var(--arena-muted);
+}
+
+.game-mark {
+  font-weight: 700;
+  width: 1.2em;
+  text-align: center;
+}
+
+.game-mark.won {
+  color: var(--signal-bright);
+}
+
+.game-mark.lost {
+  color: #e05252;
+}
+
+.killer-note {
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--arena-muted);
+  margin: 0.5rem 0 0;
 }
 
 .post-mortem {
@@ -1605,11 +1894,17 @@ button.primary:disabled {
   .fx-status.lunge-left,
   .fx-special.lunge-right,
   .fx-special.lunge-left,
+  .stage-shake,
   .simulating .pulse {
     animation: none;
   }
   .impact::before,
-  .fx-special.impact::before {
+  .fx-special.impact::before,
+  .fx-move-fire.impact::before,
+  .fx-move-water.impact::before,
+  .fx-move-electric.impact::before,
+  .fx-move-ice.impact::before,
+  .fx-move-grass.impact::before {
     display: none;
   }
   .hp-fill,

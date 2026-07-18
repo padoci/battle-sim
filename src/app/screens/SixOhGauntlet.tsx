@@ -103,20 +103,46 @@ function FieldStrip({weather, fields, sides}: {weather: string; fields: string[]
   );
 }
 
+/** One character per hazard layer, drawn in the field corners per side. */
+const HAZARD_GLYPHS: Record<string, string> = {
+  'Stealth Rock': '▲',
+  'Spikes': '✦',
+  'Toxic Spikes': '☠',
+  'Sticky Web': '⌗',
+  'G-Max Steelsurge': '◆',
+};
+
+function HazardCorner({side, hazards}: {side: 0 | 1; hazards: Record<string, number>}) {
+  const glyphs = Object.entries(hazards).flatMap(([hazard, layers]) =>
+    Array.from({length: Math.max(1, layers)}, (_, i) => ({key: `${hazard}-${i}`, hazard}))
+  );
+  if (!glyphs.length) return null;
+  return (
+    <div className={`hazard-corner ${side === 0 ? 'mine' : 'theirs'}`} aria-hidden="true">
+      {glyphs.map(({key, hazard}) => (
+        <span key={key} title={hazard}>{HAZARD_GLYPHS[hazard] ?? '◆'}</span>
+      ))}
+    </div>
+  );
+}
+
 function BattleStage({
   team,
   opponentSets,
   beats,
+  sceneIndex,
   onDone,
 }: {
   team: PokemonSet[];
   opponentSets: PokemonSet[];
   beats: ReturnType<typeof toBeats>;
+  /** Picks the background scene (battle index — varies rung to rung). */
+  sceneIndex: number;
   onDone: () => void;
 }) {
   const teams = useMemo(() => [team, opponentSets] as [PokemonSet[], PokemonSet[]], [team, opponentSets]);
   const playback = usePlayback(teams, beats, onDone);
-  const {view, fx, fxKey, speed, setSpeed, skipToEnd} = playback;
+  const {view, fx, fxKey, caption, speed, setSpeed, skipToEnd} = playback;
 
   const active = (side: 0 | 1): MonView | undefined => {
     const s = view.sides[side];
@@ -134,6 +160,7 @@ function BattleStage({
     return {
       category: item?.category ? `fx-${item.category.toLowerCase()}` : undefined,
       color: item?.moveType ? typeColor(item.moveType) : undefined,
+      moveType: item?.moveType?.toLowerCase(),
     };
   };
   const holderClasses = (side: 0 | 1, lungeClass: string) => {
@@ -146,6 +173,7 @@ function BattleStage({
       fxFor(side, 'tera') && 'tera-flash',
       fxFor(side, 'switch') && 'switch-pop',
       flavor.category,
+      flavor.moveType && `fx-move-${flavor.moveType}`,
     ]
       .filter(Boolean)
       .join(' ');
@@ -155,9 +183,29 @@ function BattleStage({
     return color ? ({'--fx-color': color} as CSSProperties) : undefined;
   };
 
+  // Background flavor: a per-rung scene, tinted by live weather/terrain.
+  // Class names are normalized protocol strings ("RainDance" -> wx-raindance,
+  // "Electric Terrain" -> terrain-electric).
+  const terrain = view.fields.find(f => f.endsWith('Terrain'));
+  const fieldClasses = [
+    'stage-field',
+    `scene-${((sceneIndex % 4) + 4) % 4}`,
+    view.weather && `wx-${view.weather.toLowerCase().replace(/[^a-z]/g, '')}`,
+    terrain && `terrain-${terrain.toLowerCase().replace(/ ?terrain/, '').replace(/[^a-z]/g, '')}`,
+    fx.some(f => f.type === 'faint') && 'stage-shake',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  // The message box speaks the current beat; once the replay is idle (or was
+  // skipped) it holds the last thing said so it never sits empty mid-battle.
+  const spoken = caption.length ? caption : view.logLines.slice(-1);
+
   return (
     <div className="battle-stage">
-      <div className="stage-field">
+      <div className={fieldClasses}>
+        <HazardCorner side={1} hazards={view.sides[1].hazards} />
+        <HazardCorner side={0} hazards={view.sides[0].hazards} />
         <div className="stage-half theirs">
           {theirs && !theirs.fainted && (
             <div key={`t-${fxKey}`} className={holderClasses(1, 'lunge-left')} style={holderStyle(1)}>
@@ -176,6 +224,12 @@ function BattleStage({
           )}
           {mine && <HpBar mon={mine} />}
         </div>
+      </div>
+
+      <div className="message-box mono" role="status" aria-live="polite">
+        {spoken.map((line, i) => (
+          <div key={i}>{line}</div>
+        ))}
       </div>
 
       <FieldStrip weather={view.weather} fields={view.fields} sides={view.sides} />
@@ -328,6 +382,7 @@ export function SixOhGauntlet() {
             team={state.team}
             opponentSets={state.opponents[index].sets}
             beats={beats}
+            sceneIndex={index}
             onDone={() => dispatch({type: 'REPLAY_FINISHED', index})}
           />
         )}
