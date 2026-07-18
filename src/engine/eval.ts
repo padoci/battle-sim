@@ -32,6 +32,21 @@ export const WEIGHTS = {
   /** Threat discount when the threatening mon is slower. */
   SLOWER_DISCOUNT: 0.6,
   /**
+   * Scalar on the status-move threat value (0 disables — old, status-blind
+   * behavior). Status values share units with the damaging-threat score
+   * (koProb + chip), so ~0.6 keeps a great status move comparable to a solid
+   * damaging move, never better than a likely KO.
+   */
+  STATUS_THREAT: 0.6,
+  /**
+   * Per (positive offensive/speed boost stage × threatened-team fraction)
+   * penalty for an opposing set-up sweeper — the "see the sweep coming" term
+   * the one-ply matchup read structurally misses.
+   */
+  SWEEPER_DANGER: 12,
+  /** Per net team-speed-tier advantage vs the opposing active. */
+  SPEED_TIER: 3,
+  /**
    * Base option value of an unused Tera at full board (spec §4b). Decays with
    * game phase (see teraOptionValue): holding Tera is worth a lot early — many
    * future high-value windows remain, so wait — and ~nothing at the endgame,
@@ -66,6 +81,12 @@ export interface EvalOverrides {
   teraAvailable?: number;
   /** Faints over which the Tera option value decays (WEIGHTS.TERA_DECAY_FAINTS); ≤0 disables decay. */
   teraDecayFaints?: number;
+  /** Status-move threat scalar (WEIGHTS.STATUS_THREAT); 0 = status-blind old eval. */
+  statusThreatWeight?: number;
+  /** Set-up sweeper danger weight (WEIGHTS.SWEEPER_DANGER); 0 disables. */
+  sweeperDangerWeight?: number;
+  /** Team speed-tier weight (WEIGHTS.SPEED_TIER); 0 disables. */
+  speedTierWeight?: number;
 }
 
 let evalOverrides: EvalOverrides | undefined;
@@ -196,10 +217,119 @@ export function fasterSide(state: BattleState, sideA: 0 | 1): 0 | 1 | 'tie' {
   return aFaster ? sideA : ((1 - sideA) as 0 | 1);
 }
 
+// Status-move classification for the threat read. Small, id-keyed sets — the
+// hot path must not do dex lookups per move; only immunity checks touch
+// `table.gen` (species types), and only for classified moves.
+const STATUS_BURN = new Set(['willowisp']);
+const STATUS_PARA = new Set(['thunderwave', 'glare', 'stunspore']);
+const STATUS_TOXIC = new Set(['toxic', 'poisonpowder']);
+const HAZARD_MOVES: Record<string, 'stealthrock' | 'spikes' | 'toxicspikes' | 'stickyweb'> = {
+  stealthrock: 'stealthrock',
+  spikes: 'spikes',
+  toxicspikes: 'toxicspikes',
+  stickyweb: 'stickyweb',
+};
+const SETUP_MOVES = new Set([
+  'swordsdance', 'nastyplot', 'calmmind', 'dragondance', 'quiverdance',
+  'bulkup', 'irondefense', 'shellsmash', 'agility', 'curse', 'victorydance',
+]);
+
+function defTypes(table: CalcTable, def: MonState): string[] {
+  if (def.terastallized && def.teraType) return [def.teraType];
+  return (table.gen.species.get(def.speciesId)?.types as string[] | undefined) ?? [];
+}
+
 /**
- * How threatening `atk` (active on atkSide) is to `def` right now:
- * best move's OHKO probability plus weighted expected chip, under the
- * current Tera slices.
+ * Value of ONE status move against the current defender, in threat units
+ * (comparable to koProb + chip, before the STATUS_THREAT scalar). 0 for
+ * unclassified moves — unknown status moves stay invisible, as before.
+ */
+export function statusMoveValue(
+  table: CalcTable,
+  atkSide: 0 | 1,
+  atk: MonState,
+  moveId: string,
+  def: MonState,
+  defSide: SideState
+): number {
+  if (STATUS_BURN.has(moveId)) {
+    if (def.status) return 0;
+    const types = defTypes(table, def);
+    if (types.includes('Fire')) return 0;
+    // Worse for physical attackers: shares the burn-term logic.
+    return 0.3 + 0.35 * physicalShareOf(table, (1 - atkSide) as 0 | 1, def);
+  }
+  if (STATUS_PARA.has(moveId)) {
+    if (def.status) return 0;
+    const types = defTypes(table, def);
+    if (types.includes('Electric')) return 0;
+    if (moveId === 'thunderwave' && types.includes('Ground')) return 0;
+    if (moveId === 'stunspore' && types.includes('Grass')) return 0;
+    // Cutting a faster mon's speed is the payoff; slowing the slow is minor.
+    const atkSpeed = atk.spe * stageMult(atk.boosts.spe) * (atk.status === 'par' ? 0.5 : 1);
+    const defFaster = raceSpeed(def, defSide) > atkSpeed;
+    return defFaster ? 0.45 : 0.15;
+  }
+  if (STATUS_TOXIC.has(moveId)) {
+    if (def.status) return 0;
+    const types = defTypes(table, def);
+    if (types.includes('Steel') || types.includes('Poison')) return 0;
+    return 0.35;
+  }
+  const hazard = HAZARD_MOVES[moveId];
+  if (hazard) {
+    // Hazards scale with the opponent's living reserves (mirrors the
+    // hazard-per-reserve eval term); worthless once maxed.
+    const reserves = defSide.mons.filter(m => !m.fainted && !m.isActive).length;
+    if (hazard === 'stealthrock') return defSide.hazards.stealthrock ? 0 : 0.12 * reserves;
+    if (hazard === 'spikes') return defSide.hazards.spikes >= 3 ? 0 : 0.08 * reserves;
+    if (hazard === 'toxicspikes') return defSide.hazards.toxicspikes >= 2 ? 0 : 0.06 * reserves;
+    return defSide.hazards.stickyweb ? 0 : 0.25;
+  }
+  if (SETUP_MOVES.has(moveId)) {
+    // A boosting turn threatens future damage; the sweeper-danger term takes
+    // over once stages actually accumulate.
+    return atk.hp / atk.maxhp > 1 / 3 ? 0.25 : 0;
+  }
+  return 0;
+}
+
+/** Override-aware weighted value of one status move (candidate ranking). */
+export function weightedStatusMoveValue(
+  table: CalcTable,
+  atkSide: 0 | 1,
+  atk: MonState,
+  moveId: string,
+  def: MonState,
+  defSide: SideState
+): number {
+  const weight = evalOverrides?.statusThreatWeight ?? WEIGHTS.STATUS_THREAT;
+  if (weight === 0) return 0;
+  return weight * statusMoveValue(table, atkSide, atk, moveId, def, defSide);
+}
+
+function bestStatusValue(
+  table: CalcTable,
+  atkSide: 0 | 1,
+  atk: MonState,
+  def: MonState,
+  defSide: SideState
+): number {
+  const weight = evalOverrides?.statusThreatWeight ?? WEIGHTS.STATUS_THREAT;
+  if (weight === 0) return 0;
+  let best = 0;
+  for (const moveId of atk.moveIds) {
+    const value = statusMoveValue(table, atkSide, atk, moveId, def, defSide);
+    if (value > best) best = value;
+  }
+  return weight * best;
+}
+
+/**
+ * How threatening `atk` (active on atkSide) is to `def` right now: the best
+ * single action — a damaging move's OHKO probability plus weighted expected
+ * chip, or a status move's valued effect (burn/para/toxic/hazards/setup) —
+ * under the current Tera slices. One action per turn, so max not sum.
  */
 export function threat(
   table: CalcTable,
@@ -220,7 +350,7 @@ export function threat(
       WEIGHTS.CHIP_WEIGHT * Math.min(1, modifiedFrac(damage, atk, def, defSide, field));
     if (score > best) best = score;
   }
-  return best;
+  return Math.max(best, bestStatusValue(table, atkSide, atk, def, defSide));
 }
 
 /**
@@ -264,6 +394,52 @@ function matchupScore(
   );
 }
 
+/**
+ * Danger the OPPOSING active poses to `pov`'s team once it has accumulated
+ * positive offensive/speed boosts: stages × (fraction of pov's living mons it
+ * likely KOs) × weight. Zero with no boosts, so the common case costs nothing.
+ * This is the "see the sweep coming" signal the one-ply matchup read misses.
+ */
+function sweeperDangerTo(state: BattleState, table: CalcTable, pov: 0 | 1): number {
+  const weight = evalOverrides?.sweeperDangerWeight ?? WEIGHTS.SWEEPER_DANGER;
+  if (weight === 0) return 0;
+  const theirSide = state.sides[1 - pov];
+  const sweeper = theirSide.mons[theirSide.activeIndex];
+  if (!sweeper || sweeper.fainted) return 0;
+  const stages =
+    Math.max(0, sweeper.boosts.atk) +
+    Math.max(0, sweeper.boosts.spa) +
+    Math.max(0, sweeper.boosts.spe);
+  if (stages === 0) return 0;
+
+  const mySide = state.sides[pov];
+  const field: FieldContext = {weather: state.weather};
+  const living = mySide.mons.filter(m => !m.fainted);
+  if (!living.length) return 0;
+  let threatened = 0;
+  for (const mon of living) {
+    // koProb dominates the score; ≥1 means an OHKO is on the table.
+    if (threat(table, (1 - pov) as 0 | 1, sweeper, mon, mySide, field) >= 1) threatened++;
+  }
+  return weight * stages * (threatened / living.length);
+}
+
+/** Count of pov's living mons whose race speed beats the opposing active. */
+function speedTiers(state: BattleState, pov: 0 | 1): number {
+  const mySide = state.sides[pov];
+  const theirSide = state.sides[1 - pov];
+  const theirs = theirSide.mons[theirSide.activeIndex];
+  if (!theirs || theirs.fainted) return 0;
+  const theirSpeed = raceSpeed(theirs, theirSide);
+  return mySide.mons.filter(m => !m.fainted && raceSpeed(m, mySide) > theirSpeed).length;
+}
+
+function speedTierScore(state: BattleState, pov: 0 | 1): number {
+  const weight = evalOverrides?.speedTierWeight ?? WEIGHTS.SPEED_TIER;
+  if (weight === 0) return 0;
+  return weight * (speedTiers(state, pov) - speedTiers(state, (1 - pov) as 0 | 1));
+}
+
 function sideScore(state: BattleState, table: CalcTable, side: 0 | 1): number {
   const sideState = state.sides[side];
   let score = sideConditionScore(sideState);
@@ -289,5 +465,9 @@ export function evaluate(
 ): number {
   const own = sideScore(state, table, pov);
   const opp = sideScore(state, table, (1 - pov) as 0 | 1);
-  return own - opp + matchupScore(state, table, pov, matchupWeight);
+  // Antisymmetric extras: an opposing boosted sweeper hurts me exactly as much
+  // as mine hurts them from the flipped pov, and the speed-tier diff negates.
+  const danger =
+    sweeperDangerTo(state, table, (1 - pov) as 0 | 1) - sweeperDangerTo(state, table, pov);
+  return own - opp + matchupScore(state, table, pov, matchupWeight) + danger + speedTierScore(state, pov);
 }

@@ -1,7 +1,7 @@
 import type {Battle} from '@pkmn/sim';
 import type {Generation} from '@pkmn/data';
 import {legalActions, type Action} from '../engine/actions';
-import {raceSpeed, threat, WEIGHTS} from '../engine/eval';
+import {raceSpeed, threat, weightedStatusMoveValue, WEIGHTS} from '../engine/eval';
 import {getEntry, type CalcTable} from '../engine/calc/table';
 import {koProb, modifiedFrac, type FieldContext} from '../engine/calc/modifiers';
 import type {BattleState, MonState, SideState} from '../engine/snapshot';
@@ -98,7 +98,12 @@ function moveThreat(
   if (!def || def.fainted) return 0;
   const attacker = tera ? {...atk, terastallized: true} : atk;
   const entry = getEntry(ctx.table, side, attacker, moveIndex, def);
-  if (!entry || entry.category === 'Status') return 0;
+  if (!entry) return 0;
+  if (entry.category === 'Status') {
+    // Status moves rank by their valued effect (burn/para/toxic/hazards/
+    // setup) instead of a flat 0 — un-blinds interior candidate selection.
+    return weightedStatusMoveValue(ctx.table, side, attacker, atk.moveIds[moveIndex], def, theirSide);
+  }
   return (
     koProb(entry, attacker, def, theirSide, ctx.field) +
     WEIGHTS.CHIP_WEIGHT * Math.min(1, modifiedFrac(entry, attacker, def, theirSide, ctx.field))
