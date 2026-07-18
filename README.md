@@ -4,7 +4,7 @@ A client-side, in-browser competitive Pokémon teambuilding tool for the Smogon/
 
 No server. Fully static-hostable. All simulation runs in a web worker in your browser.
 
-**Live demo:** https://padoci.github.io/battle-sim/ (deployed from `main` via GitHub Pages).
+**Live demo:** https://battle-sim-eo1.pages.dev (Cloudflare Pages, deployed from `main`).
 
 ## Two modes
 
@@ -74,8 +74,9 @@ Dev/tuning knobs on the gauntlet: `#/sixoh?seed=123&config=fast&tera=25` (reprod
 
 ## Deploys & previews
 
-- **Production** — `main` builds and deploys to GitHub Pages (`.github/workflows/deploy.yml`), which sets `DEPLOY_BASE=/battle-sim/` so assets resolve under the repo subpath.
-- **Per-PR previews** — Cloudflare Pages builds every PR to its own throwaway URL (real network → real sprites, fully interactive), so a PR can be checked with one click instead of pulling the branch. Production on GitHub Pages is untouched.
+- **Production** — Cloudflare Pages builds `main` automatically → https://battle-sim-eo1.pages.dev.
+- **Per-PR previews** — Cloudflare Pages also builds every PR to its own throwaway URL (real network → real sprites, fully interactive), posted on the PR, so it can be checked with one click instead of pulling the branch.
+- **GitHub Pages (retired)** — `deploy.yml` is `workflow_dispatch`-only: Pages was disabled on the repo when production moved to Cloudflare, which made every push-triggered deploy fail. To revive it, re-enable Pages (Settings → Pages → Source: "GitHub Actions") and dispatch the workflow; it sets `DEPLOY_BASE=/battle-sim/` for the repo-subpath.
 
 The Vite `base` is environment-driven (`vite.config.ts`): it defaults to `/`, and only the GitHub Pages job sets `DEPLOY_BASE`. Cloudflare doesn't, so its builds serve correctly from the root — no per-host config. Routing is hash-based (`#/…`), so no SPA-fallback/redirects file is needed on either host.
 
