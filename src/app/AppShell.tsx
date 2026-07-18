@@ -1,4 +1,4 @@
-import {useReducer} from 'react';
+import {Suspense, lazy, useReducer} from 'react';
 import {ErrorBoundary} from './ErrorBoundary';
 import {useRoute} from './router';
 import {AppDispatchContext, AppStateContext, appReducer, initialState} from './state';
@@ -8,13 +8,17 @@ import {
   initialSixOhState,
   sixOhReducer,
 } from './sixoh/state';
+// Landing is the first paint and pulls no engine/data, so it stays eager. Every
+// other screen imports the data client / @pkmn/dex (`resolve`, ~8 MB) and the
+// engine, so they're split into async chunks that load on navigation — the
+// landing page no longer downloads them up front. (Named exports → default.)
 import {Landing} from './screens/Landing';
-import {TeamImport} from './screens/TeamImport';
-import {ConfigureRun} from './screens/ConfigureRun';
-import {Dashboard} from './screens/Dashboard';
-import {SixOhDraft} from './screens/SixOhDraft';
-import {SixOhGauntlet} from './screens/SixOhGauntlet';
-import {SixOhResult} from './screens/SixOhResult';
+const TeamImport = lazy(() => import('./screens/TeamImport').then(m => ({default: m.TeamImport})));
+const ConfigureRun = lazy(() => import('./screens/ConfigureRun').then(m => ({default: m.ConfigureRun})));
+const Dashboard = lazy(() => import('./screens/Dashboard').then(m => ({default: m.Dashboard})));
+const SixOhDraft = lazy(() => import('./screens/SixOhDraft').then(m => ({default: m.SixOhDraft})));
+const SixOhGauntlet = lazy(() => import('./screens/SixOhGauntlet').then(m => ({default: m.SixOhGauntlet})));
+const SixOhResult = lazy(() => import('./screens/SixOhResult').then(m => ({default: m.SixOhResult})));
 
 function Screen() {
   const route = useRoute();
@@ -57,7 +61,9 @@ export function AppShell() {
               </div>
             </header>
             <ErrorBoundary>
-              <Screen />
+              <Suspense fallback={<div className="route-loading mono">Loading…</div>}>
+                <Screen />
+              </Suspense>
             </ErrorBoundary>
           </div>
         </SixOhDispatchContext.Provider>
