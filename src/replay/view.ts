@@ -1,3 +1,4 @@
+import {gen9} from '../data/gen';
 import type {PokemonSet} from '../data/types';
 import type {Beat} from './pace';
 
@@ -35,9 +36,13 @@ export interface ViewState {
 
 /** One visual effect triggered by a beat. */
 export interface FxItem {
-  type: 'lunge' | 'impact' | 'float' | 'faint' | 'tera';
+  type: 'lunge' | 'impact' | 'float' | 'faint' | 'tera' | 'switch';
   side: 0 | 1;
   text?: string;
+  /** The move's type ("Fire") — drives the FX accent color. */
+  moveType?: string;
+  /** Physical → contact spark, Special → beam, Status → self glow. */
+  category?: 'Physical' | 'Special' | 'Status';
 }
 
 const HAZARDS = new Set(['Stealth Rock', 'Spikes', 'Toxic Spikes', 'Sticky Web', 'G-Max Steelsurge']);
@@ -104,12 +109,24 @@ export function applyBeat(state: ViewState, beat: Beat): {state: ViewState; fx: 
         mon.maxhp = event.maxhp;
         mon.boosts = {}; // switching resets boosts
         side.activeIndex = side.mons.indexOf(mon);
+        // Switch-in pop — but not for the initial lead placement (turn 0):
+        // the lead-in frame must stay at rest for the visual baseline.
+        if (state.turn >= 1) fx.push({type: 'switch', side: event.ref.side});
         break;
       }
-      case 'move':
-        fx.push({type: 'lunge', side: event.ref.side});
-        if (!event.tags.miss && !event.tags.immune) fx.push({type: 'impact', side: (1 - event.ref.side) as 0 | 1});
+      case 'move': {
+        // Type/category flavor the FX (color + animation style). Unknown moves
+        // (or a lookup miss) degrade to the untyped default — never throw.
+        const meta = gen9().moves.get(event.move);
+        const moveType = meta?.type;
+        const category = (meta?.category ?? undefined) as FxItem['category'];
+        fx.push({type: 'lunge', side: event.ref.side, moveType, category});
+        // Status moves act on the user (glow) — no defender impact.
+        if (category !== 'Status' && !event.tags.miss && !event.tags.immune) {
+          fx.push({type: 'impact', side: (1 - event.ref.side) as 0 | 1, moveType, category});
+        }
         break;
+      }
       case 'damage': {
         const mon = findMon(next.sides[event.ref.side], event.ref.name);
         if (!mon) break;

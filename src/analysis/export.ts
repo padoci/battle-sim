@@ -1,5 +1,6 @@
 import type {TeamMemberWire} from '../data/types';
 import type {ArchetypeCard, MatchupAggregate, OverallSummary} from './stats';
+import type {Suggestion} from './suggestions';
 
 /**
  * Export builders (ui-spec §6b/§9): structured JSON for the user's own
@@ -13,6 +14,8 @@ export interface DashboardExportJsonV1 {
   team: {raw: string; species: string[]};
   run: {n: number; calibrationBattles: number; cancelled: boolean};
   overall: OverallSummary;
+  /** Prescriptive "what to change" reads (absent on pre-suggestion exports). */
+  suggestions?: Array<{kind: string; severity: string; sentence: string; evidence: string[]}>;
   pool: Array<{
     teamId: string;
     teamName: string;
@@ -50,6 +53,7 @@ export interface ExportInputs {
   overall: OverallSummary;
   cards: ArchetypeCard[];
   poolMeta: Array<{teamId: string; teamName: string; weight: number}>;
+  suggestions?: Suggestion[];
   now?: () => Date;
 }
 
@@ -65,6 +69,16 @@ export function buildExportJson(inputs: ExportInputs): DashboardExportJsonV1 {
     team: {raw: inputs.teamRaw, species: inputs.teamWire.map(m => m.species)},
     run: {n: inputs.n, calibrationBattles: inputs.calibrationBattles, cancelled: inputs.cancelled},
     overall: inputs.overall,
+    ...(inputs.suggestions?.length
+      ? {
+          suggestions: inputs.suggestions.map(s => ({
+            kind: s.kind,
+            severity: s.severity,
+            sentence: s.sentence,
+            evidence: s.evidence,
+          })),
+        }
+      : {}),
     pool: inputs.poolMeta.map(meta => {
       const matchup = matchupsByTeam.get(meta.teamId);
       return {
@@ -113,6 +127,14 @@ export function buildExportMarkdown(json: DashboardExportJsonV1): string {
   );
   lines.push('');
   lines.push('_Direction, not gospel: these are reads to pressure-test, never verdicts._');
+
+  if (json.suggestions?.length) {
+    lines.push('', '## What to change');
+    for (const s of json.suggestions) {
+      lines.push('', `- **[${s.severity}]** ${s.sentence}`);
+      for (const line of s.evidence) lines.push(`  - ${line}`);
+    }
+  }
 
   const worst = json.archetypes.filter(a => a.winRate < 0.5);
   const best = json.archetypes.filter(a => a.winRate >= 0.5).reverse();

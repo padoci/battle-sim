@@ -1,30 +1,10 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import {gen9} from '../../data/gen';
 import {buildPostMortem} from '../../analysis/postmortem';
 import type {DraftMode} from '../../draft/draft';
+import {ReadItem as Read} from '../components/ReadItem';
 import {resetSixOhSession} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState} from '../sixoh/state';
-
-function Read({sentence, evidence}: {sentence: string; evidence: string[]}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="pm-read">
-      <p>{sentence}</p>
-      {evidence.length > 0 && (
-        <button className="pm-toggle mono" onClick={() => setOpen(o => !o)}>
-          {open ? '▾ hide the calc' : '▸ show the calc'}
-        </button>
-      )}
-      {open && (
-        <ul className="pm-evidence mono">
-          {evidence.map((line, i) => (
-            <li key={i}>{line}</li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 export function SixOhResult() {
   const state = useSixOhState();

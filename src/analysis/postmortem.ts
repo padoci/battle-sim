@@ -4,6 +4,7 @@ import {buildCalcTable} from '../engine/calc/table';
 import type {BattleResult} from '../search/runner';
 import {classifyTeam} from './archetype';
 import {aggregateMatchup} from './stats';
+import {calcSuggestions} from './suggestions';
 import {buildPairingContext, threatFacts} from './threats';
 
 /**
@@ -86,7 +87,13 @@ function eliminatedReads(
     });
   }
 
-  return reads.slice(0, 2);
+  // Prescriptive follow-ups: calc-backed "what to change" reads against the
+  // team that ended the run (sample-size-free — pure pairing math).
+  const prescriptive = calcSuggestions(ctx, matchup)
+    .slice(0, 2)
+    .map(s => ({sentence: s.sentence, evidence: s.evidence}));
+
+  return [...reads.slice(0, 2), ...prescriptive];
 }
 
 function flawlessReads(gen: Generation, battles: PlayedBattle[]): PostMortemRead[] {

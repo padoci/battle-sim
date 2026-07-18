@@ -10,13 +10,18 @@ import {
   cardRecord,
   deriveGamePlanFacts,
   renderGamePlan,
+  calcSuggestions,
+  rankSuggestions,
   rollUpByArchetype,
+  statSuggestions,
   summarize,
   threatFacts,
   type ArchetypeCard,
   type MatchupAggregate,
+  type Suggestion,
   type ThreatFact,
 } from '../../analysis';
+import {ReadItem} from '../components/ReadItem';
 import type {GamePlan} from '../../analysis/gameplan';
 import {navigate} from '../router';
 import {useAppState, type PoolEntryWithMeta} from '../state';
@@ -24,6 +29,7 @@ import {useAppState, type PoolEntryWithMeta} from '../state';
 interface Enrichment {
   threats: ThreatFact[];
   gamePlan: GamePlan;
+  suggestions: Suggestion[];
 }
 
 /**
@@ -39,7 +45,7 @@ function enrichCard(
   const gen = gen9();
   const worst = card.matchups[0];
   const entry = pool.find(p => p.teamId === worst.teamId);
-  if (!entry) return {threats: [], gamePlan: renderGamePlan({})};
+  if (!entry) return {threats: [], gamePlan: renderGamePlan({}), suggestions: []};
 
   const table = buildCalcTable(gen, [userTeam, entry.team]);
   const ctx = buildPairingContext(gen, userTeam, entry.team, table);
@@ -53,7 +59,12 @@ function enrichCard(
   const threats = sources.flatMap(mon => threatFacts(ctx, mon)).slice(0, 4);
 
   const facts = deriveGamePlanFacts(gen, userTeam, entry.team, table, worst);
-  return {threats, gamePlan: renderGamePlan(facts)};
+  // What-to-change reads: aggregate-driven + calc-backed, ranked and capped.
+  const suggestions = rankSuggestions([
+    ...statSuggestions(card, userTeam),
+    ...calcSuggestions(ctx, worst),
+  ]);
+  return {threats, gamePlan: renderGamePlan(facts), suggestions};
 }
 
 function download(filename: string, content: string, type: string): void {
@@ -138,6 +149,14 @@ function MatchupCardView({
                   <p key={i}>{sentence}</p>
                 ))}
               </div>
+              {enrichment.suggestions.length > 0 && (
+                <div className="suggestions">
+                  <h4>What to change</h4>
+                  {enrichment.suggestions.map((s, i) => (
+                    <ReadItem key={i} sentence={s.sentence} evidence={s.evidence} />
+                  ))}
+                </div>
+              )}
             </>
           )}
           <div className="matchup-detail mono">
@@ -216,6 +235,11 @@ export function Dashboard() {
   const {cards, overall} = analysis;
   const worst = cards.filter(c => c.winRate < 0.5);
   const best = cards.filter(c => c.winRate >= 0.5).slice().reverse();
+  // Aggregate-driven suggestions across every card (no calc — cheap), top 3.
+  const topSuggestions = rankSuggestions(
+    cards.flatMap(card => statSuggestions(card, team.sets)),
+    3
+  );
 
   const ensureEnriched = (card: ArchetypeCard): Enrichment | undefined => {
     const existing = enrichments[card.archetype];
@@ -241,6 +265,7 @@ export function Dashboard() {
       overall,
       cards: enrichedCards,
       poolMeta: pool.map(p => ({teamId: p.teamId, teamName: p.teamName, weight: p.weight})),
+      suggestions: topSuggestions,
     });
     const filename = format === 'json' ? 'team-report.json' : 'team-report.md';
     if (format === 'json') {
@@ -283,6 +308,15 @@ export function Dashboard() {
         </p>
         <p className="hint">Direction, not gospel — reads to pressure-test, never verdicts.</p>
       </header>
+
+      {topSuggestions.length > 0 && (
+        <section className="suggestions top-suggestions">
+          <h2>What to change</h2>
+          {topSuggestions.map((s, i) => (
+            <ReadItem key={i} sentence={s.sentence} evidence={s.evidence} />
+          ))}
+        </section>
+      )}
 
       <div className="matchup-columns">
         {column('Worst matchups', worst)}

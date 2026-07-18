@@ -25,13 +25,21 @@ export interface MatchupAggregate {
     faintCount: number;
     meanTurn: number;
     topCause?: string;
+    /** Faints attributed to hazards/residual chip rather than a direct move. */
+    chipFaints: number;
   }>;
   /** Opposing mons ranked by damage output across the matchup. */
   mostWork: Array<{speciesId: string; totalDamageFrac: number}>;
   /** Fraction of decisions where YOUR active was faster. */
   speedRaceWinRate: number;
+  /** How many speed comparisons that rate is based on (sample-size gate). */
+  raceDecisions: number;
   /** Your mons ranked by damage output in games you won. */
   carriedBy: Array<{speciesId: string; damageFracInWins: number}>;
+  /** Your mons ranked by damage output across ALL games (wins and losses). */
+  dealtBy: Array<{speciesId: string; totalDamageFrac: number}>;
+  /** Your mons by opponent KOs they scored (cause of a side-1 faint). */
+  kosScored: Array<{speciesId: string; count: number}>;
 }
 
 /** Archetype-level rollup card (the dashboard's unit of display, §6b). */
@@ -59,9 +67,11 @@ export function aggregateMatchup(
   const losses = battles.filter(b => b.result.winner === 1).length;
   const draws = battles.length - wins - losses;
 
-  const faintAgg = new Map<string, {turns: number[]; causes: Map<string, number>}>();
+  const faintAgg = new Map<string, {turns: number[]; causes: Map<string, number>; chip: number}>();
   const oppDamage = new Map<string, number>();
   const winDamage = new Map<string, number>();
+  const allDamage = new Map<string, number>();
+  const koAgg = new Map<string, number>();
   let fasterDecisions = 0;
   let raceDecisions = 0;
 
@@ -70,13 +80,20 @@ export function aggregateMatchup(
     if (!stats) continue;
 
     for (const faint of stats.faints) {
-      if (faint.side !== 0) continue;
+      if (faint.side !== 0) {
+        // An opposing faint caused by one of your mons is a KO scored.
+        if (faint.causeSpeciesId && faint.causeKind === 'move') {
+          koAgg.set(faint.causeSpeciesId, (koAgg.get(faint.causeSpeciesId) ?? 0) + 1);
+        }
+        continue;
+      }
       let entry = faintAgg.get(faint.speciesId);
       if (!entry) {
-        entry = {turns: [], causes: new Map()};
+        entry = {turns: [], causes: new Map(), chip: 0};
         faintAgg.set(faint.speciesId, entry);
       }
       entry.turns.push(faint.turn);
+      if (faint.causeKind === 'hazard' || faint.causeKind === 'residual') entry.chip++;
       if (faint.causeSpeciesId) {
         entry.causes.set(faint.causeSpeciesId, (entry.causes.get(faint.causeSpeciesId) ?? 0) + 1);
       }
@@ -85,8 +102,9 @@ export function aggregateMatchup(
     for (const [species, frac] of Object.entries(stats.damageDealtFrac[1])) {
       oppDamage.set(species, (oppDamage.get(species) ?? 0) + frac);
     }
-    if (battle.result.winner === 0) {
-      for (const [species, frac] of Object.entries(stats.damageDealtFrac[0])) {
+    for (const [species, frac] of Object.entries(stats.damageDealtFrac[0])) {
+      allDamage.set(species, (allDamage.get(species) ?? 0) + frac);
+      if (battle.result.winner === 0) {
         winDamage.set(species, (winDamage.get(species) ?? 0) + frac);
       }
     }
@@ -97,11 +115,12 @@ export function aggregateMatchup(
   }
 
   const earliestFaints = [...faintAgg.entries()]
-    .map(([speciesId, {turns, causes}]) => ({
+    .map(([speciesId, {turns, causes, chip}]) => ({
       speciesId,
       faintCount: turns.length,
       meanTurn: turns.reduce((a, b) => a + b, 0) / turns.length,
       topCause: [...causes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0],
+      chipFaints: chip,
     }))
     .sort((a, b) => a.meanTurn - b.meanTurn);
 
@@ -120,7 +139,12 @@ export function aggregateMatchup(
     earliestFaints,
     mostWork: byDamage(oppDamage).map(([speciesId, totalDamageFrac]) => ({speciesId, totalDamageFrac})),
     speedRaceWinRate: raceDecisions ? fasterDecisions / raceDecisions : 0,
+    raceDecisions,
     carriedBy: byDamage(winDamage).map(([speciesId, damageFracInWins]) => ({speciesId, damageFracInWins})),
+    dealtBy: byDamage(allDamage).map(([speciesId, totalDamageFrac]) => ({speciesId, totalDamageFrac})),
+    kosScored: [...koAgg.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([speciesId, count]) => ({speciesId, count})),
   };
 }
 

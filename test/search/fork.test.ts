@@ -45,7 +45,10 @@ describe('clairvoyance regression (search branches must not replay the game RNG)
       reseed(branch, cellSeed);
       // A multi-roll turn: both actives attack.
       makeJointChoice(branch, 'move 1', 'move 1');
-      return branch.log.join('\n');
+      // Drop `|t:|` wall-clock lines: they embed real time, so two identical
+      // branches straddling a second boundary would spuriously differ (flake
+      // under CI load). Everything game-relevant is timestamp-free.
+      return branch.log.filter(line => !line.startsWith('|t:|')).join('\n');
     };
 
     expect(run(forkSeed(7, 1, 0, 0))).toBe(run(forkSeed(7, 1, 0, 0)));
