@@ -23,10 +23,10 @@ export interface SearchConfig {
 /** Test-your-team bulk budget: shallow and fast. */
 export const FAST: SearchConfig = {
   depth: 1,
-  // 3 (was 2): the third-best defensive switch-in was routinely the RIGHT
-  // answer but never considered; d1 has the ms/turn headroom for the wider
-  // root (A/B + cost numbers in logs/ai-round-report.md).
-  rootSwitchK: 3,
+  // Kept at 2: widening to 3 lost the head-to-head A/B (19/40, breadth
+  // lever in logs/ai-round-report.md) — the extra switch branch dilutes the
+  // root equilibrium more than it helps at this depth.
+  rootSwitchK: 2,
   rootTeraVariants: 2,
   interiorCandidates: 3,
   samplesPerCell: 1,
@@ -36,5 +36,5 @@ export const FAST: SearchConfig = {
   switchMargin: 5,
 };
 
-/** "Can you 6-0?" cinematic budget: depth 2 (inherits the wider root). */
+/** "Can you 6-0?" cinematic budget: depth 2 with the same root breadth. */
 export const STRONG: SearchConfig = {...FAST, depth: 2};
