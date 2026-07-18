@@ -526,7 +526,7 @@ button.primary:disabled {
   accent-color: var(--signal);
 }
 
-.run-controls button {
+.run-controls button:not(.primary) {
   margin-right: 0.5rem;
   font: inherit;
   padding: 0.4rem 0.9rem;
