@@ -7,6 +7,7 @@ import {
   buildExportJson,
   buildExportMarkdown,
   buildPairingContext,
+  cardRecord,
   deriveGamePlanFacts,
   renderGamePlan,
   rollUpByArchetype,
@@ -71,6 +72,33 @@ function download(filename: string, content: string, type: string): void {
 
 const pct = (rate: number) => `${Math.round(rate * 100)}%`;
 
+/**
+ * Stacked W-L-D bar. Okabe-Ito colorblind-safe palette (win blue, loss
+ * vermillion, draw gray — never green/red), luminance-distinct in grayscale.
+ */
+function RateBar({card}: {card: ArchetypeCard}) {
+  const {wins, losses, draws} = cardRecord(card);
+  const total = wins + losses + draws;
+  if (total === 0) return null;
+  const share = (n: number) => `${(n / total) * 100}%`;
+  return (
+    <>
+      <span
+        className="rate-bar"
+        role="img"
+        aria-label={`${wins} wins, ${losses} losses, ${draws} draws`}
+      >
+        <span className="rate-win" style={{width: share(wins)}} />
+        {draws > 0 && <span className="rate-draw" style={{width: share(draws)}} />}
+        <span className="rate-loss" style={{width: share(losses)}} />
+      </span>
+      <span className="matchup-record mono">
+        {wins}-{losses}-{draws}
+      </span>
+    </>
+  );
+}
+
 function MatchupCardView({
   card,
   enrichment,
@@ -90,6 +118,7 @@ function MatchupCardView({
         <span className="matchup-meta mono">
           {card.battles} battles · {card.distinctOpponents} team{card.distinctOpponents === 1 ? '' : 's'}
         </span>
+        <RateBar card={card} />
       </button>
       {expanded && (
         <div className="matchup-body">
@@ -243,10 +272,10 @@ export function Dashboard() {
   );
 
   return (
-    <main className="screen dashboard">
+    <main className="screen wide dashboard">
       <header className="verdict">
         <h1>{overall.verdict}</h1>
-        <p className="mono">
+        <p className="mono" role="status" aria-live="polite">
           {pct(overall.winRate)} win rate · {overall.wins}W-{overall.losses}L-{overall.draws}D over{' '}
           {overall.battles} battles
           {run.status === 'cancelled' ? ' · cancelled early (partial)' : ''}

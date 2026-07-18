@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {aggregateMatchup, rollUpByArchetype, summarize, type RecordedBattle} from '../../src/analysis/stats';
+import {aggregateMatchup, cardRecord, rollUpByArchetype, summarize, type RecordedBattle} from '../../src/analysis/stats';
 import type {ArchetypeResult} from '../../src/analysis/archetype';
 import type {BattleResult} from '../../src/search/runner';
 import type {BattleStats} from '../../src/search/stats';
@@ -79,5 +79,20 @@ describe('rollUpByArchetype + summarize', () => {
     expect(overall.battles).toBe(6);
     expect(overall.winRate).toBeCloseTo(3 / 6, 10);
     expect(overall.verdict).toMatch(/Rain/);
+  });
+});
+
+describe('cardRecord', () => {
+  it('sums W-L-D across a card\'s matchups (cards only carry wins/battles)', () => {
+    const rain = aggregateMatchup('r1', 'Rain One', archetype('Rain'), [battle(1), battle(1), battle(0)]);
+    const rain2 = aggregateMatchup('r2', 'Rain Two', archetype('Rain'), [battle(null)]);
+    const [card] = rollUpByArchetype([rain, rain2]);
+    expect(cardRecord(card)).toEqual({wins: 1, losses: 2, draws: 1});
+  });
+
+  it('returns zeros for a card with no battles', () => {
+    const empty = aggregateMatchup('e1', 'Empty', archetype(), []);
+    const [card] = rollUpByArchetype([empty]);
+    expect(cardRecord(card)).toEqual({wins: 0, losses: 0, draws: 0});
   });
 });

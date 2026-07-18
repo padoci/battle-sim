@@ -65,6 +65,23 @@ export function AppShell() {
                 <Screen />
               </Suspense>
             </ErrorBoundary>
+            <footer className="shell-footer mono">
+              <p>
+                Battle data from{' '}
+                <a href="https://data.pkmn.cc" target="_blank" rel="noreferrer">
+                  data.pkmn.cc
+                </a>{' '}
+                (Smogon community data) · simulation by{' '}
+                <a href="https://github.com/pkmn/ps" target="_blank" rel="noreferrer">
+                  @pkmn
+                </a>{' '}
+                / Pokémon Showdown · sprites from Showdown&rsquo;s CDN.
+              </p>
+              <p>
+                A fan project — not affiliated with Nintendo, Game Freak, The Pokémon Company, or
+                Smogon.
+              </p>
+            </footer>
           </div>
         </SixOhDispatchContext.Provider>
       </SixOhStateContext.Provider>

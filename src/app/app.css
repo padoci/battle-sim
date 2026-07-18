@@ -108,6 +108,13 @@ h3 {
   border-radius: 2px;
 }
 
+/* ---- Shell frame ---- */
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 /* ---- Header ---- */
 .shell-header {
   display: flex;
@@ -116,6 +123,30 @@ h3 {
   padding: 0.65rem 1.5rem;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
+}
+
+/* ---- Footer (attribution; see README "Data & licensing") ---- */
+.shell-footer {
+  margin-top: auto;
+  padding: 1rem 1.5rem 1.25rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.shell-footer p {
+  margin: 0;
+}
+
+.shell-footer a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.shell-footer a:hover {
+  color: var(--ink);
 }
 
 .brand {
@@ -184,6 +215,29 @@ main.landing {
   max-width: 980px;
   margin: 0 auto;
   padding: 1.5rem;
+}
+
+/* Data-dense screens (the dashboard) get more room on desktop. */
+main.screen.wide {
+  max-width: 1120px;
+}
+
+/* Battle-count number input, synced with the slider. */
+.n-input-label {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.n-input {
+  width: 5.5rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s, 4px);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
 }
 
 .hero {
@@ -518,7 +572,8 @@ button.primary:disabled {
 
 .matchup-head {
   display: flex;
-  gap: 0.6rem;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
   align-items: baseline;
   width: 100%;
   border: 0;
@@ -527,6 +582,35 @@ button.primary:disabled {
   padding: 0.6rem 0.9rem;
   cursor: pointer;
   text-align: left;
+}
+
+/* Stacked W-L-D bar (second row of the head). Okabe-Ito colorblind-safe:
+   win blue / loss vermillion / draw gray — distinct in grayscale too. */
+.rate-bar {
+  display: flex;
+  flex: 1 1 calc(100% - 4.5rem);
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--paper-2);
+  align-self: center;
+}
+
+.rate-win {
+  background: #0072b2;
+}
+
+.rate-draw {
+  background: #999999;
+}
+
+.rate-loss {
+  background: #d55e00;
+}
+
+.matchup-record {
+  color: var(--muted);
+  font-size: 0.72rem;
 }
 
 .matchup-title {
