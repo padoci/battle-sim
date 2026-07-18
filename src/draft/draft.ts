@@ -11,8 +11,12 @@ import {nextRng, offerWeight, sampleWithoutReplacement} from './sample';
  * (easy ramps the opponent AI up over the six battles).
  * Pure functional state — same seed + same picks = same offers. No reroll.
  *
- * Slash resolution is 'first' everywhere: what the picker displays is
- * exactly what battles (matches @pkmn/smogon's own resolution).
+ * Slash resolution: easy/normal set options are resolved with a SEEDED
+ * 'sample' over the slashed alternatives — one concrete build is committed
+ * per option, and what the picker displays is exactly what battles. The
+ * sample rng is a stream FORKED off `rngState` (never advancing it), so
+ * species offers are unaffected and the whole draft stays reproducible per
+ * seed. Hard mode keeps 'first' (bundles already display resolved sets).
  */
 export type DraftMode = 'easy' | 'normal' | 'hard';
 
@@ -104,14 +108,32 @@ export function createDraft(pool: PoolEntry[], sets: SetsData, mode: DraftMode, 
   return {mode, rngState, round: 1, phase: 'species', offers, team: []};
 }
 
+/**
+ * A deterministic rng stream forked off the draft's rngState WITHOUT
+ * advancing it. Resolution choices vary per seed and per round (rngState
+ * differs after each deal) while species offers stay byte-identical to the
+ * unforked stream — same state in, same options out (reducer purity).
+ */
+function sampleRngFrom(state: number): () => number {
+  let cursor = (state ^ 0x51a5e) >>> 0;
+  return () => {
+    const step = nextRng(cursor);
+    cursor = step.state;
+    return step.value;
+  };
+}
+
 /** Two-stage (easy/normal) stage 1: choose a species; reveals its named sets. */
 export function pickSpecies(state: DraftState, sets: SetsData, species: string): DraftState {
   if (state.mode === 'hard' || state.phase !== 'species') throw new Error('not picking species');
   if (!state.offers.some(offer => offer.species === species)) throw new Error(`not offered: ${species}`);
   const bySet = sets[species] ?? {};
+  // Commit to ONE concrete build per option (seeded sample over slashes) —
+  // the card then shows exactly the moves/tera that will battle.
+  const rng = sampleRngFrom(state.rngState);
   const setOptions = Object.entries(bySet).map(([setName, moveset]: [string, Moveset]) => ({
     setName,
-    set: resolveMoveset(species, moveset),
+    set: resolveMoveset(species, moveset, {strategy: 'sample', rng}),
     slashes: slashInfo(moveset),
   }));
   return {...state, phase: 'set', setOptions, offers: state.offers.filter(o => o.species === species)};

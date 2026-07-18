@@ -5,7 +5,7 @@ import {loadOpponentTeams} from '../../data/sampleTeams';
 import {teamMemberToSet} from '../../data/team';
 import {gen9} from '../../data/gen';
 import type {PoolEntry, SetsData} from '../../data/types';
-import {classifyTeam} from '../../analysis/archetype';
+import {classifyTeam, fallbackTeamName} from '../../analysis/archetype';
 import {
   createDraft,
   pickBundle,
@@ -42,11 +42,10 @@ function TypeBadges({species}: {species: string}) {
 }
 
 function SetCard({option, onPick}: {option: SetOption; onPick: () => void}) {
-  const {set, slashes} = option;
-  const moveLine = (index: number) => {
-    const slashed = slashes.moveSlots.find(s => s.slot === index);
-    return slashed ? slashed.options.join(' / ') : set.moves[index];
-  };
+  // Render the RESOLVED set only — the card shows exactly the moves/tera
+  // that will battle (the draft committed to one build per option; the wire
+  // format's slashed alternatives are no longer re-expanded here).
+  const {set} = option;
   const evs = Object.entries(set.evs)
     .filter(([, v]) => v > 0)
     .map(([stat, v]) => `${v} ${stat}`)
@@ -55,16 +54,14 @@ function SetCard({option, onPick}: {option: SetOption; onPick: () => void}) {
     <button className="set-card" onClick={onPick}>
       <h4>{option.setName}</h4>
       <ul className="mono set-moves">
-        {set.moves.map((_, i) => (
-          <li key={i}>{moveLine(i)}</li>
+        {set.moves.map((move, i) => (
+          <li key={i}>{move}</li>
         ))}
       </ul>
       <p className="mono set-meta">
         {set.item || 'No item'} · {set.nature} · {evs}
       </p>
-      <p className="mono set-meta">
-        Tera {slashes.teratypes ? slashes.teratypes.join(' / ') : set.teraType ?? '—'}
-      </p>
+      <p className="mono set-meta">Tera {set.teraType ?? '—'}</p>
     </button>
   );
 }
@@ -91,10 +88,10 @@ export function SixOhDraft() {
       .then(([pool, sets, teams]) => {
         const seed = dev.seed ?? Math.floor(Math.random() * 2 ** 31);
         const opponentIndices = sampleOpponents(teams.length, 6, seed ^ 0x0bb57);
-        const opponents = opponentIndices.map(i => ({
-          name: teams[i].name ?? `Team #${i + 1}`,
-          sets: teams[i].data.map(teamMemberToSet),
-        }));
+        const opponents = opponentIndices.map(i => {
+          const sets = teams[i].data.map(teamMemberToSet);
+          return {name: teams[i].name ?? fallbackTeamName(gen, sets), sets};
+        });
         const loaded = {pool, sets, opponents};
         setData(loaded);
         resetSixOhSession();

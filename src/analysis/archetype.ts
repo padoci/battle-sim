@@ -179,3 +179,13 @@ export function classifyTeam(gen: Generation, team: PokemonSet[]): ArchetypeResu
     : LABELS[primary];
   return {primary, secondary, label, features};
 }
+
+/**
+ * A friendly display name for an unnamed pool team, derived from its roster:
+ * "<lead species> <archetype label>" (e.g. "Gliscor Balance"). Deterministic
+ * and never the bare "Team #N" index placeholder.
+ */
+export function fallbackTeamName(gen: Generation, sets: PokemonSet[]): string {
+  const lead = sets[0]?.species ?? 'Mystery';
+  return `${lead} ${classifyTeam(gen, sets).label}`;
+}
