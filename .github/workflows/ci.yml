@@ -41,12 +41,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Playwright isn't a project dep (the dev sandbox uses a global one), so
-      # install it here without touching the lockfile.
-      - name: Install Playwright + Chromium
-        run: |
-          npm i --no-save playwright@^1.48.0
-          npx playwright install --with-deps chromium
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
       - name: Build
         run: npm run build
       - name: E2E — Can you 6-0?
@@ -61,4 +57,44 @@ jobs:
         with:
           name: e2e-screenshots
           path: logs/*.png
+          if-no-files-found: warn
+
+  visual:
+    name: Visual regression
+    runs-on: ubuntu-latest
+    # Needs write access to commit the baselines the first time they're generated.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Check out the PR branch itself (not the detached merge ref) so the
+          # first-run baseline bootstrap can push back.
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Compare against baselines (bootstrap them on first run)
+        run: |
+          if [ -n "$(find test/visual -name '*.png' 2>/dev/null)" ]; then
+            npx playwright test
+          else
+            echo "::notice::No visual baselines committed yet — generating them in CI and committing."
+            npx playwright test --update-snapshots
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add test/visual
+            git commit -m "chore: bootstrap visual regression baselines [skip ci]"
+            git push
+          fi
+      - name: Upload Playwright report (diffs on failure)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
           if-no-files-found: warn

@@ -72,14 +72,44 @@ Pages:
 
 Dev/tuning knobs on the gauntlet: `#/sixoh?seed=123&config=fast&tera=25` (reproducible run / d1 search / eval `TERA_AVAILABLE` override — for watching how Tera timing changes with the weight).
 
+## Deploys & previews
+
+- **Production** — `main` builds and deploys to GitHub Pages (`.github/workflows/deploy.yml`), which sets `DEPLOY_BASE=/battle-sim/` so assets resolve under the repo subpath.
+- **Per-PR previews** — Cloudflare Pages builds every PR to its own throwaway URL (real network → real sprites, fully interactive), so a PR can be checked with one click instead of pulling the branch. Production on GitHub Pages is untouched.
+
+The Vite `base` is environment-driven (`vite.config.ts`): it defaults to `/`, and only the GitHub Pages job sets `DEPLOY_BASE`. Cloudflare doesn't, so its builds serve correctly from the root — no per-host config. Routing is hash-based (`#/…`), so no SPA-fallback/redirects file is needed on either host.
+
+One-time Cloudflare setup (dashboard → Workers & Pages → Create → Pages → Connect to Git):
+
+- **Repository:** `padoci/battle-sim`
+- **Build command:** `npm run build`
+- **Build output directory:** `dist`
+- Node version comes from `.nvmrc` (22); nothing else to configure.
+
+Cloudflare posts each preview URL back onto the PR as a deployment status once it's connected.
+
 ## Scripts
 
 - `npx vite-node scripts/measure.ts` — Node-side search gate numbers (ms/turn, nodes/turn, strength vs baselines) + rendered battle logs into `logs/`
 - `node scripts/measure-browser.mjs` — the same numbers in headless Chromium against the production build (the real gate numbers)
 - `node scripts/e2e-test-your-team.mjs` — full Playwright walkthrough of Test your team
 - `node scripts/e2e-six-oh.mjs` — full Playwright walkthrough of Can you 6-0?
+- `npm run test:visual` — visual-regression suite (`@playwright/test`, `test/visual/`)
+- `npm run test:visual:update` — regenerate visual baselines (see below)
 
-(The e2e/measure scripts expect Playwright; point `CHROMIUM_PATH` at a Chromium binary if it isn't auto-detected.)
+(The functional e2e/measure scripts use the raw `playwright` library; point `CHROMIUM_PATH` at a Chromium binary if it isn't auto-detected.)
+
+## Visual regression
+
+`test/visual/*.spec.ts` (the `@playwright/test` runner, config in `playwright.config.ts`) screenshots the key screens — landing, the validated team preview, the 6-0 draft board, and the retro battle stage — on desktop and mobile, and diffs each against a committed baseline. This turns "the layout still looks right" into a CI gate: a restyle regression, a broken sprite, or a shifted element fails the build.
+
+Baselines (`test/visual/**/*.png`) **are committed but are generated in CI**, never locally: the dev sandbox can't reach the sprite CDN, so a locally-shot screenshot bakes in blank sprites and would never match the real render. The flow:
+
+- **First run** — the CI "Visual regression" job sees no baselines, generates them in-environment, and commits them (`[skip ci]`). Nothing to do by hand.
+- **Steady state** — every PR the job *compares* only; an unexpected diff fails and uploads a `playwright-report` artifact with the before/after/diff images.
+- **Intentional visual change** — after a deliberate restyle, run the **"Update visual baselines"** workflow (`workflow_dispatch`) on your branch to re-shoot and commit the new look as the baseline.
+
+Dynamic, RNG-driven regions (HP windows, the battle log) are masked, and the suite runs under `prefers-reduced-motion` with animations frozen, so frames are stable.
 
 ## Status
 

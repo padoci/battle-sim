@@ -100,6 +100,36 @@ function fail(message) {
 
 const ok = message => console.log(`ok: ${message}`);
 
+// Silent-breakage gates. `pageerror` already fails fast on an uncaught throw;
+// these accumulate the two classes a human is otherwise left to eyeball —
+// console errors (React warnings, caught-and-logged failures) and same-origin
+// request failures (a broken /assets or /teams asset). Cross-origin misses
+// (the sprite CDN when offline) surface as "Failed to load resource" console
+// errors and are intentionally ignored: they aren't a code fault, and in CI
+// (real network) they resolve. Checked once at the end for a clean summary.
+const violations = {console: [], network: []};
+function guard(page) {
+  const origin = `http://localhost:${PORT}`;
+  page.on('pageerror', error => fail(`page error: ${error.message}`));
+  page.on('console', msg => {
+    if (msg.type() !== 'error') return;
+    const text = msg.text();
+    if (/Failed to load resource/i.test(text)) return; // covered by the network gate (same-origin only)
+    violations.console.push(text);
+  });
+  page.on('response', res => {
+    if (res.url().startsWith(origin) && res.status() >= 400) violations.network.push(`${res.status()} ${res.url()}`);
+  });
+  page.on('requestfailed', req => {
+    if (req.url().startsWith(origin)) violations.network.push(`FAILED ${req.failure()?.errorText ?? ''} ${req.url()}`.trim());
+  });
+}
+function assertNoSilentBreakage() {
+  if (violations.network.length) fail(`same-origin request failures:\n  ${violations.network.join('\n  ')}`);
+  if (violations.console.length) fail(`console errors during walkthrough:\n  ${violations.console.join('\n  ')}`);
+  ok('no console errors or same-origin request failures across the walkthrough');
+}
+
 // A valid gen9ou export served as a mocked external "sample team"; its species
 // set does not collide with the base fixture, so it grows the opponent pool.
 const SAMPLE_EXPORT = GOOD_TEAM;
@@ -150,7 +180,7 @@ async function main() {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   const page = await browser.newPage({viewport: {width: 1440, height: 1050}});
   await routeData(page);
-  page.on('pageerror', error => fail(`page error: ${error.message}`));
+  guard(page);
 
   try {
     // 1. Landing. (Both modes are enabled as of Stage 4 — click Test your team.)
@@ -262,6 +292,7 @@ async function main() {
     // 9. Cancel path: fresh page, small pool, cancel mid-run.
     const page2 = await browser.newPage({viewport: {width: 1440, height: 1050}});
     await routeData(page2);
+    guard(page2);
     await page2.goto(`http://localhost:${PORT}/#/test/import`);
     await page2.locator('.team-input').fill(GOOD_TEAM);
     await page2.waitForSelector('.team-preview-row');
@@ -279,6 +310,7 @@ async function main() {
     ok(`cancel keeps partial results analyzable: ${cancelled.trim().slice(0, 70)}`);
     await page2.close();
 
+    assertNoSilentBreakage();
     console.log('\nE2E PASS — all walkthrough steps green');
   } finally {
     await browser.close();

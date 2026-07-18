@@ -98,6 +98,36 @@ function fail(message) {
 }
 const ok = message => console.log(`ok: ${message}`);
 
+// Silent-breakage gates. `pageerror` already fails fast on an uncaught throw;
+// these accumulate the two classes a human is otherwise left to eyeball —
+// console errors (React warnings, caught-and-logged failures) and same-origin
+// request failures (a broken /assets or /teams asset). Cross-origin misses
+// (the sprite CDN when offline) surface as "Failed to load resource" console
+// errors and are intentionally ignored: they aren't a code fault, and in CI
+// (real network) they resolve. Checked once at the end for a clean summary.
+const violations = {console: [], network: []};
+function guard(page) {
+  const origin = `http://localhost:${PORT}`;
+  page.on('pageerror', error => fail(`page error: ${error.message}`));
+  page.on('console', msg => {
+    if (msg.type() !== 'error') return;
+    const text = msg.text();
+    if (/Failed to load resource/i.test(text)) return; // covered by the network gate (same-origin only)
+    violations.console.push(text);
+  });
+  page.on('response', res => {
+    if (res.url().startsWith(origin) && res.status() >= 400) violations.network.push(`${res.status()} ${res.url()}`);
+  });
+  page.on('requestfailed', req => {
+    if (req.url().startsWith(origin)) violations.network.push(`FAILED ${req.failure()?.errorText ?? ''} ${req.url()}`.trim());
+  });
+}
+function assertNoSilentBreakage() {
+  if (violations.network.length) fail(`same-origin request failures:\n  ${violations.network.join('\n  ')}`);
+  if (violations.console.length) fail(`console errors during walkthrough:\n  ${violations.console.join('\n  ')}`);
+  ok('no console errors or same-origin request failures across the walkthrough');
+}
+
 async function routeData(page) {
   await page.route(/https:\/\/(data\.pkmn\.cc|raw\.githubusercontent\.com).*\/(sets|stats|teams)\/gen9ou\.json/, route => {
     const kind = route.request().url().match(/(sets|stats|teams)\/gen9ou\.json/)[1];
@@ -138,7 +168,7 @@ async function main() {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   const page = await browser.newPage({viewport: {width: 1440, height: 1000}});
   await routeData(page);
-  page.on('pageerror', error => fail(`page error: ${error.message}`));
+  guard(page);
 
   try {
     // 1. Landing: 6-0 card is enabled and first.
@@ -267,6 +297,7 @@ async function main() {
     // 9. ?mode=hard deals 6 bundles with Hard pre-selected (mode from the hash).
     const page2 = await browser.newPage({viewport: {width: 1440, height: 1000}});
     await routeData(page2);
+    guard(page2);
     await page2.goto(`http://localhost:${PORT}/#/sixoh?mode=hard&config=fast&seed=7`);
     await page2.waitForSelector('.offer-card', {timeout: 60_000});
     if (!(await page2.locator('.mode-toggle button.active', {hasText: 'Hard'}).count())) {
@@ -282,6 +313,7 @@ async function main() {
     ok('hard bundle flow works from the hash (6 bundles -> one-click pick fills tray)');
     await page2.close();
 
+    assertNoSilentBreakage();
     console.log('\nE2E PASS — Can you 6-0? walkthrough green');
   } finally {
     await browser.close();
