@@ -80,3 +80,66 @@ describe('view state over a real battle', () => {
     expect(final.logLines.some(l => l.includes('TERASTALLIZED'))).toBe(true);
   });
 });
+
+describe('typed move FX (category + type flavor)', () => {
+  const mkBeat = (events: Parameters<typeof applyBeat>[1]['events']) => ({events, durationMs: 0});
+  const moveEvent = (
+    move: string,
+    side: 0 | 1 = 0,
+    tags: Record<string, boolean> = {}
+  ) => ({kind: 'move' as const, ref: {side, name: 'X'}, move, tags, logText: ''});
+
+  it('attaches type and category (Flamethrower -> Fire / Special)', () => {
+    const {fx} = applyBeat(initView([t1, t2]), mkBeat([moveEvent('Flamethrower')]));
+    const lunge = fx.find(f => f.type === 'lunge')!;
+    const impact = fx.find(f => f.type === 'impact')!;
+    expect(lunge.moveType).toBe('Fire');
+    expect(lunge.category).toBe('Special');
+    expect(impact.moveType).toBe('Fire');
+    expect(impact.side).toBe(1);
+  });
+
+  it('status moves glow on the user only — no defender impact', () => {
+    const {fx} = applyBeat(initView([t1, t2]), mkBeat([moveEvent('Swords Dance')]));
+    expect(fx).toHaveLength(1);
+    expect(fx[0]).toMatchObject({type: 'lunge', side: 0, category: 'Status'});
+  });
+
+  it('misses and immunities still suppress the impact', () => {
+    const {fx} = applyBeat(initView([t1, t2]), mkBeat([moveEvent('Flamethrower', 0, {miss: true})]));
+    expect(fx.some(f => f.type === 'impact')).toBe(false);
+    expect(fx.some(f => f.type === 'lunge')).toBe(true);
+  });
+
+  it('unknown move names degrade gracefully (fx without type, no throw)', () => {
+    const {fx} = applyBeat(initView([t1, t2]), mkBeat([moveEvent('Notarealmove')]));
+    const lunge = fx.find(f => f.type === 'lunge')!;
+    expect(lunge.moveType).toBeUndefined();
+    expect(fx.some(f => f.type === 'impact')).toBe(true); // unknown != status
+  });
+});
+
+describe('switch-in FX', () => {
+  const switchEvent = (side: 0 | 1, name: string, species: string) => ({
+    kind: 'switch' as const,
+    ref: {side, name},
+    species,
+    hp: 100,
+    maxhp: 100,
+    drag: false,
+    logText: '',
+  });
+
+  it('is suppressed for the initial lead placement (turn 0)', () => {
+    const state = initView([t1, t2]);
+    const {fx} = applyBeat(state, {events: [switchEvent(0, t1[0].species, t1[0].species)], durationMs: 0});
+    expect(fx.some(f => f.type === 'switch')).toBe(false);
+  });
+
+  it('fires for a mid-battle switch (after turn 1)', () => {
+    let state = initView([t1, t2]);
+    state = applyBeat(state, {events: [{kind: 'turn', turn: 1}], durationMs: 0}).state;
+    const {fx} = applyBeat(state, {events: [switchEvent(0, t1[1].species, t1[1].species)], durationMs: 0});
+    expect(fx.some(f => f.type === 'switch' && f.side === 0)).toBe(true);
+  });
+});

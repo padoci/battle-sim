@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState, type CSSProperties} from 'react';
 import {Icons, Sprites} from '@pkmn/img';
 import type {PokemonSet} from '../../data/types';
 import {parseProtocol} from '../../replay/parse';
@@ -126,23 +126,41 @@ function BattleStage({
   const theirs = active(1);
   const fxFor = (side: 0 | 1, type: FxItem['type']) => fx.find(f => f.side === side && f.type === type);
 
+  // Category + move-type flavor for a side's FX this beat: the category picks
+  // the animation style (contact spark / beam / self-glow), the type colors it
+  // via --fx-color. Falls back to the untyped default when absent.
+  const fxFlavor = (side: 0 | 1) => {
+    const item = fx.find(f => f.side === side && (f.type === 'lunge' || f.type === 'impact'));
+    return {
+      category: item?.category ? `fx-${item.category.toLowerCase()}` : undefined,
+      color: item?.moveType ? typeColor(item.moveType) : undefined,
+    };
+  };
+  const holderClasses = (side: 0 | 1, lungeClass: string) => {
+    const flavor = fxFlavor(side);
+    return [
+      'sprite-holder',
+      fxFor(side, 'lunge') && lungeClass,
+      fxFor(side, 'impact') && 'impact',
+      fxFor(side, 'faint') && 'faint-drop',
+      fxFor(side, 'tera') && 'tera-flash',
+      fxFor(side, 'switch') && 'switch-pop',
+      flavor.category,
+    ]
+      .filter(Boolean)
+      .join(' ');
+  };
+  const holderStyle = (side: 0 | 1): CSSProperties | undefined => {
+    const color = fxFlavor(side).color;
+    return color ? ({'--fx-color': color} as CSSProperties) : undefined;
+  };
+
   return (
     <div className="battle-stage">
       <div className="stage-field">
         <div className="stage-half theirs">
           {theirs && !theirs.fainted && (
-            <div
-              key={`t-${fxKey}`}
-              className={[
-                'sprite-holder',
-                fxFor(1, 'lunge') && 'lunge-left',
-                fxFor(1, 'impact') && 'impact',
-                fxFor(1, 'faint') && 'faint-drop',
-                fxFor(1, 'tera') && 'tera-flash',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
+            <div key={`t-${fxKey}`} className={holderClasses(1, 'lunge-left')} style={holderStyle(1)}>
               <SpriteWithFallback species={theirs.species} back={false} />
               {fxFor(1, 'float') && <span className="float-num">{fxFor(1, 'float')!.text}</span>}
             </div>
@@ -151,18 +169,7 @@ function BattleStage({
         </div>
         <div className="stage-half mine">
           {mine && !mine.fainted && (
-            <div
-              key={`m-${fxKey}`}
-              className={[
-                'sprite-holder',
-                fxFor(0, 'lunge') && 'lunge-right',
-                fxFor(0, 'impact') && 'impact',
-                fxFor(0, 'faint') && 'faint-drop',
-                fxFor(0, 'tera') && 'tera-flash',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
+            <div key={`m-${fxKey}`} className={holderClasses(0, 'lunge-right')} style={holderStyle(0)}>
               <SpriteWithFallback species={mine.species} back={true} />
               {fxFor(0, 'float') && <span className="float-num">{fxFor(0, 'float')!.text}</span>}
             </div>

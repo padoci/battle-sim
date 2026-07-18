@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {PACE, toBeats} from '../../src/replay/pace';
+import {BIG_HIT_BONUS_MS, PACE, toBeats} from '../../src/replay/pace';
 import {parseProtocol} from '../../src/replay/parse';
 import fixture from '../fixtures/protocol.fixture.json';
 
@@ -17,11 +17,26 @@ describe('toBeats', () => {
     const withDamage = moveBeats.filter(b => b.events.some(e => e.kind === 'damage'));
     expect(withDamage.length).toBeGreaterThan(5);
     for (const beat of withDamage) {
-      expect(beat.durationMs).toBe(PACE.move);
+      const move = beat.events[0];
+      const bigHit = move.kind === 'move' && (move.tags.crit || move.tags.supereffective);
+      expect(beat.durationMs).toBe(PACE.move + (bigHit ? BIG_HIT_BONUS_MS : 0));
       for (const event of beat.events.slice(1)) {
         expect(['damage', 'note']).toContain(event.kind);
       }
     }
+  });
+
+  it('holds crit/super-effective move beats a beat longer (and only those)', () => {
+    const move = (tags: Record<string, boolean>) =>
+      ({kind: 'move', ref: {side: 0, name: 'X'}, move: 'Surf', tags, logText: ''}) as const;
+    const [plain] = toBeats([move({})]);
+    const [crit] = toBeats([move({crit: true})]);
+    const [supereffective] = toBeats([move({supereffective: true})]);
+    const [resisted] = toBeats([move({resisted: true})]);
+    expect(plain.durationMs).toBe(PACE.move);
+    expect(crit.durationMs).toBe(PACE.move + BIG_HIT_BONUS_MS);
+    expect(supereffective.durationMs).toBe(PACE.move + BIG_HIT_BONUS_MS);
+    expect(resisted.durationMs).toBe(PACE.move); // only big hits get the hold
   });
 
   it('keeps residual damage as its own beat', () => {
