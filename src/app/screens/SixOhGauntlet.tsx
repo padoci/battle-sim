@@ -1,6 +1,5 @@
 import {useEffect, useMemo, useRef, useState, type CSSProperties} from 'react';
 import {Icons, Sprites} from '@pkmn/img';
-import {gen9} from '../../data/gen';
 import type {PokemonSet} from '../../data/types';
 import {parseProtocol} from '../../replay/parse';
 import {toBeats} from '../../replay/pace';
@@ -9,27 +8,40 @@ import {navigate} from '../router';
 import {readDevParams} from '../sixoh/devParams';
 import {ensureComputed, resetSixOhSession, retryBattle} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState} from '../sixoh/state';
-import {typeColor, typeGradient} from '../sixoh/typeColors';
+import {typeColor} from '../sixoh/typeColors';
 import {MAX_SPEED, MIN_SPEED, usePlayback} from '../sixoh/usePlayback';
 
+/** The 2D-animated set (`gen5ani`) only covers Gen 1-5 Pokémon — most Gen 9
+ * mons (Great Tusk, Kingambit, Gholdengo…) fall back to the static `gen5`
+ * set, and anything with no Gen 5 sprite at all falls back to the box icon.
+ * Cached across renders so a mon known to lack gen5ani doesn't re-probe it
+ * (and flash a broken image) on every beat. */
+const knownMissingGen5Ani = new Set<string>();
+type SpriteTier = 'gen5ani' | 'gen5' | 'icon';
+
 function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
-  const [broken, setBroken] = useState(false);
-  const sprite = Sprites.getPokemon(species, back ? {gen: 'ani', side: 'p1'} : {gen: 'ani'});
-  if (broken) {
+  const startTier: SpriteTier = knownMissingGen5Ani.has(species) ? 'gen5' : 'gen5ani';
+  const [tier, setTier] = useState<SpriteTier>(startTier);
+  useEffect(() => {
+    setTier(knownMissingGen5Ani.has(species) ? 'gen5' : 'gen5ani');
+  }, [species]);
+
+  if (tier === 'icon') {
     return <span className="sprite-fallback" style={Icons.getPokemon(species).css} title={species} />;
   }
+  const sprite = Sprites.getPokemon(species, back ? {gen: tier, side: 'p1'} : {gen: tier});
   return (
     <img
+      key={`${species}-${tier}`}
       className="stage-sprite"
       src={sprite.url}
       alt={species}
-      onError={() => setBroken(true)}
+      onError={() => {
+        if (tier === 'gen5ani') knownMissingGen5Ani.add(species);
+        setTier(t => (t === 'gen5ani' ? 'gen5' : 'icon'));
+      }}
     />
   );
-}
-
-function monTypes(species: string): string[] {
-  return gen9().species.get(species)?.types ?? [];
 }
 
 /** HP meter colour: green > 50%, yellow > 20%, red below. */
@@ -39,10 +51,10 @@ function hpColor(frac: number): string {
   return '#e83c2e';
 }
 
-function HpBar({mon}: {mon: MonView}) {
+function HpBar({mon, side}: {mon: MonView; side: 'theirs' | 'mine'}) {
   const frac = mon.maxhp > 0 ? mon.hp / mon.maxhp : 0;
   return (
-    <div className="hp-block">
+    <div className={`hp-block ${side}`}>
       <div className="hp-head">
         <span className="hp-name">{mon.species}</span>
         <span className="mono hp-level">Lv100</span>
@@ -65,7 +77,12 @@ function HpBar({mon}: {mon: MonView}) {
           />
         </div>
       </div>
-      <span className="mono hp-label">{Math.round(frac * 100)}%</span>
+      {/* The real games never show the opponent's exact HP — only the player's box gets a numeric readout. */}
+      {side === 'mine' ? (
+        <span className="mono hp-numeric">{Math.max(0, mon.hp)} / {mon.maxhp}</span>
+      ) : (
+        <span className="mono hp-label">{Math.round(frac * 100)}%</span>
+      )}
     </div>
   );
 }
@@ -131,6 +148,21 @@ function HazardCorner({side, hazards}: {side: 0 | 1; hazards: Record<string, num
   );
 }
 
+/** The four Gen 5-battle background scenes on Showdown's CDN. Fixed, known
+ * filenames (not per-species sprite IDs), so building the URL directly is
+ * safe — there's no name-mapping logic to get wrong. Mapped onto the
+ * engine's real per-rung scene index (battleIndex % 4). */
+const BATTLE_SCENES = [
+  {key: 'meadow', label: 'Meadow', file: 'bg-meadow.png'},
+  {key: 'forest', label: 'Forest', file: 'bg-forest.png'},
+  {key: 'earthycave', label: 'Earthy Cave', file: 'bg-earthycave.png'},
+  {key: 'beach', label: 'Beach', file: 'bg-beach.png'},
+] as const;
+
+function sceneUrl(file: string): string {
+  return `https://play.pokemonshowdown.com/fx/${file}`;
+}
+
 function BattleStage({
   team,
   opponentSets,
@@ -172,6 +204,7 @@ function BattleStage({
     const flavor = fxFlavor(side);
     return [
       'sprite-holder',
+      side === 1 ? 'theirs' : 'mine',
       fxFor(side, 'lunge') && lungeClass,
       fxFor(side, 'impact') && 'impact',
       fxFor(side, 'faint') && 'faint-drop',
@@ -194,7 +227,6 @@ function BattleStage({
   const terrain = view.fields.find(f => f.endsWith('Terrain'));
   const fieldClasses = [
     'stage-field',
-    `scene-${((sceneIndex % 4) + 4) % 4}`,
     view.weather && `wx-${view.weather.toLowerCase().replace(/[^a-z]/g, '')}`,
     terrain && `terrain-${terrain.toLowerCase().replace(/ ?terrain/, '').replace(/[^a-z]/g, '')}`,
     fx.some(f => f.type === 'faint') && 'stage-shake',
@@ -206,54 +238,45 @@ function BattleStage({
   // skipped) it holds the last thing said so it never sits empty mid-battle.
   const spoken = caption.length ? caption : view.logLines.slice(-1);
 
+  const sceneNum = ((sceneIndex % 4) + 4) % 4;
+  const scene = BATTLE_SCENES[sceneNum];
+
   return (
-    <div className="battle-frame">
-      <div className="battle-stage">
-        <div className={fieldClasses}>
-          <HazardCorner side={1} hazards={view.sides[1].hazards} />
-          <HazardCorner side={0} hazards={view.sides[0].hazards} />
-          <div className="stage-half theirs">
-            {theirs && (
-              <div className="mon-card">
-                {!theirs.fainted && (
-                  <div
-                    key={`t-${fxKey}`}
-                    className={holderClasses(1, 'lunge-left')}
-                    style={{...holderStyle(1), backgroundImage: typeGradient(monTypes(theirs.species))}}
-                  >
-                    <SpriteWithFallback species={theirs.species} back={false} />
-                    {fxFor(1, 'float') && <span className="float-num">{fxFor(1, 'float')!.text}</span>}
-                  </div>
-                )}
-                <HpBar mon={theirs} />
+    <>
+      <div className="battle-frame">
+        <div className="battle-stage">
+          <div className={fieldClasses} style={{backgroundImage: `url(${sceneUrl(scene.file)})`}}>
+            <HazardCorner side={1} hazards={view.sides[1].hazards} />
+            <HazardCorner side={0} hazards={view.sides[0].hazards} />
+            <span className="ground-shadow theirs" />
+            <span className="ground-shadow mine" />
+
+            {theirs && !theirs.fainted && (
+              <div key={`t-${fxKey}`} className={holderClasses(1, 'lunge-left')} style={holderStyle(1)}>
+                <SpriteWithFallback species={theirs.species} back={false} />
+                {fxFor(1, 'float') && <span className="float-num">{fxFor(1, 'float')!.text}</span>}
               </div>
             )}
-          </div>
-          <div className="stage-half mine">
-            {mine && (
-              <div className="mon-card">
-                {!mine.fainted && (
-                  <div
-                    key={`m-${fxKey}`}
-                    className={holderClasses(0, 'lunge-right')}
-                    style={{...holderStyle(0), backgroundImage: typeGradient(monTypes(mine.species))}}
-                  >
-                    <SpriteWithFallback species={mine.species} back={true} />
-                    {fxFor(0, 'float') && <span className="float-num">{fxFor(0, 'float')!.text}</span>}
-                  </div>
-                )}
-                <HpBar mon={mine} />
+            {mine && !mine.fainted && (
+              <div key={`m-${fxKey}`} className={holderClasses(0, 'lunge-right')} style={holderStyle(0)}>
+                <SpriteWithFallback species={mine.species} back={true} />
+                {fxFor(0, 'float') && <span className="float-num">{fxFor(0, 'float')!.text}</span>}
               </div>
             )}
+
+            {theirs && <HpBar mon={theirs} side="theirs" />}
+            {mine && <HpBar mon={mine} side="mine" />}
+          </div>
+
+          <div className="message-box" role="status" aria-live="polite">
+            {spoken.map((line, i) => (
+              <div key={i}>{line}</div>
+            ))}
           </div>
         </div>
+      </div>
 
-        <div className="message-box mono" role="status" aria-live="polite">
-          {spoken.map((line, i) => (
-            <div key={i}>{line}</div>
-          ))}
-        </div>
-
+      <div className="battle-below">
         <FieldStrip weather={view.weather} fields={view.fields} sides={view.sides} />
 
         <div className="stage-meta">
@@ -292,8 +315,26 @@ function BattleStage({
           <span className="playback-value mono">{speed.toFixed(1)}×</span>
           <button onClick={skipToEnd}>Skip to result ⏭</button>
         </div>
+
+        <section className="battle-scenes">
+          <h3>◆ Battle scenes</h3>
+          <div className="scene-grid">
+            {BATTLE_SCENES.map((s, i) => (
+              <div key={s.key}>
+                <div
+                  className={`scene-thumb ${i === sceneNum ? 'current' : ''}`}
+                  style={{backgroundImage: `url(${sceneUrl(s.file)})`}}
+                />
+                <div className="scene-label">
+                  <span className="scene-name">{s.label}</span>
+                  {i === sceneNum && <span className="scene-badge">IN USE</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -379,7 +420,7 @@ export function SixOhGauntlet() {
         <div className="mono record">
           {state.record.wins}–{state.record.losses}
         </div>
-        <ol className="ladder dark">
+        <ol className="ladder">
           {state.opponents.map((opponent, i) => {
             const b = state.battles[i];
             const mark =

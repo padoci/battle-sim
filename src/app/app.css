@@ -1130,15 +1130,161 @@ button.primary:disabled {
   content: '◆';
 }
 
+.round-header .hint {
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--muted-2);
+  font-size: 0.68rem;
+}
+
 .offer-grid {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
 
-.offer-grid.bundles,
 .offer-grid.sets {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+/* The fanned hand (species offers + hard-mode bundles): cards overlap in a
+   centered arc, each rotated + dipped by its distance from center (set
+   inline per-card — see fanTransform() in SixOhDraft.tsx), and lift out of
+   the fan on hover to be read. A fan needs width, so it collapses to a
+   wrapping grid below --bp-narrow (see responsive section). */
+.offer-grid.ten,
+.offer-grid.bundles {
+  display: flex;
+  grid-template-columns: none;
+  justify-content: center;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+  padding: 44px 20px 14px;
+  margin-bottom: 14px;
+}
+
+.offer-grid.bundles {
+  padding-top: 56px;
+}
+
+.offer-grid.ten .offer-card,
+.offer-grid.bundles .offer-card {
+  flex: none;
+  transform-origin: bottom center;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  animation: none;
+}
+
+.offer-grid.ten .offer-card {
+  width: 132px;
+  margin-left: -42px;
+  padding: 0;
+  align-items: stretch;
+  gap: 0;
+}
+
+.offer-grid.bundles .offer-card {
+  width: 158px;
+  margin-left: -56px;
+}
+
+.offer-grid.ten .offer-card:first-child,
+.offer-grid.bundles .offer-card:first-child {
+  margin-left: 0;
+}
+
+/* Lift a card out of the hand to read it. The base fan transform is set
+   inline per-card (rotation + arc dip), so overriding it on hover needs
+   !important — a deliberate, narrowly-scoped override of that one dynamic
+   inline value, not a specificity workaround. */
+.offer-grid.ten .offer-card:hover {
+  transform: translateY(-42px) rotate(0deg) scale(1.05) !important;
+  z-index: 60 !important;
+  box-shadow: 0 28px 48px rgba(60, 40, 120, 0.42);
+}
+
+.offer-grid.bundles .offer-card:hover {
+  transform: translateY(-54px) rotate(0deg) scale(1.05) !important;
+  z-index: 60 !important;
+  box-shadow: 0 30px 52px rgba(60, 40, 120, 0.44);
+}
+
+/* Card art window: a type-gradient tile with a soft radial highlight behind
+   the TCGdex print art (or the @pkmn/img icon while it loads / if no print
+   was found). */
+.card-art-window {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.4);
+  background-image: radial-gradient(circle at 50% 26%, rgba(255, 255, 255, 0.75), transparent 62%);
+  background-blend-mode: normal;
+}
+
+.offer-grid.ten .card-art-window {
+  height: 118px;
+}
+
+.offer-grid.bundles .card-art-window {
+  height: 96px;
+  border-radius: 0;
+}
+
+.card-art-window .usage {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  z-index: 1;
+  color: #fff;
+  background: rgba(36, 26, 58, 0.5);
+  border-radius: var(--r-pill);
+  padding: 1px 6px;
+  font-size: 0.5rem;
+}
+
+.card-art {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 84%;
+  height: 96%;
+  object-fit: contain;
+  object-position: bottom;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.28));
+}
+
+.card-art-fallback {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%) scale(1.8);
+  transform-origin: bottom center;
+}
+
+/* The art window is much taller than a tray tile — scale the icon fallback
+   up further so a card with no TCGdex print doesn't look sparse. */
+.card-art-window .card-art-fallback {
+  transform: translateX(-50%) scale(2.6);
+}
+
+.card-footer {
+  padding: 6px 7px 7px;
+  text-align: center;
+}
+
+.card-footer .offer-name {
+  display: block;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-footer .type-badges {
+  justify-content: center;
+  margin-top: 5px;
 }
 
 .offer-card,
@@ -1209,6 +1355,10 @@ button.primary:disabled {
   align-items: center;
   gap: 0.5rem;
   padding: 9px 11px 7px;
+}
+
+.offer-grid.bundles .bundle-head {
+  padding: 7px 9px 3px;
 }
 
 .bundle-head .type-badges {
@@ -1289,7 +1439,8 @@ button.primary:disabled {
 }
 
 .tray h3,
-.ladder-preview h3 {
+.ladder-preview h3,
+.battle-scenes h3 {
   font-family: var(--font-pixel);
   font-size: 0.58rem;
   letter-spacing: 0.12em;
@@ -1297,6 +1448,51 @@ button.primary:disabled {
   color: var(--signal-2);
   font-weight: 400;
   margin-bottom: 0.65rem;
+}
+
+.battle-scenes {
+  margin-top: 18px;
+}
+
+.scene-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.scene-thumb {
+  height: 66px;
+  border-radius: var(--r-m);
+  background: #7fb4d6 center/cover;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.scene-thumb.current {
+  box-shadow: 0 0 0 2px var(--signal);
+}
+
+.scene-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.scene-name {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.68rem;
+  color: var(--ink);
+}
+
+.scene-badge {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 600;
+  color: var(--signal);
+  background: var(--signal-soft);
+  border-radius: var(--r-pill);
+  padding: 1px 7px;
 }
 
 .tray-slots {
@@ -1462,6 +1658,10 @@ button.primary:disabled {
   font-size: 1.2rem;
 }
 
+.battle-below {
+  margin-top: 14px;
+}
+
 .simulating {
   border: 1px solid var(--line);
   border-radius: var(--r-l);
@@ -1493,92 +1693,53 @@ button.primary:disabled {
   50% { transform: scale(1.1); opacity: 1; }
 }
 
-/* Foil frame around the whole battle stage — a gradient border rendered as
-   an outer padding layer, wrapping a white inner panel. */
+/* Dark screen bezel around the Gen 5-style battle viewport — an intentional
+   contrast with the light TCG app around it (collect/draft in the TCG
+   world, then watch a real handheld-style battle). */
 .battle-frame {
   border-radius: var(--r-l);
-  padding: 3px;
-  background: var(--foil-border);
-  box-shadow: 0 14px 34px rgba(60, 40, 120, 0.2);
+  padding: 8px;
+  background: linear-gradient(#2c2350, #1b1436);
+  box-shadow: 0 14px 34px rgba(60, 40, 120, 0.3);
 }
 
 .battle-stage {
-  border-radius: 14px;
-  background: var(--surface);
-  padding: 14px;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08), inset 0 0 0 4px rgba(0, 0, 0, 0.35);
 }
 
-/* The duel mat: a light holographic field, the two active mons face off on
-   it as foil battle cards (diagonal — opponent top-right, player
-   bottom-left). */
+/* The field: a real Showdown battle background (one of BATTLE_SCENES, see
+   SixOhGauntlet.tsx), the two Pokémon placed diagonally on it — opponent
+   sprite upper-right + HP box upper-left, player sprite lower-left + HP box
+   lower-right (see .hp-block below for the box placement). */
 .stage-field {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 1.35rem;
-  min-height: 288px;
-  padding: 20px 22px;
-  border-radius: 14px;
-  background: radial-gradient(ellipse at 50% 40%, var(--mat-top), var(--mat-bottom) 74%);
-  box-shadow: inset 0 0 0 1px #e0d5f2;
+  height: 300px;
+  background: #7fb4d6 center/cover;
   overflow: hidden;
 }
 
-.stage-field::before {
-  content: '';
+.ground-shadow {
   position: absolute;
-  inset: 0;
-  background-image: linear-gradient(var(--mat-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--mat-line) 1px, transparent 1px);
-  background-size: 26px 26px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.32), transparent 70%);
   pointer-events: none;
 }
 
-/* Mat themes — cycled per rung (battleIndex % 4). scene-0 is the default
-   Amethyst mat above. */
-.stage-field.scene-1 {
-  /* Sunbeam */
-  background: radial-gradient(ellipse at 50% 30%, #fdf4e2, #f5e4c2 76%);
-  box-shadow: inset 0 0 0 1px #efdcbb;
+.ground-shadow.theirs {
+  top: 140px;
+  right: 78px;
+  width: 118px;
+  height: 24px;
 }
 
-.stage-field.scene-1::before {
-  background-image: linear-gradient(rgba(200, 140, 40, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(200, 140, 40, 0.1) 1px, transparent 1px);
-  background-size: 26px 26px;
-}
-
-.stage-field.scene-1::after {
-  content: '';
-  position: absolute;
-  inset: 0 0 40% 0;
-  background: radial-gradient(ellipse at 50% 0, rgba(247, 208, 44, 0.35), transparent 70%);
-  pointer-events: none;
-}
-
-.stage-field.scene-2 {
-  /* Tidepool */
-  background: radial-gradient(ellipse at 50% 40%, #e8f3fc, #cde4f5 74%);
-  box-shadow: inset 0 0 0 1px #cbe0f0;
-}
-
-.stage-field.scene-2::before {
-  background-image: linear-gradient(rgba(50, 110, 180, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(50, 110, 180, 0.1) 1px, transparent 1px);
-  background-size: 26px 26px;
-}
-
-.stage-field.scene-3 {
-  /* Verdant */
-  background: radial-gradient(ellipse at 50% 40%, #ecf7e4, #d3ecc6 74%);
-  box-shadow: inset 0 0 0 1px #cfe6bf;
-}
-
-.stage-field.scene-3::before {
-  background-image: linear-gradient(rgba(70, 150, 60, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(70, 150, 60, 0.1) 1px, transparent 1px);
-  background-size: 26px 26px;
+.ground-shadow.mine {
+  bottom: 28px;
+  left: 56px;
+  width: 146px;
+  height: 30px;
 }
 
 /* Weather tint: a translucent wash over the whole scene. */
@@ -1655,66 +1816,53 @@ button.primary:disabled {
 }
 
 .hazard-corner.theirs {
-  top: 10px;
-  left: 14px;
+  top: 78px;
+  left: 16px;
 }
 
 .hazard-corner.mine {
-  bottom: 10px;
-  right: 14px;
+  bottom: 84px;
+  right: 16px;
 }
 
-.stage-half {
-  position: relative;
-  display: flex;
+/* Each side's sprite, placed diagonally on the field — opponent front
+   sprite upper-right, player back sprite lower-left — independent of its
+   HP box (which sits in the opposite corner, see .hp-block below; this is
+   the classic handheld layout, not the v1 "battle card" pairing). */
+.sprite-holder {
+  position: absolute;
   z-index: 1;
 }
 
-.stage-half.theirs {
-  justify-content: flex-end;
+.sprite-holder.theirs {
+  top: 48px;
+  right: 84px;
+  width: 104px;
+  height: 104px;
 }
 
-.stage-half.mine {
-  justify-content: flex-start;
-}
-
-/* Each side's foil "battle card" (.mon-card, wraps .sprite-holder + the HP
-   meter): a gradient frame around an art window (type-gradient backdrop
-   behind the ani sprite) and an HP meter below it. */
-.mon-card {
-  width: 214px;
-  border: 4px solid transparent;
-  border-radius: 12px;
-  background: linear-gradient(#fdfbff, var(--panel-lilac)) padding-box, var(--gem-border) border-box;
-  padding: 8px 9px 9px;
-  box-shadow: 0 12px 26px rgba(60, 40, 120, 0.28);
-}
-
-/* Art window: type-gradient background set inline (typeGradient), sprite
-   centered on top. */
-.sprite-holder {
-  position: relative;
-  border-radius: 7px;
-  padding: 4px;
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.sprite-holder.mine {
+  bottom: 38px;
+  left: 58px;
+  width: 148px;
+  height: 148px;
 }
 
 .stage-sprite {
   image-rendering: pixelated;
-  min-width: 96px;
-  min-height: 88px;
   display: block;
-  margin: 0 auto;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  object-position: bottom;
 }
 
 .sprite-fallback {
   display: block;
-  margin: 8px auto;
-  transform: scale(1.6);
+  width: 100%;
+  height: 100%;
+  transform: scale(1.7);
+  transform-origin: bottom center;
 }
 
 .lunge-right {
@@ -1936,8 +2084,30 @@ button.primary:disabled {
 
 /* HP block — now the header + meter of the foil battle card, sitting under
    the art window inside the same gradient frame. */
+/* Handheld-style HP box: cream, thick dark outline, asymmetric rounded
+   corners (mirrored per side) — the opponent's sits over its top-left
+   corner, the player's over its bottom-right (see .hp-block.theirs/.mine). */
 .hp-block {
-  margin-top: 8px;
+  position: absolute;
+  z-index: 2;
+  min-width: 206px;
+  background: #f7f4ea;
+  border: 3px solid #33526b;
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.28);
+  padding: 6px 14px 7px;
+}
+
+.hp-block.theirs {
+  top: 16px;
+  left: 16px;
+  border-radius: 4px 16px 4px 16px;
+}
+
+.hp-block.mine {
+  bottom: 18px;
+  right: 16px;
+  min-width: 222px;
+  border-radius: 16px 4px 16px 4px;
 }
 
 .hp-head {
@@ -1946,55 +2116,72 @@ button.primary:disabled {
   gap: 0.4rem;
   flex-wrap: wrap;
   font-size: 0.8rem;
-  margin-bottom: 0.35rem;
 }
 
 .hp-name {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 0.82rem;
-  color: var(--ink);
+  font-size: 0.94rem;
+  color: #33323a;
 }
 
 .hp-level {
   margin-left: auto;
-  font-size: 0.62rem;
-  color: var(--muted-2);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.69rem;
+  color: #6b6656;
 }
 
 .hp-row {
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  margin-top: 4px;
 }
 
 .hp-hp {
-  font-size: 0.58rem;
+  font-family: var(--font-display);
   font-weight: 700;
-  color: var(--signal-2);
+  font-style: italic;
+  font-size: 0.69rem;
+  color: #d8a12a;
 }
 
 .hp-bar {
   flex: 1;
   min-width: 100px;
-  height: 8px;
-  border-radius: var(--r-pill);
-  background: #e7def5;
+  height: 7px;
+  border-radius: 4px;
+  background: #41434c;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
   overflow: hidden;
 }
 
 .hp-fill {
   height: 100%;
-  border-radius: var(--r-pill);
+  border-radius: 4px;
   transition: width 0.4s ease;
 }
 
+/* Opponent shows only the bar (no exact number, per the real games); the
+   player's box gets the precise numeric readout instead. */
 .hp-label {
   display: block;
   text-align: right;
   font-family: var(--font-mono);
   font-size: 0.66rem;
-  color: var(--muted);
+  color: var(--muted-2);
+  margin-top: 0.15rem;
+}
+
+.hp-numeric {
+  display: block;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.62rem;
+  color: #5a564a;
   margin-top: 0.15rem;
 }
 
@@ -2063,17 +2250,18 @@ button.primary:disabled {
   color: var(--muted-2);
 }
 
-/* On-stage message box — a light holo panel speaking the current beat. */
+/* On-stage message textbox — attached directly under the field inside the
+   dark bezel, cream with a thick top border, speaking the current beat. */
 .message-box {
   min-height: 2.9em;
-  background: linear-gradient(var(--surface-3), #f1eafc);
-  color: var(--ink-2);
-  border: 1px solid #e0d5f2;
-  border-radius: var(--r-m);
-  padding: 0.55rem 0.8rem;
-  margin-top: 0.7rem;
-  font-size: 0.82rem;
-  line-height: 1.45;
+  background: #f7f4ea;
+  color: #33323a;
+  border-top: 4px solid #33526b;
+  padding: 14px 18px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
 /* Battle log — a light inset panel of scrolling play-by-play. */
@@ -2395,6 +2583,28 @@ button.primary:disabled {
   .matchup-columns {
     grid-template-columns: 1fr;
   }
+  /* A fan needs width it doesn't have on narrow screens — flatten to a
+     wrapping grid, no rotation/overlap. */
+  .offer-grid.ten,
+  .offer-grid.bundles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    justify-content: initial;
+    align-items: initial;
+    padding: 0;
+    gap: 0.75rem;
+  }
+  .offer-grid.ten .offer-card,
+  .offer-grid.bundles .offer-card {
+    width: auto;
+    margin-left: 0;
+    transform: none !important;
+  }
+  .offer-grid.ten .offer-card:hover,
+  .offer-grid.bundles .offer-card:hover {
+    transform: translateY(-4px) !important;
+    z-index: auto !important;
+  }
 }
 
 @media (max-width: 640px) {
@@ -2411,18 +2621,50 @@ button.primary:disabled {
     width: 100%;
   }
   .stage-field {
-    min-height: 200px;
-    padding: 0.6rem;
+    height: 220px;
   }
-  .stage-sprite {
-    min-width: 72px;
-    min-height: 72px;
+  .sprite-holder.theirs {
+    top: 30px;
+    right: 40px;
+    width: 76px;
+    height: 76px;
   }
-  .mon-card {
-    width: 170px;
+  .sprite-holder.mine {
+    bottom: 22px;
+    left: 24px;
+    width: 108px;
+    height: 108px;
+  }
+  .ground-shadow.theirs {
+    top: 92px;
+    right: 36px;
+    width: 76px;
+    height: 16px;
+  }
+  .ground-shadow.mine {
+    bottom: 18px;
+    left: 22px;
+    width: 96px;
+    height: 20px;
+  }
+  .hazard-corner.theirs {
+    top: 56px;
+  }
+  .hazard-corner.mine {
+    bottom: 58px;
+  }
+  .hp-block {
+    min-width: 150px;
+    padding: 4px 10px 5px;
+  }
+  .hp-block.mine {
+    min-width: 160px;
+  }
+  .hp-name {
+    font-size: 0.78rem;
   }
   .hp-bar {
-    min-width: 88px;
+    min-width: 70px;
   }
   .shell-header {
     padding: 0.6rem 1rem;
@@ -2473,5 +2715,15 @@ button.primary:disabled {
   .set-card:hover,
   .mode-card:not(.disabled):hover {
     transform: none;
+  }
+  /* Beats the fan's own !important hover-lift (same specificity, later in
+     the stylesheet) — no lift/settle under reduced motion, per spec. */
+  .offer-grid.ten .offer-card,
+  .offer-grid.bundles .offer-card {
+    transition: none;
+  }
+  .offer-grid.ten .offer-card:hover,
+  .offer-grid.bundles .offer-card:hover {
+    transform: none !important;
   }
 }

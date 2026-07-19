@@ -17,10 +17,11 @@ import {
 } from '../../draft/draft';
 import {sampleOpponents} from '../../draft/opponents';
 import {navigate} from '../router';
-import {typeColor, typeGradient} from '../sixoh/typeColors';
+import {typeColor, typeGradient, typeBorderGradient} from '../sixoh/typeColors';
 import {readDevParams} from '../sixoh/devParams';
 import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/state';
 import {resetSixOhSession} from '../sixoh/session';
+import {useTcgArt} from '../sixoh/useTcgArt';
 
 interface DraftData {
   pool: PoolEntry[];
@@ -39,6 +40,25 @@ function TypeBadges({species}: {species: string}) {
       ))}
     </span>
   );
+}
+
+/** The fanned hand's per-card rotation + arc dip, by distance from center —
+ * generalizes to whatever offer count the draft engine deals (10 for
+ * easy/normal, 6 for hard-mode bundles). */
+function fanTransform(index: number, count: number, rotateStepDeg: number, dipPx: number): string {
+  const center = (count - 1) / 2;
+  const d = index - center;
+  return `rotate(${(d * rotateStepDeg).toFixed(2)}deg) translateY(${(d * d * dipPx).toFixed(1)}px)`;
+}
+
+/** Card art window: the TCGdex print once resolved, or the @pkmn/img icon
+ * (scaled up) while it loads / if no print was found. */
+function CardArt({species}: {species: string}) {
+  const url = useTcgArt(species);
+  if (url) {
+    return <img className="card-art" src={url} alt={species} loading="lazy" />;
+  }
+  return <span className="card-art-fallback" style={Icons.getPokemon(species).css} />;
 }
 
 function MoveList({moves}: {moves: string[]}) {
@@ -189,25 +209,41 @@ export function SixOhDraft() {
         <h2 className="round-header">
           Pick {draft.team.length + 1} of {TEAM_SIZE}
           {draft.phase === 'set' ? ` — choose ${draft.offers[0]?.species}'s set` : ''}
+          {draft.phase === 'species' && (
+            <span className="mono hint">
+              your hand of {draft.offers.length} · hover to lift, click to draft
+              {draft.mode === 'hard' ? ' the package' : ''}
+            </span>
+          )}
         </h2>
       )}
 
       {draft.phase === 'species' && draft.mode !== 'hard' && (
         <div className="offer-grid ten">
-          {draft.offers.map(offer => (
-            <button
-              key={offer.species}
-              className="offer-card"
-              onClick={() => dispatch({type: 'SET_DRAFT', draft: pickSpecies(draft, data.sets, offer.species)})}
-            >
-              <span className="mon-tile" style={{width: '100%', height: 'auto', aspectRatio: '1', backgroundImage: typeGradient(gen9().species.get(offer.species)?.types ?? [])}}>
-                <span style={Icons.getPokemon(offer.species).css} />
-              </span>
-              <span className="offer-name">{offer.species}</span>
-              <TypeBadges species={offer.species} />
-              <span className="mono usage">{(offer.usageWeighted * 100).toFixed(1)}%</span>
-            </button>
-          ))}
+          {draft.offers.map((offer, index) => {
+            const types = gen9().species.get(offer.species)?.types ?? [];
+            return (
+              <button
+                key={offer.species}
+                className="offer-card"
+                style={{
+                  transform: fanTransform(index, draft.offers.length, 4.4, 2.4),
+                  zIndex: index,
+                  background: `linear-gradient(#fdfbff, var(--panel-lilac)) padding-box, ${typeBorderGradient(types)} border-box`,
+                }}
+                onClick={() => dispatch({type: 'SET_DRAFT', draft: pickSpecies(draft, data.sets, offer.species)})}
+              >
+                <div className="card-art-window" style={{backgroundImage: typeGradient(types)}}>
+                  <span className="mono usage">{(offer.usageWeighted * 100).toFixed(1)}%</span>
+                  <CardArt species={offer.species} />
+                </div>
+                <div className="card-footer">
+                  <span className="offer-name">{offer.species}</span>
+                  <TypeBadges species={offer.species} />
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -226,29 +262,38 @@ export function SixOhDraft() {
 
       {draft.phase === 'species' && draft.mode === 'hard' && (
         <div className="offer-grid bundles">
-          {draft.offers.map((offer, index) => (
-            <button
-              key={offer.species}
-              className="offer-card bundle"
-              onClick={() => dispatch({type: 'SET_DRAFT', draft: pickBundle(draft, data.pool, data.sets, index)})}
-            >
-              <div className="bundle-head">
-                <span className="mon-tile" style={{width: 48, height: 48, backgroundImage: typeGradient(gen9().species.get(offer.species)?.types ?? [])}}>
-                  <span style={Icons.getPokemon(offer.species).css} />
-                </span>
-                <div style={{flex: 1, minWidth: 0}}>
-                  <span className="offer-name">{offer.species}</span>
-                  <div className="mono bundle-set">{offer.setName}</div>
+          {draft.offers.map((offer, index) => {
+            const types = gen9().species.get(offer.species)?.types ?? [];
+            return (
+              <button
+                key={offer.species}
+                className="offer-card bundle"
+                style={{
+                  transform: fanTransform(index, draft.offers.length, 5.5, 3),
+                  zIndex: index,
+                  background: `linear-gradient(#fdfbff, #efe7fa) padding-box, ${typeBorderGradient(types)} border-box`,
+                }}
+                onClick={() => dispatch({type: 'SET_DRAFT', draft: pickBundle(draft, data.pool, data.sets, index)})}
+              >
+                <div className="card-art-window" style={{backgroundImage: typeGradient(types)}}>
+                  <span className="mono usage">{(offer.usageWeighted * 100).toFixed(1)}%</span>
+                  <CardArt species={offer.species} />
                 </div>
-                <TypeBadges species={offer.species} />
-              </div>
-              <MoveList moves={offer.set!.moves} />
-              <p className="mono set-meta">
-                {offer.set!.item || 'No item'} · {offer.set!.nature}
-                {offer.set!.teraType ? ` · Tera ${offer.set!.teraType}` : ''}
-              </p>
-            </button>
-          ))}
+                <div className="bundle-head">
+                  <div style={{flex: 1, minWidth: 0}}>
+                    <span className="offer-name">{offer.species}</span>
+                    <div className="mono bundle-set">{offer.setName}</div>
+                  </div>
+                  <TypeBadges species={offer.species} />
+                </div>
+                <MoveList moves={offer.set!.moves} />
+                <p className="mono set-meta">
+                  {offer.set!.item || 'No item'} · {offer.set!.nature}
+                  {offer.set!.teraType ? ` · Tera ${offer.set!.teraType}` : ''}
+                </p>
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -262,7 +307,7 @@ export function SixOhDraft() {
                 {pick ? (
                   <>
                     <span className="mon-tile" style={{backgroundImage: typeGradient(gen9().species.get(pick.species)?.types ?? [])}}>
-                      <span style={Icons.getPokemon(pick.species).css} />
+                      <CardArt species={pick.species} />
                     </span>
                     <span className="tray-name">{pick.species}</span>
                     <span className="tray-set mono">{pick.setName}</span>

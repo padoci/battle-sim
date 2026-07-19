@@ -38,3 +38,13 @@ export function typeGradient(types: string[]): string {
   const t2 = (types[1] ?? types[0] ?? 'normal').toLowerCase();
   return `linear-gradient(135deg, var(--type-${t1}), var(--type-${t2}))`;
 }
+
+/**
+ * The fanned draft hand's type-matched card border: a dual-type blend, or a
+ * single hue for mono-type mons (both stops resolve to the same var).
+ */
+export function typeBorderGradient(types: string[]): string {
+  const t1 = (types[0] ?? 'normal').toLowerCase();
+  const t2 = (types[1] ?? types[0] ?? 'normal').toLowerCase();
+  return `linear-gradient(150deg, var(--type-${t1}), var(--type-${t2}) 65%, var(--type-${t1}))`;
+}

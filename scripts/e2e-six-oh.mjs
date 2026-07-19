@@ -1,7 +1,7 @@
 /**
  * Stage 4 (v-next) end-to-end walkthrough of "Can you 6-0?":
  * landing -> Easy two-stage draft (10 species -> set, Species Clause, ladder) ->
- * gauntlet (simulating state, duel-mat battle stage at 1x, skip to result) -> result
+ * gauntlet (simulating state, Gen 5 battle stage at 1x, skip to result) -> result
  * (flawless or eliminated) with post-mortem -> Draft again. Plus a Hard-mode
  * bundle spot-check. The opponent pool is the built-in teams merged with
  * mocked external sample teams (crob.at + pokepaste).
@@ -239,7 +239,7 @@ async function main() {
     await page.waitForSelector('.simulating, .battle-stage', {timeout: 15_000});
     ok('gauntlet started (simulating or stage visible)');
 
-    // 4. First battle replays at 1x on the duel mat: HP meters + growing log.
+    // 4. First battle replays at 1x on the Gen 5 battle stage: HP meters + growing log.
     await page.waitForSelector('.battle-stage', {timeout: 120_000});
     await page.waitForSelector('.hp-bar', {timeout: 30_000});
     if ((await page.locator('.stage-field .hp-block').count()) < 1) fail('HP meters should render on the field');
@@ -258,7 +258,7 @@ async function main() {
     if (/You's|Them's|undefined/.test(spoken)) fail(`message box has a grammar/interp bug: ${spoken.slice(0, 120)}`);
     ok(`message box speaks the current beat ("${spoken.trim().split('\n')[0].slice(0, 60)}")`);
     await page.screenshot({path: `${shotsDir}/e2e-sixoh-battle.png`});
-    ok('retro battle stage replays with HP windows and a clean, paced log');
+    ok('Gen 5 battle stage replays with HP windows and a clean, paced log');
 
     // 5. Skip to the result through the rest of the run (replaced the old
     // discrete-speed "Instant" button — the speed slider now covers that

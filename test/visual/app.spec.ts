@@ -29,7 +29,7 @@ test('can you 6-0? — draft board', async ({page}) => {
   await expect(page).toHaveScreenshot('sixoh-draft.png', {fullPage: true});
 });
 
-test('retro battle stage — chrome + sprites', async ({page}, testInfo) => {
+test('Gen 5 battle stage — chrome + sprites', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'battle chrome is captured on desktop only');
 
   await page.goto('/#/sixoh?config=fast&seed=41');
@@ -46,23 +46,24 @@ test('retro battle stage — chrome + sprites', async ({page}, testInfo) => {
   await page.waitForSelector('.battle-stage', {timeout: 120_000});
   // Drop to the slowest speed immediately so the replay clock all but stops —
   // at the default 2x, enough beats (switches, faints, boost stacking) play
-  // out during Playwright's screenshot-stability polling to change the DOM
-  // structure itself (not just pixels a mask can cover), which no amount of
-  // masking can stabilize.
+  // out during Playwright's screenshot-stability polling to change on-stage
+  // content between attempts, which no amount of masking can stabilize.
   await page.getByLabel('Playback speed').fill('0.1');
   await page.waitForSelector('.hp-bar', {timeout: 30_000});
+  // Both mons take one beat each to switch in — give the second one time to
+  // land so the screenshot isn't a coin flip on which side has rendered yet.
+  await page.waitForTimeout(1_500);
 
-  // Snapshot the deterministic lead-in immediately: both leads out at full HP.
-  // Everything that advances with the replay clock — HP fills/numbers, the log,
-  // floating damage, the turn counter, the field strip — is masked, so this
-  // regresses the retro *chrome* (frame, platforms, sprites), not battle state.
+  // .battle-stage is now just the dark-bezel viewport (field + message box);
+  // the log/meta/playback live below it in normal page flow. Everything that
+  // still advances with the replay clock inside the viewport — HP
+  // fills/numbers, floating damage, the message text — is masked, so this
+  // regresses the Gen 5 *chrome* (bezel, field, sprites, HP box shape), not
+  // battle state.
   await expect(page.locator('.battle-stage')).toHaveScreenshot('sixoh-battle-stage.png', {
     mask: [
       page.locator('.hp-block'),
-      page.locator('.battle-log'),
       page.locator('.float-num'),
-      page.locator('.turn-label'),
-      page.locator('.field-strip'),
       page.locator('.message-box'),
       page.locator('.hazard-corner'),
     ],
