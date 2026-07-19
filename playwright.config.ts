@@ -17,6 +17,12 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
+  // The "retro battle stage" test runs a real 6-pick draft (~6s) then waits
+  // on an actual AI battle search (~15-20s, no mocking — it's the real
+  // engine) before the battle stage even mounts. That's already close to
+  // Playwright's 30s default, so a slightly loaded CI runner tips it over.
+  // Give every test real headroom rather than special-casing one.
+  timeout: 60_000,
   reporter: process.env.CI ? [['list'], ['html', {open: 'never'}]] : [['list']],
   // Build once, then serve the production bundle Playwright will screenshot.
   webServer: {
