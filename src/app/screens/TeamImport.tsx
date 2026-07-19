@@ -1,6 +1,7 @@
 import {useMemo, useState} from 'react';
 import {Teams, TeamValidator} from '@pkmn/sim';
 import type {PokemonSet} from '../../data/types';
+import {EXAMPLE_TEAM} from '../../data/exampleTeam';
 import {navigate} from '../router';
 import {useAppDispatch, useAppState} from '../state';
 import {TeamPreviewRow} from '../components/TeamPreviewRow';
@@ -47,6 +48,9 @@ export function TeamImport() {
     <main className="screen">
       <h1>Test your team</h1>
       <p className="screen-sub">Paste a Gen 9 OU team. We validate as you type.</p>
+      <button type="button" className="load-sample" onClick={() => setRaw(EXAMPLE_TEAM)}>
+        Load a sample team
+      </button>
       <textarea
         className="team-input"
         value={raw}
