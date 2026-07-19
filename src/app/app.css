@@ -1234,10 +1234,13 @@ button.primary:disabled {
   border-radius: 0;
 }
 
+/* Pinned to the LEFT: in the fan, each card's right edge is overlapped by
+   the next (higher z-index) card, so a right-aligned badge would be
+   unreadable on every card but the last. The left edge is never covered. */
 .card-art-window .usage {
   position: absolute;
   top: 5px;
-  right: 6px;
+  left: 6px;
   z-index: 1;
   color: #fff;
   background: rgba(36, 26, 58, 0.5);
@@ -1371,6 +1374,9 @@ button.primary:disabled {
   font-family: var(--font-mono);
   font-size: 0.68rem;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .offer-name {
@@ -1378,6 +1384,17 @@ button.primary:disabled {
   font-weight: 600;
   font-size: 0.85rem;
   color: var(--ink);
+}
+
+/* Set names ("Physically Defensive Pivot" vs. "Utility") and species names
+   ("Slowking-Galar" vs. "Gliscor") vary a lot in length — without clamping
+   both to one line, longer ones wrap and make that card visibly taller than
+   its neighbors in the fan. */
+.bundle-head .offer-name {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .usage {
@@ -1427,6 +1444,16 @@ button.primary:disabled {
   background: #f3ebfb;
   padding: 7px 11px 8px;
   margin-top: 4px;
+}
+
+/* In the fanned hand (unlike the plain .offer-grid.sets grid below), a
+   wrapped line makes that one card taller than its fan neighbors — clamp to
+   one line there. The full item/nature/tera is still one hover away via the
+   native title tooltip (see the bundle card JSX). */
+.offer-grid.bundles .set-meta:last-of-type {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .set-card h4 {

@@ -281,13 +281,16 @@ export function SixOhDraft() {
                 </div>
                 <div className="bundle-head">
                   <div style={{flex: 1, minWidth: 0}}>
-                    <span className="offer-name">{offer.species}</span>
-                    <div className="mono bundle-set">{offer.setName}</div>
+                    <span className="offer-name" title={offer.species}>{offer.species}</span>
+                    <div className="mono bundle-set" title={offer.setName}>{offer.setName}</div>
                   </div>
                   <TypeBadges species={offer.species} />
                 </div>
                 <MoveList moves={offer.set!.moves} />
-                <p className="mono set-meta">
+                <p
+                  className="mono set-meta"
+                  title={`${offer.set!.item || 'No item'} · ${offer.set!.nature}${offer.set!.teraType ? ` · Tera ${offer.set!.teraType}` : ''}`}
+                >
                   {offer.set!.item || 'No item'} · {offer.set!.nature}
                   {offer.set!.teraType ? ` · Tera ${offer.set!.teraType}` : ''}
                 </p>

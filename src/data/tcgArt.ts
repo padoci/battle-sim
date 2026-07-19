@@ -24,9 +24,11 @@ function baseSpeciesName(species: string): string | undefined {
   return i > 0 ? species.slice(0, i) : undefined;
 }
 
-async function searchCardImage(name: string): Promise<string | undefined> {
+async function searchCardImage(name: string, rarity?: string): Promise<string | undefined> {
   try {
-    const res = await fetch(`${CARDS_ENDPOINT}?name=${encodeURIComponent(name)}`);
+    const params = new URLSearchParams({name});
+    if (rarity) params.set('rarity', rarity);
+    const res = await fetch(`${CARDS_ENDPOINT}?${params}`);
     if (!res.ok) return undefined;
     const cards = (await res.json()) as CardBrief[];
     return cards.find(c => c.image)?.image;
@@ -34,6 +36,17 @@ async function searchCardImage(name: string): Promise<string | undefined> {
     // Offline, blocked, or the API is down — treat exactly like "no card found".
     return undefined;
   }
+}
+
+/** .card-art (app.css) crops down to a fixed illustration-region rectangle,
+ * which only matches the classic template — full-art/ex/VMAX prints paint
+ * over the whole card and crop wrong under that same rectangle. "Rare Holo"
+ * is the most common classic-template rarity that still covers
+ * high-profile Pokémon (most get at least one basic reprint), so try it
+ * before falling back to whatever print turns up first. */
+async function bestCardImage(name: string): Promise<string | undefined> {
+  const [classic, any] = await Promise.all([searchCardImage(name, 'Rare Holo'), searchCardImage(name)]);
+  return classic ?? any;
 }
 
 /**
@@ -44,10 +57,10 @@ async function searchCardImage(name: string): Promise<string | undefined> {
 export function tcgCardImageBase(species: string): Promise<string | undefined> {
   let promise = cache.get(species);
   if (!promise) {
-    promise = searchCardImage(species).then(image => {
+    promise = bestCardImage(species).then(image => {
       if (image) return image;
       const base = baseSpeciesName(species);
-      return base ? searchCardImage(base) : undefined;
+      return base ? bestCardImage(base) : undefined;
     });
     cache.set(species, promise);
   }
