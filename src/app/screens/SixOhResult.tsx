@@ -7,13 +7,24 @@ import type {DraftMode} from '../../draft/draft';
 import {ReadItem as Read} from '../components/ReadItem';
 import {resetSixOhSession} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState} from '../sixoh/state';
+import {typeGradient} from '../sixoh/typeColors';
 
-function RosterIcons({sets, className}: {sets: PokemonSet[]; className?: string}) {
+function RosterIcons({sets, className, tiled}: {sets: PokemonSet[]; className?: string; tiled?: boolean}) {
   return (
     <span className={className ?? 'roster-icons'}>
-      {sets.map((set, i) => (
-        <span key={i} className="team-icon" style={Icons.getPokemon(set.species).css} title={set.species} />
-      ))}
+      {sets.map((set, i) =>
+        tiled ? (
+          <span
+            key={i}
+            className="mon-tile"
+            style={{backgroundImage: typeGradient(gen9().species.get(set.species)?.types ?? [])}}
+          >
+            <span style={Icons.getPokemon(set.species).css} title={set.species} />
+          </span>
+        ) : (
+          <span key={i} className="team-icon" style={Icons.getPokemon(set.species).css} title={set.species} />
+        )
+      )}
     </span>
   );
 }
@@ -67,7 +78,7 @@ export function SixOhResult() {
         {state.team && (
           <div className="team-recap">
             <span className="recap-label">Your six</span>
-            <RosterIcons sets={state.team} className="roster-icons recap-roster" />
+            <RosterIcons sets={state.team} className="roster-icons recap-roster" tiled />
           </div>
         )}
 

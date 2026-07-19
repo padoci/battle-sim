@@ -1,5 +1,6 @@
 import {Icons} from '@pkmn/img';
 import {gen9} from '../../data/gen';
+import {typeGradient} from '../sixoh/typeColors';
 
 /** Six icons + type badges: the "it registered correctly" glance (§4a). */
 export function TeamPreviewRow({species}: {species: string[]}) {
@@ -11,7 +12,9 @@ export function TeamPreviewRow({species}: {species: string[]}) {
         const types = gen.species.get(name)?.types ?? [];
         return (
           <div key={`${name}-${i}`} className="preview-mon">
-            <span style={icon.css} title={name} />
+            <span className="mon-tile" style={{backgroundImage: typeGradient(types)}}>
+              <span style={icon.css} title={name} />
+            </span>
             <span className="preview-name">{name}</span>
             <span className="type-badges">
               {types.map(type => (

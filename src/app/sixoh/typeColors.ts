@@ -27,3 +27,14 @@ export const TYPE_COLORS: Record<string, string> = {
 export function typeColor(type: string | undefined): string {
   return TYPE_COLORS[(type ?? '').toLowerCase()] ?? '#9aa1ab';
 }
+
+/**
+ * The card motif's "art window" backdrop — a diagonal gradient of a mon's
+ * own type(s), read live from the --type-* tokens in app.css (not from
+ * TYPE_COLORS) so it always tracks the current palette.
+ */
+export function typeGradient(types: string[]): string {
+  const t1 = (types[0] ?? 'normal').toLowerCase();
+  const t2 = (types[1] ?? types[0] ?? 'normal').toLowerCase();
+  return `linear-gradient(135deg, var(--type-${t1}), var(--type-${t2}))`;
+}

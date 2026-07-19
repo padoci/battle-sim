@@ -1,10 +1,14 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
-// Archivo MUST come from wdth.css: the default index.css is weight-only and
-// silently no-ops font-stretch (the "Expanded" display look, ui-spec §2).
-// Plex is imported latin-only to keep the bundle lean (unicode-range gates
-// runtime loading regardless, but this trims emitted files).
-import '@fontsource-variable/archivo/wdth.css';
+// Self-hosted (no third-party font requests). Plex/Pixelify are imported
+// latin-only to keep the bundle lean (unicode-range gates runtime loading
+// regardless, but this trims emitted files); Silkscreen only ships 400/700.
+import '@fontsource/pixelify-sans/latin-400.css';
+import '@fontsource/pixelify-sans/latin-500.css';
+import '@fontsource/pixelify-sans/latin-600.css';
+import '@fontsource/pixelify-sans/latin-700.css';
+import '@fontsource/silkscreen/latin-400.css';
+import '@fontsource/silkscreen/latin-700.css';
 import '@fontsource/ibm-plex-sans/latin-400.css';
 import '@fontsource/ibm-plex-sans/latin-500.css';
 import '@fontsource/ibm-plex-sans/latin-600.css';
