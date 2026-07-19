@@ -715,6 +715,71 @@ button.primary:disabled {
   padding: 0.2rem 0.3rem;
 }
 
+.field-label {
+  display: none;
+}
+
+/* Below this width the table doesn't fit even with horizontal scroll —
+ * restack each row into a card instead of making the user pan sideways
+ * to reach the weight input. */
+@media (max-width: 640px) {
+  .table-scroll {
+    overflow-x: visible;
+  }
+
+  .pool-table thead {
+    display: none;
+  }
+
+  .pool-table,
+  .pool-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .pool-table tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.6rem;
+    padding: 0.7rem 0.75rem;
+  }
+
+  .pool-table td {
+    display: block;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .pool-table td:first-child,
+  .pool-table td:last-child {
+    border: none;
+    border-radius: 0;
+  }
+
+  .pool-table td:nth-child(2) {
+    flex: 1 1 auto;
+  }
+
+  .pool-table td:nth-child(3),
+  .pool-table td.pool-icons,
+  .pool-table td:last-child {
+    flex-basis: 100%;
+  }
+
+  .pool-icons {
+    flex-wrap: wrap;
+  }
+
+  .field-label {
+    display: inline;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--signal-2);
+  }
+}
+
 .run-controls {
   margin-top: 1rem;
   background: linear-gradient(158deg, #fff, var(--surface-2));
@@ -1476,8 +1541,7 @@ button.primary:disabled {
 }
 
 .tray h3,
-.ladder-preview h3,
-.battle-scenes h3 {
+.ladder-preview h3 {
   font-family: var(--font-pixel);
   font-size: 0.58rem;
   letter-spacing: 0.12em;
@@ -1485,51 +1549,6 @@ button.primary:disabled {
   color: var(--signal-2);
   font-weight: 400;
   margin-bottom: 0.65rem;
-}
-
-.battle-scenes {
-  margin-top: 18px;
-}
-
-.scene-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-
-.scene-thumb {
-  height: 66px;
-  border-radius: var(--r-m);
-  background: #7fb4d6 center/cover;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
-}
-
-.scene-thumb.current {
-  box-shadow: 0 0 0 2px var(--signal);
-}
-
-.scene-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.scene-name {
-  font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 0.68rem;
-  color: var(--ink);
-}
-
-.scene-badge {
-  font-family: var(--font-mono);
-  font-size: 0.5rem;
-  font-weight: 600;
-  color: var(--signal);
-  background: var(--signal-soft);
-  border-radius: var(--r-pill);
-  padding: 1px 7px;
 }
 
 .tray-slots {

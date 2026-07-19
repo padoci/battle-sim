@@ -315,24 +315,6 @@ function BattleStage({
           <span className="playback-value mono">{speed.toFixed(1)}×</span>
           <button onClick={skipToEnd}>Skip to result ⏭</button>
         </div>
-
-        <section className="battle-scenes">
-          <h3>◆ Battle scenes</h3>
-          <div className="scene-grid">
-            {BATTLE_SCENES.map((s, i) => (
-              <div key={s.key}>
-                <div
-                  className={`scene-thumb ${i === sceneNum ? 'current' : ''}`}
-                  style={{backgroundImage: `url(${sceneUrl(s.file)})`}}
-                />
-                <div className="scene-label">
-                  <span className="scene-name">{s.label}</span>
-                  {i === sceneNum && <span className="scene-badge">IN USE</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
     </>
   );

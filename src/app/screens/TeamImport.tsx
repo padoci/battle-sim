@@ -34,7 +34,12 @@ export function TeamImport() {
       if (!sets || sets.length === 0) {
         return {sets: [] as PokemonSet[], problems: ["That doesn't parse as a Showdown team export — check the format."]};
       }
-      const problems = validator.validateTeam(sets as never) ?? [];
+      const problems = [...(validator.validateTeam(sets as never) ?? [])];
+      // The validator only enforces a max of 6 (and a much lower singles min) —
+      // require the full 6 so "Legal" always means a real, ready-to-run OU team.
+      if (sets.length < 6) {
+        problems.push(`A standard OU team needs 6 Pokémon (you have ${sets.length}).`);
+      }
       return {sets: sets as unknown as PokemonSet[], problems};
     } catch {
       // @pkmn/sim can throw on sufficiently malformed input — treat as unparseable.

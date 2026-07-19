@@ -36,6 +36,7 @@ function PoolRow({entry}: {entry: PoolEntryWithMeta}) {
         ))}
       </td>
       <td>
+        <span className="field-label">Weight </span>
         <input
           className="weight-input"
           type="number"
