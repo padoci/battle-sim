@@ -1403,6 +1403,7 @@ button.primary:disabled {
   display: grid;
   grid-template-columns: 220px 1fr;
   gap: 1.4rem;
+  width: 100%;
   max-width: 1180px;
   margin: 0 auto;
   padding: 1.5rem;
