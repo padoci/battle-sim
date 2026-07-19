@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState, type CSSProperties} from 'react';
 import {Icons} from '@pkmn/img';
 import {DataClient} from '../../data/client';
 import {loadOpponentTeams} from '../../data/sampleTeams';
@@ -211,6 +211,7 @@ export function ConfigureRun() {
               step={10}
               value={run.n}
               onChange={event => dispatch({type: 'SET_N', n: Number(event.target.value)})}
+              style={{'--_fill': `${((run.n - Math.max(10, done)) / (500 - Math.max(10, done))) * 100}%`} as CSSProperties}
             />
           </label>
           <label className="n-input-label mono">

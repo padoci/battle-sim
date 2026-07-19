@@ -66,8 +66,14 @@ export function TeamImport() {
           ))}
         </ul>
       )}
-      {parsed && parsed.sets.length > 0 && parsed.problems.length === 0 && (
-        <TeamPreviewRow species={parsed.sets.map(s => s.species)} />
+      {valid && parsed && (
+        <>
+          <p className="import-status">
+            <span className="check">✓</span>
+            Legal — {parsed.sets.length} Pokémon registered
+          </p>
+          <TeamPreviewRow species={parsed.sets.map(s => s.species)} />
+        </>
       )}
       <button
         className="primary"

@@ -1,7 +1,7 @@
 /**
  * Stage 4 (v-next) end-to-end walkthrough of "Can you 6-0?":
  * landing -> Easy two-stage draft (10 species -> set, Species Clause, ladder) ->
- * gauntlet (simulating state, retro battle stage at 1x, instant/skip) -> result
+ * gauntlet (simulating state, duel-mat battle stage at 1x, skip to result) -> result
  * (flawless or eliminated) with post-mortem -> Draft again. Plus a Hard-mode
  * bundle spot-check. The opponent pool is the built-in teams merged with
  * mocked external sample teams (crob.at + pokepaste).
@@ -239,10 +239,10 @@ async function main() {
     await page.waitForSelector('.simulating, .battle-stage', {timeout: 15_000});
     ok('gauntlet started (simulating or stage visible)');
 
-    // 4. First battle replays at 1x on the retro stage: HP windows + growing log.
+    // 4. First battle replays at 1x on the duel mat: HP meters + growing log.
     await page.waitForSelector('.battle-stage', {timeout: 120_000});
     await page.waitForSelector('.hp-bar', {timeout: 30_000});
-    if ((await page.locator('.stage-field .hp-block').count()) < 1) fail('retro HP windows should render on the field');
+    if ((await page.locator('.stage-field .hp-block').count()) < 1) fail('HP meters should render on the field');
     const logLen1 = (await page.locator('.battle-log').textContent()).length;
     await page.waitForTimeout(4000);
     const logText = await page.locator('.battle-log').textContent();
@@ -260,29 +260,31 @@ async function main() {
     await page.screenshot({path: `${shotsDir}/e2e-sixoh-battle.png`});
     ok('retro battle stage replays with HP windows and a clean, paced log');
 
-    // 5. Instant through the rest of the run.
-    await page.locator('.playback-controls button', {hasText: 'Instant'}).click();
+    // 5. Skip to the result through the rest of the run (replaced the old
+    // discrete-speed "Instant" button — the speed slider now covers that
+    // top of its range; "Skip to result" is the deterministic fast-forward).
+    await page.locator('.playback-controls button', {hasText: 'Skip to result'}).click();
     await page.waitForFunction(
       () => location.hash.includes('/sixoh/result') || document.querySelector('.simulating, .battle-stage'),
       undefined,
       {timeout: 60_000}
     );
-    // Keep clicking Instant as new battles arrive until the result route.
-    // Budget generously — a stall matchup can compute to maxTurns before it
-    // replays. Fail fast if the run hits an actual error panel.
+    // Keep clicking Skip to result as new battles arrive until the result
+    // route. Budget generously — a stall matchup can compute to maxTurns
+    // before it replays. Fail fast if the run hits an actual error panel.
     for (let guard = 0; guard < 120; guard++) {
       if (page.url().includes('/sixoh/result')) break;
       if (await page.locator('.problems', {hasText: 'failed'}).count()) {
         fail(`gauntlet run errored: ${(await page.locator('.problems').first().textContent()).trim()}`);
       }
-      const instant = page.locator('.playback-controls button', {hasText: 'Instant'});
-      if (await instant.count()) {
-        await instant.first().click().catch(() => {});
+      const skip = page.locator('.playback-controls button', {hasText: 'Skip to result'});
+      if (await skip.count()) {
+        await skip.first().click().catch(() => {});
       }
       await page.waitForTimeout(2000);
     }
     if (!page.url().includes('/sixoh/result')) fail('run never reached the result screen (timed out)');
-    ok('gauntlet ran to completion via instant playback');
+    ok('gauntlet ran to completion via skip-to-result playback');
 
     // 6. Result + post-mortem.
     await page.waitForSelector('.result-card', {timeout: 30_000});

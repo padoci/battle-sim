@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState, type CSSProperties} from 'react';
 import {Icons} from '@pkmn/img';
 import {DataClient} from '../../data/client';
 import {loadOpponentTeams} from '../../data/sampleTeams';
@@ -17,7 +17,7 @@ import {
 } from '../../draft/draft';
 import {sampleOpponents} from '../../draft/opponents';
 import {navigate} from '../router';
-import {typeColor} from '../sixoh/typeColors';
+import {typeColor, typeGradient} from '../sixoh/typeColors';
 import {readDevParams} from '../sixoh/devParams';
 import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/state';
 import {resetSixOhSession} from '../sixoh/session';
@@ -41,7 +41,20 @@ function TypeBadges({species}: {species: string}) {
   );
 }
 
-function SetCard({option, onPick}: {option: SetOption; onPick: () => void}) {
+function MoveList({moves}: {moves: string[]}) {
+  const gen = gen9();
+  return (
+    <ul className="mono set-moves">
+      {moves.map((move, i) => (
+        <li key={i} style={{'--move-type-color': typeColor(gen.moves.get(move)?.type)} as CSSProperties}>
+          {move}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SetCard({species, option, onPick}: {species: string; option: SetOption; onPick: () => void}) {
   // Render the RESOLVED set only — the card shows exactly the moves/tera
   // that will battle (the draft committed to one build per option; the wire
   // format's slashed alternatives are no longer re-expanded here).
@@ -52,12 +65,16 @@ function SetCard({option, onPick}: {option: SetOption; onPick: () => void}) {
     .join(' / ');
   return (
     <button className="set-card" onClick={onPick}>
-      <h4>{option.setName}</h4>
-      <ul className="mono set-moves">
-        {set.moves.map((move, i) => (
-          <li key={i}>{move}</li>
-        ))}
-      </ul>
+      <div className="bundle-head">
+        <span className="mon-tile" style={{backgroundImage: typeGradient(gen9().species.get(species)?.types ?? [])}}>
+          <span style={Icons.getPokemon(species).css} />
+        </span>
+        <div>
+          <h4>{species}</h4>
+          <div className="mono bundle-set">{option.setName}</div>
+        </div>
+      </div>
+      <MoveList moves={set.moves} />
       <p className="mono set-meta">
         {set.item || 'No item'} · {set.nature} · {evs}
       </p>
@@ -183,7 +200,9 @@ export function SixOhDraft() {
               className="offer-card"
               onClick={() => dispatch({type: 'SET_DRAFT', draft: pickSpecies(draft, data.sets, offer.species)})}
             >
-              <span style={Icons.getPokemon(offer.species).css} />
+              <span className="mon-tile" style={{width: '100%', height: 'auto', aspectRatio: '1', backgroundImage: typeGradient(gen9().species.get(offer.species)?.types ?? [])}}>
+                <span style={Icons.getPokemon(offer.species).css} />
+              </span>
               <span className="offer-name">{offer.species}</span>
               <TypeBadges species={offer.species} />
               <span className="mono usage">{(offer.usageWeighted * 100).toFixed(1)}%</span>
@@ -197,6 +216,7 @@ export function SixOhDraft() {
           {draft.setOptions.map(option => (
             <SetCard
               key={option.setName}
+              species={draft.offers[0]?.species ?? ''}
               option={option}
               onPick={() => dispatch({type: 'SET_DRAFT', draft: pickSet(draft, data.pool, data.sets, option.setName)})}
             />
@@ -213,16 +233,16 @@ export function SixOhDraft() {
               onClick={() => dispatch({type: 'SET_DRAFT', draft: pickBundle(draft, data.pool, data.sets, index)})}
             >
               <div className="bundle-head">
-                <span style={Icons.getPokemon(offer.species).css} />
-                <span className="offer-name">{offer.species}</span>
+                <span className="mon-tile" style={{width: 48, height: 48, backgroundImage: typeGradient(gen9().species.get(offer.species)?.types ?? [])}}>
+                  <span style={Icons.getPokemon(offer.species).css} />
+                </span>
+                <div style={{flex: 1, minWidth: 0}}>
+                  <span className="offer-name">{offer.species}</span>
+                  <div className="mono bundle-set">{offer.setName}</div>
+                </div>
                 <TypeBadges species={offer.species} />
               </div>
-              <div className="mono bundle-set">{offer.setName}</div>
-              <ul className="mono set-moves">
-                {offer.set!.moves.map(move => (
-                  <li key={move}>{move}</li>
-                ))}
-              </ul>
+              <MoveList moves={offer.set!.moves} />
               <p className="mono set-meta">
                 {offer.set!.item || 'No item'} · {offer.set!.nature}
                 {offer.set!.teraType ? ` · Tera ${offer.set!.teraType}` : ''}
@@ -241,7 +261,9 @@ export function SixOhDraft() {
               <div key={i} className={`tray-slot ${pick ? 'filled' : ''}`}>
                 {pick ? (
                   <>
-                    <span style={Icons.getPokemon(pick.species).css} />
+                    <span className="mon-tile" style={{backgroundImage: typeGradient(gen9().species.get(pick.species)?.types ?? [])}}>
+                      <span style={Icons.getPokemon(pick.species).css} />
+                    </span>
                     <span className="tray-name">{pick.species}</span>
                     <span className="tray-set mono">{pick.setName}</span>
                   </>

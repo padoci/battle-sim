@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useRef, useState, type CSSProperties} from 'react';
 import {Icons, Sprites} from '@pkmn/img';
+import {gen9} from '../../data/gen';
 import type {PokemonSet} from '../../data/types';
 import {parseProtocol} from '../../replay/parse';
 import {toBeats} from '../../replay/pace';
@@ -8,8 +9,8 @@ import {navigate} from '../router';
 import {readDevParams} from '../sixoh/devParams';
 import {ensureComputed, resetSixOhSession, retryBattle} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState} from '../sixoh/state';
-import {typeColor} from '../sixoh/typeColors';
-import {usePlayback, type PlaybackSpeed} from '../sixoh/usePlayback';
+import {typeColor, typeGradient} from '../sixoh/typeColors';
+import {MAX_SPEED, MIN_SPEED, usePlayback} from '../sixoh/usePlayback';
 
 function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
   const [broken, setBroken] = useState(false);
@@ -27,7 +28,11 @@ function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
   );
 }
 
-/** Classic handheld HP colour: green > 50%, yellow > 20%, red below. */
+function monTypes(species: string): string[] {
+  return gen9().species.get(species)?.types ?? [];
+}
+
+/** HP meter colour: green > 50%, yellow > 20%, red below. */
 function hpColor(frac: number): string {
   if (frac > 0.5) return '#48c451';
   if (frac > 0.2) return '#f6c343';
@@ -202,57 +207,91 @@ function BattleStage({
   const spoken = caption.length ? caption : view.logLines.slice(-1);
 
   return (
-    <div className="battle-stage">
-      <div className={fieldClasses}>
-        <HazardCorner side={1} hazards={view.sides[1].hazards} />
-        <HazardCorner side={0} hazards={view.sides[0].hazards} />
-        <div className="stage-half theirs">
-          {theirs && !theirs.fainted && (
-            <div key={`t-${fxKey}`} className={holderClasses(1, 'lunge-left')} style={holderStyle(1)}>
-              <SpriteWithFallback species={theirs.species} back={false} />
-              {fxFor(1, 'float') && <span className="float-num">{fxFor(1, 'float')!.text}</span>}
-            </div>
-          )}
-          {theirs && <HpBar mon={theirs} />}
+    <div className="battle-frame">
+      <div className="battle-stage">
+        <div className={fieldClasses}>
+          <HazardCorner side={1} hazards={view.sides[1].hazards} />
+          <HazardCorner side={0} hazards={view.sides[0].hazards} />
+          <div className="stage-half theirs">
+            {theirs && (
+              <div className="mon-card">
+                {!theirs.fainted && (
+                  <div
+                    key={`t-${fxKey}`}
+                    className={holderClasses(1, 'lunge-left')}
+                    style={{...holderStyle(1), backgroundImage: typeGradient(monTypes(theirs.species))}}
+                  >
+                    <SpriteWithFallback species={theirs.species} back={false} />
+                    {fxFor(1, 'float') && <span className="float-num">{fxFor(1, 'float')!.text}</span>}
+                  </div>
+                )}
+                <HpBar mon={theirs} />
+              </div>
+            )}
+          </div>
+          <div className="stage-half mine">
+            {mine && (
+              <div className="mon-card">
+                {!mine.fainted && (
+                  <div
+                    key={`m-${fxKey}`}
+                    className={holderClasses(0, 'lunge-right')}
+                    style={{...holderStyle(0), backgroundImage: typeGradient(monTypes(mine.species))}}
+                  >
+                    <SpriteWithFallback species={mine.species} back={true} />
+                    {fxFor(0, 'float') && <span className="float-num">{fxFor(0, 'float')!.text}</span>}
+                  </div>
+                )}
+                <HpBar mon={mine} />
+              </div>
+            )}
+          </div>
         </div>
-        <div className="stage-half mine">
-          {mine && !mine.fainted && (
-            <div key={`m-${fxKey}`} className={holderClasses(0, 'lunge-right')} style={holderStyle(0)}>
-              <SpriteWithFallback species={mine.species} back={true} />
-              {fxFor(0, 'float') && <span className="float-num">{fxFor(0, 'float')!.text}</span>}
-            </div>
-          )}
-          {mine && <HpBar mon={mine} />}
+
+        <div className="message-box mono" role="status" aria-live="polite">
+          {spoken.map((line, i) => (
+            <div key={i}>{line}</div>
+          ))}
         </div>
-      </div>
 
-      <div className="message-box mono" role="status" aria-live="polite">
-        {spoken.map((line, i) => (
-          <div key={i}>{line}</div>
-        ))}
-      </div>
+        <FieldStrip weather={view.weather} fields={view.fields} sides={view.sides} />
 
-      <FieldStrip weather={view.weather} fields={view.fields} sides={view.sides} />
+        <div className="stage-meta">
+          <TeamRow side={view.sides[0]} mons={team} />
+          <span className="mono turn-label">Turn {view.turn}</span>
+          <TeamRow side={view.sides[1]} mons={opponentSets} />
+        </div>
 
-      <div className="stage-meta">
-        <TeamRow side={view.sides[0]} mons={team} />
-        <span className="mono turn-label">Turn {view.turn}</span>
-        <TeamRow side={view.sides[1]} mons={opponentSets} />
-      </div>
+        <div className="battle-log mono" ref={el => el?.scrollTo(0, el.scrollHeight)}>
+          {view.logLines.slice(-80).map((line, i) => (
+            <div key={i}>{line}</div>
+          ))}
+        </div>
 
-      <div className="battle-log mono" ref={el => el?.scrollTo(0, el.scrollHeight)}>
-        {view.logLines.slice(-80).map((line, i) => (
-          <div key={i}>{line}</div>
-        ))}
-      </div>
-
-      <div className="playback-controls">
-        {([1, 2, 'instant'] as PlaybackSpeed[]).map(s => (
-          <button key={String(s)} className={speed === s ? 'active' : ''} onClick={() => setSpeed(s)}>
-            {s === 'instant' ? 'Instant' : `${s}×`}
-          </button>
-        ))}
-        <button onClick={skipToEnd}>Skip to result</button>
+        <div className="playback-controls">
+          <span className="playback-label">SPEED</span>
+          <div className="playback-speed">
+            <input
+              type="range"
+              min={MIN_SPEED}
+              max={MAX_SPEED}
+              step={0.1}
+              value={speed}
+              aria-label="Playback speed"
+              onChange={event => setSpeed(Number(event.target.value))}
+              style={{'--_fill': `${((speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100}%`} as CSSProperties}
+            />
+            <div className="playback-ticks">
+              <span>0.1×</span>
+              <span>1×</span>
+              <span>2×</span>
+              <span>5×</span>
+              <span>10×</span>
+            </div>
+          </div>
+          <span className="playback-value mono">{speed.toFixed(1)}×</span>
+          <button onClick={skipToEnd}>Skip to result ⏭</button>
+        </div>
       </div>
     </div>
   );
