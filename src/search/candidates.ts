@@ -85,13 +85,31 @@ function benchMon(state: BattleState, side: 0 | 1, action: Action): MonState | u
   return state.sides[side].mons[action.slot - 1];
 }
 
+/**
+ * Reduction in the opponent's current best incoming threat against `atk` if
+ * `atk` terastallizes right now (same koProb+chip units as moveThreat's
+ * damaging-move branch, via the same `threat()` helper `switchScore`/
+ * `stayScore` already use with reversed attacker/defender roles). Ranking-
+ * only: this never touches the eval, only which candidates get simulated.
+ */
+function teraDefensiveValue(ctx: Context, side: 0 | 1, atk: MonState): number {
+  const theirSide = ctx.state.sides[1 - side];
+  const theirActive = theirSide.mons[theirSide.activeIndex];
+  if (!theirActive || theirActive.fainted) return 0;
+  const mySide = ctx.state.sides[side];
+  const without = threat(ctx.table, (1 - side) as 0 | 1, theirActive, atk, mySide, ctx.field);
+  const withTera = threat(ctx.table, (1 - side) as 0 | 1, theirActive, {...atk, terastallized: true}, mySide, ctx.field);
+  return Math.max(0, without - withTera);
+}
+
 /** Threat score of one specific move (for move ranking / tera selection). */
 function moveThreat(
   ctx: Context,
   side: 0 | 1,
   atk: MonState,
   moveIndex: number,
-  tera: boolean
+  tera: boolean,
+  cfg: SearchConfig
 ): number {
   const theirSide = ctx.state.sides[1 - side];
   const def = theirSide.mons[theirSide.activeIndex];
@@ -102,7 +120,17 @@ function moveThreat(
   if (entry.category === 'Status') {
     // Status moves rank by their valued effect (burn/para/toxic/hazards/
     // setup) instead of a flat 0 — un-blinds interior candidate selection.
-    return weightedStatusMoveValue(ctx.table, side, attacker, atk.moveIds[moveIndex], def, theirSide);
+    const base = weightedStatusMoveValue(ctx.table, side, attacker, atk.moveIds[moveIndex], def, theirSide);
+    if (!tera) return base;
+    // Offense-only ranking structurally starves a "Tera to survive, then
+    // set up/heal/Protect" line: a status move's own moveThreat is small,
+    // so it never wins a rootTeraVariants slot against a decent attack even
+    // when terastallizing would flip a lethal incoming hit into a survived
+    // one. This is ranking-only — once a candidate is kept, its real
+    // defensive payoff is already correctly scored by the actual sim
+    // transition + evaluate(); this just lets it compete for a slot.
+    const defense = teraDefensiveValue(ctx, side, atk);
+    return base + (defense >= cfg.teraDefenseThreshold ? cfg.teraDefenseWeight * defense : 0);
   }
   return (
     koProb(entry, attacker, def, theirSide, ctx.field) +
@@ -164,7 +192,7 @@ export function rootCandidates(
     keptTera = teraMoves
       .map(action => ({
         action,
-        score: moveThreat(ctx, side, active, (action as {slot: number}).slot - 1, true),
+        score: moveThreat(ctx, side, active, (action as {slot: number}).slot - 1, true, cfg),
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, cfg.rootTeraVariants)
@@ -197,7 +225,7 @@ export function interiorCandidates(
   const scored = legal.map(action => {
     let score: number;
     if (action.kind === 'move') {
-      score = active ? WEIGHTS.MATCHUP * moveThreat(ctx, side, active, action.slot - 1, false) : 0;
+      score = active ? WEIGHTS.MATCHUP * moveThreat(ctx, side, active, action.slot - 1, false, cfg) : 0;
     } else if (action.kind === 'switch') {
       const mon = benchMon(state, side, action)!;
       score = switchScore(ctx, side, mon) - (forced ? 0 : cfg.switchMargin);

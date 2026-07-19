@@ -6,6 +6,16 @@ export interface SearchConfig {
   rootSwitchK: number;
   /** Tera variants added at the root (top moves by tera-slice threat). */
   rootTeraVariants: number;
+  /**
+   * Ranking-only weight added to a Status-category Tera candidate's score
+   * for how much terastallizing reduces the opponent's current best
+   * incoming threat (same koProb+chip units as moveThreat). 0 = old,
+   * offense-only Tera ranking — see scripts/sim-tera-defense-ab.ts.
+   */
+  teraDefenseWeight: number;
+  /** Minimum defensive-threat reduction (threat units) before the above
+   *  bonus applies — avoids noise-driven reordering on marginal turns. */
+  teraDefenseThreshold: number;
   /** Candidates per side in the d2 interior layer. */
   interiorCandidates: number;
   /** Sim samples averaged per matrix cell (chance handling; 1 = rely on eval smoothing). */
@@ -28,6 +38,11 @@ export const FAST: SearchConfig = {
   // root equilibrium more than it helps at this depth.
   rootSwitchK: 2,
   rootTeraVariants: 2,
+  // Shipped default: won its A/B 22/40 (55% of decided) with a confirmed-live
+  // behavioral probe (logs/tera-defense-round.md) — Tera+Status/setup lines
+  // now compete for a root tera slot on defensive merit, not just offense.
+  teraDefenseWeight: 1,
+  teraDefenseThreshold: 0.3,
   interiorCandidates: 3,
   samplesPerCell: 1,
   matchupWeightByDepth: [20, 10],

@@ -129,6 +129,52 @@ describe('rootCandidates / interiorCandidates', () => {
     expect(switchSlots).not.toContain(3); // level-5 fodder: OHKOed, no threat
   });
 
+  it('a lethal-threat-nullifying tera+status play competes for a tera slot (teraDefenseWeight)', () => {
+    // Volcarona is 4x weak to Rock (see hazardFrac tests above). Garganacl's
+    // Stone Edge is a guaranteed KO on it this turn (koProb 1); terastallizing
+    // to Water (Rock resists Water) turns that into a guaranteed survival
+    // (koProb 0) — but Volcarona's only non-attacking move is Quiver Dance
+    // (pure setup), and two solid super-effective attacks (Giga Drain, Earth
+    // Power) compete for the same two `rootTeraVariants` slots. With
+    // teraDefenseWeight disabled (0 — the old, offense-only ranking), the
+    // tera-to-survive-then-set-up line never gets proposed as a candidate at
+    // all. The shipped default (teraDefenseWeight: 1) fixes this: Quiver
+    // Dance's tera variant now displaces the weaker attack (Giga Drain).
+    const p1 = [
+      makeSet('Volcarona', ['Giga Drain', 'Earth Power', 'Quiver Dance'], {
+        ability: 'Flame Body',
+        teraType: 'Water',
+        evs: {hp: 252, atk: 0, def: 4, spa: 252, spd: 0, spe: 252},
+      }),
+      makeSet('Kingambit', ['Sucker Punch'], {ability: 'Supreme Overlord'}),
+    ];
+    const p2 = [
+      makeSet('Garganacl', ['Stone Edge'], {
+        ability: 'Purifying Salt',
+        evs: {hp: 4, atk: 252, def: 0, spa: 0, spd: 0, spe: 252},
+      }),
+    ];
+    const battle = createBattle({p1: {team: p1}, p2: {team: p2}, seed: seedFromInts(1, 1, 1, 1)});
+    const table2 = buildCalcTable(gen, [p1, p2]);
+    const state = extractState(battle);
+
+    const teraSlots = (cfg: typeof FAST) =>
+      rootCandidates(battle, 0, state, table2, cfg)
+        .filter(a => a.kind === 'move' && a.tera)
+        .map(a => (a as {slot: number}).slot);
+
+    // Old behavior (disabled): both attacks win a slot; Quiver Dance (slot 3,
+    // the survival-then-setup line) never gets a look-in.
+    const oldSlots = teraSlots({...FAST, teraDefenseWeight: 0});
+    expect(oldSlots).toEqual(expect.arrayContaining([1, 2]));
+    expect(oldSlots).not.toContain(3);
+
+    // Shipped default: Quiver Dance's tera variant now competes and wins,
+    // displacing the weaker attack.
+    const newSlots = teraSlots(FAST);
+    expect(newSlots).toContain(3);
+  });
+
   it('forced switches return every legal switch unpruned', () => {
     // Faint P1's Chansey vs a strong attacker, then check the request.
     const p1 = [

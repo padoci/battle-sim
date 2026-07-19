@@ -1,0 +1,361 @@
+=== NEW vs OLD — winner: OLD in 31 turns · 38 decisions · 2080 ms search · 49 nodes/decision ===
+
+  NEW's Iron Moth switched in (100%)
+  OLD's Iron Treads switched in (100%)
+
+== Turn 1 ==
+NEW -> switch rillaboom  [p=0.51 | fierydance 0.23, substitute 0.16, sludgewave 0.10]
+  root v=-8.4  nodes=64  ms=145
+OLD -> earthpower+tera  [p=0.26 | switch roaringmoon 0.56, switch zamazenta 0.18]
+  root v=-4.3  nodes=64  ms=65
+  NEW's Rillaboom switched in (100%)
+    OLD's Iron Treads TERASTALLIZED -> Ghost
+  OLD's Iron Treads used Earth Power
+    (resisted NEW's Rillaboom)
+    NEW's Rillaboom -> 79%
+    NEW's Rillaboom healed -> 85%
+
+== Turn 2 ==
+NEW -> woodhammer  [p=0.63 | grassyglide 0.37]
+  root v=30.3  nodes=48  ms=58
+OLD -> switch zamazenta  [p=1.00]
+  root v=34.2  nodes=48  ms=55
+  OLD's Zamazenta switched in (100%)
+    OLD's Zamazenta +1 def
+  NEW's Rillaboom used Wood Hammer
+    OLD's Zamazenta -> 37%
+    NEW's Rillaboom -> 63%
+    OLD's Zamazenta healed -> 43%
+    OLD's Zamazenta healed -> 49%
+    NEW's Rillaboom healed -> 69%
+
+== Turn 3 ==
+NEW -> switch ironvaliant  [p=0.88 | woodhammer+tera 0.12]
+  root v=22.2  nodes=24  ms=25
+OLD -> bodypress  [p=1.00]
+  root v=37.5  nodes=24  ms=26
+  NEW's Iron Valiant switched in (100%)
+  OLD's Zamazenta used Body Press
+    (resisted NEW's Iron Valiant)
+    NEW's Iron Valiant -> 63%
+    NEW's Iron Valiant healed -> 69%
+    OLD's Zamazenta healed -> 55%
+    OLD's Zamazenta healed -> 61%
+
+== Turn 4 ==
+NEW -> moonblast  [p=1.00]
+  root v=91.6  nodes=36  ms=76
+OLD -> switch ogerponwellspring  [p=1.00]
+  root v=78.1  nodes=36  ms=39
+  OLD's Ogerpon switched in (100%)
+  NEW's Iron Valiant used Moonblast
+    OLD's Ogerpon -> 42%
+    NEW's Iron Valiant healed -> 76%
+    OLD's Ogerpon healed -> 48%
+
+== Turn 5 ==
+NEW -> moonblast  [p=0.66 | moonblast+tera 0.34]
+  root v=172.9  nodes=48  ms=48
+OLD -> switch irontreads  [p=0.89 | switch enamorus 0.11]
+  root v=169.8  nodes=48  ms=47
+  OLD's Iron Treads switched in (100%)
+  NEW's Iron Valiant used Moonblast
+    OLD's Iron Treads -> 33%
+    NEW's Iron Valiant healed -> 82%
+    OLD's Iron Treads healed -> 39%
+
+== Turn 6 ==
+NEW -> moonblast  [p=0.22 | shadowball 0.78]
+  root v=203.7  nodes=48  ms=46
+OLD -> switch skeledirge  [p=0.62 | switch enamorus 0.38]
+  root v=204.0  nodes=48  ms=46
+  OLD's Skeledirge switched in (100%)
+  NEW's Iron Valiant used Moonblast
+    (resisted OLD's Skeledirge)
+    OLD's Skeledirge -> 82%
+
+== Turn 7 ==
+NEW -> shadowball  [p=1.00]
+  root v=158.1  nodes=40  ms=44
+OLD -> torchsong  [p=0.81 | alluringvoice 0.19]
+  root v=158.7  nodes=40  ms=41
+  NEW's Iron Valiant used Shadow Ball
+    (supereffective OLD's Skeledirge)
+    OLD's Skeledirge -> 40%
+  OLD's Skeledirge used Torch Song
+    NEW's Iron Valiant -> 30%
+    OLD's Skeledirge +1 spa
+
+== Turn 8 ==
+NEW -> moonblast  [p=0.28 | shadowball+tera 0.52, shadowball 0.19]
+  root v=178.5  nodes=48  ms=46
+OLD -> alluringvoice  [p=0.52 | switch zamazenta 0.48]
+  root v=173.9  nodes=48  ms=48
+NEW -> switch ogerponcornerstone  [p=1.00]
+  root v=103.2  nodes=5  ms=4
+OLD -> pass  [p=1.00]
+  root v=103.2  nodes=5  ms=3
+  NEW's Iron Valiant used Moonblast
+    (resisted OLD's Skeledirge)
+    OLD's Skeledirge -> 21%
+    OLD's Skeledirge -1 spa
+  OLD's Skeledirge used Alluring Voice
+    (supereffective NEW's Iron Valiant)
+    NEW's Iron Valiant -> fainted
+    NEW's Iron Valiant fainted!
+  NEW's Ogerpon switched in (100%)
+
+== Turn 9 ==
+NEW -> powerwhip  [p=1.00]
+  root v=95.6  nodes=48  ms=49
+OLD -> switch zamazenta  [p=1.00]
+  root v=95.1  nodes=48  ms=47
+  OLD's Zamazenta switched in (61%)
+  NEW's Ogerpon used Power Whip
+    OLD's Zamazenta -> 15%
+    OLD's Zamazenta healed -> 21%
+
+== Turn 10 ==
+NEW -> ivycudgel  [p=0.64 | powerwhip 0.36]
+  root v=103.8  nodes=32  ms=33
+OLD -> bodypress  [p=1.00]
+  root v=104.3  nodes=32  ms=34
+NEW -> pass  [p=1.00]
+  root v=82.7  nodes=5  ms=4
+OLD -> switch roaringmoon  [p=1.00]
+  root v=82.7  nodes=5  ms=3
+  OLD's Zamazenta used Body Press
+    (supereffective NEW's Ogerpon)
+    NEW's Ogerpon -> 7%
+  NEW's Ogerpon used Ivy Cudgel
+    (resisted OLD's Zamazenta)
+    (crit OLD's Zamazenta)
+    OLD's Zamazenta -> fainted
+    OLD's Zamazenta fainted!
+  OLD's Roaring Moon switched in (100%)
+
+== Turn 11 ==
+NEW -> ivycudgel  [p=1.00]
+  root v=18.4  nodes=32  ms=69
+OLD -> earthquake  [p=1.00]
+  root v=18.4  nodes=32  ms=31
+NEW -> switch ragingbolt  [p=1.00]
+  root v=6.9  nodes=4  ms=4
+OLD -> pass  [p=1.00]
+  root v=6.9  nodes=4  ms=3
+  OLD's Roaring Moon used Earthquake
+    NEW's Ogerpon -> fainted
+    NEW's Ogerpon fainted!
+  NEW's Raging Bolt switched in (100%)
+
+== Turn 12 ==
+NEW -> dragonpulse  [p=0.58 | terablast 0.42]
+  root v=21.9  nodes=35  ms=72
+OLD -> switch enamorus  [p=0.68 | earthquake 0.32]
+  root v=25.3  nodes=35  ms=34
+  OLD's Enamorus switched in (100%)
+  NEW's Raging Bolt used Dragon Pulse
+    (immune OLD's Enamorus)
+
+== Turn 13 ==
+NEW -> calmmind+tera  [p=0.49 | switch ironmoth 0.26, thunderclap+tera 0.25]
+  root v=-28.4  nodes=32  ms=36
+OLD -> moonblast  [p=0.81 | calmmind 0.19]
+  root v=0.2  nodes=32  ms=34
+    NEW's Raging Bolt TERASTALLIZED -> Water
+  OLD's Enamorus used Moonblast
+    NEW's Raging Bolt -> 40%
+  NEW's Raging Bolt used Calm Mind
+    NEW's Raging Bolt +1 spa
+    NEW's Raging Bolt +1 spd
+
+== Turn 14 ==
+NEW -> terablast  [p=0.69 | dragonpulse 0.31]
+  root v=-33.2  nodes=30  ms=32
+OLD -> calmmind  [p=0.72 | moonblast 0.28]
+  root v=-45.1  nodes=30  ms=29
+  OLD's Enamorus used Calm Mind
+    OLD's Enamorus +1 spa
+    OLD's Enamorus +1 spd
+  NEW's Raging Bolt used Tera Blast
+    (crit OLD's Enamorus)
+    OLD's Enamorus -> 1%
+
+== Turn 15 ==
+NEW -> thunderclap  [p=0.58 | terablast 0.42]
+  root v=35.0  nodes=30  ms=65
+OLD -> switch ogerponwellspring  [p=0.35 | calmmind 0.41, moonblast 0.24]
+  root v=35.0  nodes=30  ms=27
+  OLD's Ogerpon switched in (48%)
+  NEW's Raging Bolt used Thunderclap
+
+== Turn 16 ==
+NEW -> thunderclap  [p=1.00]
+  root v=43.7  nodes=24  ms=22
+OLD -> encore  [p=1.00]
+  root v=43.7  nodes=24  ms=22
+  NEW's Raging Bolt used Thunderclap
+  OLD's Ogerpon used Encore
+
+== Turn 17 ==
+NEW -> thunderclap  [p=1.00]
+  root v=43.7  nodes=12  ms=11
+OLD -> encore  [p=1.00]
+  root v=43.7  nodes=12  ms=13
+  NEW's Raging Bolt used Thunderclap
+  OLD's Ogerpon used Encore
+
+== Turn 18 ==
+NEW -> thunderclap  [p=1.00]
+  root v=43.7  nodes=12  ms=12
+OLD -> encore  [p=1.00]
+  root v=43.7  nodes=12  ms=11
+  NEW's Raging Bolt used Thunderclap
+  OLD's Ogerpon used Encore
+
+== Turn 19 ==
+NEW -> thunderclap  [p=1.00]
+  root v=43.7  nodes=12  ms=13
+OLD -> encore  [p=1.00]
+  root v=43.7  nodes=12  ms=11
+  NEW's Raging Bolt used Thunderclap
+  OLD's Ogerpon used Encore
+
+== Turn 20 ==
+NEW -> thunderclap  [p=1.00]
+  root v=43.7  nodes=24  ms=23
+OLD -> encore  [p=1.00]
+  root v=43.7  nodes=24  ms=22
+  NEW's Raging Bolt used Thunderclap
+  OLD's Ogerpon used Encore
+
+== Turn 21 ==
+NEW -> thunderclap  [p=1.00]
+  root v=43.7  nodes=12  ms=12
+OLD -> encore  [p=1.00]
+  root v=43.7  nodes=12  ms=11
+  NEW's Raging Bolt used Thunderclap
+  OLD's Ogerpon used Encore
+
+== Turn 22 ==
+NEW -> thunderclap  [p=1.00]
+  root v=43.7  nodes=12  ms=13
+OLD -> encore  [p=1.00]
+  root v=43.7  nodes=12  ms=12
+  NEW's Raging Bolt used Thunderclap
+  OLD's Ogerpon used Encore
+
+== Turn 23 ==
+NEW -> dragonpulse  [p=0.32 | calmmind 0.68]
+  root v=15.6  nodes=20  ms=20
+OLD -> ivycudgel  [p=0.20 | powerwhip 0.80]
+  root v=-11.6  nodes=20  ms=19
+NEW -> pass  [p=1.00]
+  root v=147.4  nodes=4  ms=3
+OLD -> switch roaringmoon  [p=1.00]
+  root v=147.4  nodes=4  ms=3
+  OLD's Ogerpon used Ivy Cudgel
+    (resisted NEW's Raging Bolt)
+    NEW's Raging Bolt -> 12%
+  NEW's Raging Bolt used Dragon Pulse
+    OLD's Ogerpon -> fainted
+    OLD's Ogerpon fainted!
+  OLD's Roaring Moon switched in (100%)
+
+== Turn 24 ==
+NEW -> calmmind  [p=1.00]
+  root v=52.7  nodes=24  ms=22
+OLD -> earthquake  [p=1.00]
+  root v=52.7  nodes=24  ms=22
+NEW -> switch kingambit  [p=1.00]
+  root v=40.7  nodes=3  ms=2
+OLD -> pass  [p=1.00]
+  root v=40.7  nodes=3  ms=2
+  OLD's Roaring Moon used Earthquake
+    NEW's Raging Bolt -> fainted
+    NEW's Raging Bolt fainted!
+  NEW's Kingambit switched in (100%)
+
+== Turn 25 ==
+NEW -> ironhead  [p=1.00]
+  root v=49.0  nodes=16  ms=17
+OLD -> earthquake  [p=1.00]
+  root v=42.5  nodes=16  ms=18
+  OLD's Roaring Moon used Earthquake
+    (supereffective NEW's Kingambit)
+    NEW's Kingambit -> 43%
+  NEW's Kingambit used Iron Head
+    OLD's Roaring Moon -> 28%
+
+== Turn 26 ==
+NEW -> suckerpunch  [p=0.56 | ironhead 0.44]
+  root v=60.8  nodes=36  ms=35
+OLD -> dragondance  [p=0.55 | earthquake 0.45]
+  root v=60.8  nodes=36  ms=34
+  NEW's Kingambit used Sucker Punch
+  OLD's Roaring Moon used Dragon Dance
+    OLD's Roaring Moon +1 atk
+    OLD's Roaring Moon +1 spe
+
+== Turn 27 ==
+NEW -> suckerpunch  [p=0.52 | kowtowcleave 0.48]
+  root v=28.4  nodes=30  ms=28
+OLD -> dragondance  [p=0.54 | earthquake 0.46]
+  root v=28.4  nodes=30  ms=30
+  NEW's Kingambit used Sucker Punch
+  OLD's Roaring Moon used Dragon Dance
+    OLD's Roaring Moon +1 atk
+    OLD's Roaring Moon +1 spe
+
+== Turn 28 ==
+NEW -> suckerpunch  [p=0.56 | kowtowcleave 0.44]
+  root v=2.0  nodes=24  ms=22
+OLD -> dragondance  [p=0.54 | earthquake 0.46]
+  root v=2.1  nodes=24  ms=22
+  NEW's Kingambit used Sucker Punch
+  OLD's Roaring Moon used Dragon Dance
+    OLD's Roaring Moon +1 atk
+    OLD's Roaring Moon +1 spe
+
+== Turn 29 ==
+NEW -> ironhead  [p=0.47 | suckerpunch 0.53]
+  root v=-20.1  nodes=24  ms=22
+OLD -> earthquake  [p=0.45 | dragondance 0.55]
+  root v=-20.2  nodes=24  ms=21
+NEW -> switch ironmoth  [p=1.00]
+  root v=-246.7  nodes=2  ms=3
+OLD -> pass  [p=1.00]
+  root v=-246.7  nodes=2  ms=1
+  OLD's Roaring Moon used Earthquake
+    (supereffective NEW's Kingambit)
+    NEW's Kingambit -> fainted
+    NEW's Kingambit fainted!
+  NEW's Iron Moth switched in (100%)
+
+== Turn 30 ==
+NEW -> switch rillaboom  [p=1.00]
+  root v=-384.6  nodes=20  ms=16
+OLD -> acrobatics  [p=1.00]
+  root v=-384.6  nodes=20  ms=18
+NEW -> switch ironmoth  [p=1.00]
+  root v=-402.8  nodes=1  ms=1
+OLD -> pass  [p=1.00]
+  root v=-402.8  nodes=1  ms=1
+  NEW's Rillaboom switched in (69%)
+  OLD's Roaring Moon used Acrobatics
+    (supereffective NEW's Rillaboom)
+    NEW's Rillaboom -> fainted
+    NEW's Rillaboom fainted!
+    OLD's Roaring Moon healed -> 34%
+  NEW's Iron Moth switched in (100%)
+
+== Turn 31 ==
+NEW -> fierydance  [p=1.00]
+  root v=-10493.9  nodes=16  ms=13
+OLD -> acrobatics  [p=1.00]
+  root v=-10493.9  nodes=16  ms=14
+  OLD's Roaring Moon used Acrobatics
+    NEW's Iron Moth -> fainted
+    NEW's Iron Moth fainted!
+
+** P2 wins **

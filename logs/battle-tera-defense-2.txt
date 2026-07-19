@@ -1,0 +1,320 @@
+=== OLD vs NEW — winner: OLD in 25 turns · 33 decisions · 1973 ms search · 56 nodes/decision ===
+
+  OLD's Gliscor switched in (100%)
+  NEW's Darkrai switched in (100%)
+
+== Turn 1 ==
+OLD -> switch zamazenta  [p=1.00]
+  root v=16.4  nodes=48  ms=49
+NEW -> sludgebomb  [p=1.00]
+  root v=2.2  nodes=48  ms=46
+  OLD's Zamazenta switched in (100%)
+    OLD's Zamazenta +1 def
+  NEW's Darkrai used Sludge Bomb
+    OLD's Zamazenta -> 74%
+    OLD's Zamazenta is now psn
+    OLD's Zamazenta healed -> 80%
+    OLD's Zamazenta -> 68%
+
+== Turn 2 ==
+OLD -> irondefense  [p=0.86 | bodypress 0.07, roar 0.07]
+  root v=-21.1  nodes=48  ms=48
+NEW -> switch enamorus  [p=0.45 | switch zamazenta 0.55]
+  root v=-20.9  nodes=48  ms=49
+  NEW's Enamorus switched in (100%)
+  OLD's Zamazenta used Iron Defense
+    OLD's Zamazenta +2 def
+    OLD's Zamazenta healed -> 74%
+    OLD's Zamazenta -> 62%
+
+== Turn 3 ==
+OLD -> bodypress+tera  [p=0.73 | switch hoopaunbound 0.15, bodypress 0.12]
+  root v=-81.2  nodes=48  ms=51
+NEW -> moonblast  [p=0.55 | mysticalfire 0.45]
+  root v=-104.8  nodes=48  ms=50
+    OLD's Zamazenta TERASTALLIZED -> Steel
+  NEW's Enamorus used Moonblast
+    (resisted OLD's Zamazenta)
+    OLD's Zamazenta -> 39%
+  OLD's Zamazenta used Body Press
+    (resisted NEW's Enamorus)
+    NEW's Enamorus -> 64%
+    OLD's Zamazenta healed -> 45%
+    OLD's Zamazenta -> 33%
+
+== Turn 4 ==
+OLD -> roar  [p=0.80 | bodypress 0.20]
+  root v=-50.5  nodes=18  ms=20
+NEW -> moonblast  [p=1.00]
+  root v=-50.9  nodes=18  ms=20
+  NEW's Enamorus used Moonblast
+    (resisted OLD's Zamazenta)
+    OLD's Zamazenta -> 11%
+  OLD's Zamazenta used Roar
+  NEW's Glimmora switched in (100%)
+    OLD's Zamazenta healed -> 17%
+    OLD's Zamazenta -> 4%
+
+== Turn 5 ==
+OLD -> bodypress  [p=1.00]
+  root v=-118.4  nodes=48  ms=47
+NEW -> switch zamazenta  [p=1.00]
+  root v=-116.0  nodes=48  ms=49
+OLD -> switch gholdengo  [p=1.00]
+  root v=-68.1  nodes=5  ms=3
+NEW -> pass  [p=1.00]
+  root v=-68.1  nodes=5  ms=3
+  NEW's Zamazenta switched in (100%)
+    NEW's Zamazenta +1 def
+  OLD's Zamazenta used Body Press
+    (crit NEW's Zamazenta)
+    NEW's Zamazenta -> 7%
+    OLD's Zamazenta healed -> 10%
+    NEW's Zamazenta healed -> 14%
+    OLD's Zamazenta -> fainted
+    OLD's Zamazenta fainted!
+  OLD's Gholdengo switched in (100%)
+
+== Turn 6 ==
+OLD -> makeitrain  [p=1.00]
+  root v=-32.9  nodes=40  ms=40
+NEW -> switch darkrai  [p=0.37 | switch roaringmoon 0.63]
+  root v=-26.5  nodes=40  ms=38
+  NEW's Darkrai switched in (100%)
+  OLD's Gholdengo used Make It Rain
+    NEW's Darkrai -> 15%
+    OLD's Gholdengo -1 spa
+
+== Turn 7 ==
+OLD -> makeitrain  [p=0.49 | switch cinderace 0.51]
+  root v=15.5  nodes=21  ms=21
+NEW -> switch roaringmoon  [p=0.83 | sludgebomb 0.09, focusblast 0.08]
+  root v=14.7  nodes=21  ms=21
+  NEW's Roaring Moon switched in (100%)
+  OLD's Gholdengo used Make It Rain
+    NEW's Roaring Moon -> 59%
+    OLD's Gholdengo -1 spa
+
+== Turn 8 ==
+OLD -> switch alomomola  [p=0.81 | makeitrain 0.19]
+  root v=-0.6  nodes=18  ms=57
+NEW -> dragondance  [p=1.00]
+  root v=4.5  nodes=18  ms=20
+  OLD's Alomomola switched in (100%)
+  NEW's Roaring Moon used Dragon Dance
+    NEW's Roaring Moon +1 atk
+    NEW's Roaring Moon +1 spe
+
+== Turn 9 ==
+OLD -> acrobatics  [p=1.00]
+  root v=-43.0  nodes=48  ms=50
+NEW -> dragondance  [p=1.00]
+  root v=-42.8  nodes=48  ms=51
+  NEW's Roaring Moon used Dragon Dance
+    NEW's Roaring Moon +1 atk
+    NEW's Roaring Moon +1 spe
+  OLD's Alomomola used Acrobatics
+    NEW's Roaring Moon -> 45%
+
+== Turn 10 ==
+OLD -> protect  [p=0.55 | flipturn 0.45]
+  root v=-87.7  nodes=40  ms=41
+NEW -> dragondance  [p=0.84 | knockoff 0.16]
+  root v=-84.6  nodes=40  ms=42
+  OLD's Alomomola used Protect
+  NEW's Roaring Moon used Dragon Dance
+    NEW's Roaring Moon +1 atk
+    NEW's Roaring Moon +1 spe
+
+== Turn 11 ==
+OLD -> acrobatics  [p=1.00]
+  root v=-185.2  nodes=32  ms=35
+NEW -> knockoff  [p=1.00]
+  root v=-194.8  nodes=32  ms=35
+  NEW's Roaring Moon used Knock Off
+    OLD's Alomomola -> 4%
+  OLD's Alomomola used Acrobatics
+    NEW's Roaring Moon -> 21%
+
+== Turn 12 ==
+OLD -> protect  [p=0.87 | acrobatics 0.13]
+  root v=-191.5  nodes=48  ms=83
+NEW -> acrobatics  [p=0.89 | dragondance 0.11]
+  root v=-191.5  nodes=48  ms=43
+  OLD's Alomomola used Protect
+  NEW's Roaring Moon used Acrobatics
+
+== Turn 13 ==
+OLD -> acrobatics  [p=1.00]
+  root v=-233.8  nodes=48  ms=44
+NEW -> knockoff  [p=1.00]
+  root v=-233.8  nodes=48  ms=46
+OLD -> switch cinderace  [p=1.00]
+  root v=-258.6  nodes=4  ms=3
+NEW -> pass  [p=1.00]
+  root v=-258.6  nodes=4  ms=3
+  NEW's Roaring Moon used Knock Off
+    OLD's Alomomola -> fainted
+    OLD's Alomomola fainted!
+  OLD's Cinderace switched in (100%)
+
+== Turn 14 ==
+OLD -> suckerpunch  [p=1.00]
+  root v=-388.9  nodes=42  ms=41
+NEW -> knockoff  [p=1.00]
+  root v=-388.9  nodes=42  ms=38
+OLD -> pass  [p=1.00]
+  root v=17.7  nodes=5  ms=5
+NEW -> switch glimmora  [p=1.00]
+  root v=17.7  nodes=5  ms=3
+  OLD's Cinderace used Sucker Punch
+    (resisted NEW's Roaring Moon)
+    NEW's Roaring Moon -> fainted
+    NEW's Roaring Moon fainted!
+  NEW's Glimmora switched in (100%)
+
+== Turn 15 ==
+OLD -> switch hoopaunbound  [p=0.76 | willowisp 0.24]
+  root v=14.2  nodes=36  ms=40
+NEW -> mortalspin  [p=0.46 | powergem 0.54]
+  root v=13.0  nodes=36  ms=40
+  OLD's Hoopa switched in (100%)
+  NEW's Glimmora used Mortal Spin
+    OLD's Hoopa -> 95%
+    OLD's Hoopa is now psn
+    OLD's Hoopa -> 82%
+
+== Turn 16 ==
+OLD -> thunderbolt  [p=0.70 | knockoff 0.20, psychicnoise 0.10]
+  root v=24.0  nodes=48  ms=51
+NEW -> switch kingambit  [p=0.75 | powergem 0.13, stealthrock+tera 0.12]
+  root v=25.2  nodes=48  ms=52
+  NEW's Kingambit switched in (100%)
+  OLD's Hoopa used Thunderbolt
+    NEW's Kingambit -> 60%
+    OLD's Hoopa -> 70%
+
+== Turn 17 ==
+OLD -> thunderbolt  [p=1.00]
+  root v=16.8  nodes=36  ms=75
+NEW -> ironhead  [p=0.93 | kowtowcleave 0.07]
+  root v=11.5  nodes=36  ms=39
+  OLD's Hoopa used Thunderbolt
+    NEW's Kingambit -> 18%
+  NEW's Kingambit used Iron Head
+    OLD's Hoopa -> 15%
+    OLD's Hoopa -> 2%
+
+== Turn 18 ==
+OLD -> thunderbolt  [p=0.50 | switch cinderace 0.50]
+  root v=-6.1  nodes=48  ms=43
+NEW -> suckerpunch  [p=0.61 | kowtowcleave 0.27, switch darkrai 0.11]
+  root v=-17.5  nodes=48  ms=43
+OLD -> switch cinderace  [p=1.00]
+  root v=-30.9  nodes=3  ms=2
+NEW -> pass  [p=1.00]
+  root v=-30.9  nodes=3  ms=2
+  NEW's Kingambit used Sucker Punch
+    OLD's Hoopa -> fainted
+    OLD's Hoopa fainted!
+  OLD's Cinderace switched in (100%)
+
+== Turn 19 ==
+OLD -> pyroball  [p=0.50 | willowisp 0.50]
+  root v=-36.4  nodes=40  ms=39
+NEW -> swordsdance+tera  [p=1.00]
+  root v=-72.0  nodes=40  ms=37
+OLD -> pass  [p=1.00]
+  root v=17.7  nodes=4  ms=3
+NEW -> switch glimmora  [p=1.00]
+  root v=17.7  nodes=4  ms=3
+    NEW's Kingambit TERASTALLIZED -> Fire
+  OLD's Cinderace used Pyro Ball
+    (resisted NEW's Kingambit)
+    (crit NEW's Kingambit)
+    NEW's Kingambit -> fainted
+    NEW's Kingambit fainted!
+  NEW's Glimmora switched in (100%)
+
+== Turn 20 ==
+OLD -> switch gliscor  [p=0.52 | suckerpunch 0.48]
+  root v=-12.5  nodes=24  ms=27
+NEW -> earthpower  [p=0.38 | powergem 0.63]
+  root v=-12.1  nodes=24  ms=26
+  OLD's Gliscor switched in (100%)
+  NEW's Glimmora used Earth Power
+    (immune OLD's Gliscor)
+    OLD's Gliscor is now tox
+
+== Turn 21 ==
+OLD -> swordsdance  [p=0.82 | earthquake 0.11, facade 0.07]
+  root v=36.7  nodes=30  ms=30
+NEW -> switch enamorus  [p=0.74 | powergem 0.26]
+  root v=33.7  nodes=30  ms=30
+  NEW's Enamorus switched in (64%)
+  OLD's Gliscor used Swords Dance
+    OLD's Gliscor +2 atk
+
+== Turn 22 ==
+OLD -> facade  [p=1.00]
+  root v=130.3  nodes=30  ms=29
+NEW -> switch darkrai  [p=1.00]
+  root v=130.3  nodes=30  ms=30
+OLD -> pass  [p=1.00]
+  root v=131.9  nodes=3  ms=2
+NEW -> switch enamorus  [p=1.00]
+  root v=131.9  nodes=3  ms=3
+  NEW's Darkrai switched in (15%)
+  OLD's Gliscor used Facade
+    NEW's Darkrai -> fainted
+    NEW's Darkrai fainted!
+  NEW's Enamorus switched in (64%)
+
+== Turn 23 ==
+OLD -> facade  [p=1.00]
+  root v=232.3  nodes=24  ms=23
+NEW -> moonblast  [p=1.00]
+  root v=235.4  nodes=24  ms=24
+OLD -> pass  [p=1.00]
+  root v=262.0  nodes=2  ms=2
+NEW -> switch zamazenta  [p=1.00]
+  root v=262.0  nodes=2  ms=1
+  NEW's Enamorus used Moonblast
+    OLD's Gliscor -> 59%
+  OLD's Gliscor used Facade
+    NEW's Enamorus -> fainted
+    NEW's Enamorus fainted!
+    OLD's Gliscor healed -> 71%
+  NEW's Zamazenta switched in (14%)
+
+== Turn 24 ==
+OLD -> facade  [p=1.00]
+  root v=332.6  nodes=20  ms=20
+NEW -> heavyslam  [p=1.00]
+  root v=330.7  nodes=20  ms=19
+OLD -> pass  [p=1.00]
+  root v=348.7  nodes=1  ms=1
+NEW -> switch glimmora  [p=1.00]
+  root v=348.7  nodes=1  ms=1
+  NEW's Zamazenta used Heavy Slam
+    OLD's Gliscor -> 48%
+  OLD's Gliscor used Facade
+    NEW's Zamazenta -> fainted
+    NEW's Zamazenta fainted!
+    OLD's Gliscor healed -> 61%
+  NEW's Glimmora switched in (100%)
+
+== Turn 25 ==
+OLD -> earthquake  [p=1.00]
+  root v=10434.6  nodes=20  ms=21
+NEW -> powergem  [p=1.00]
+  root v=10437.1  nodes=20  ms=21
+  NEW's Glimmora used Power Gem
+    OLD's Gliscor -> 26%
+  OLD's Gliscor used Earthquake
+    (supereffective NEW's Glimmora)
+    NEW's Glimmora -> fainted
+    OLD: P1 +move: Toxic Spikes
+    NEW's Glimmora fainted!
+
+** P1 wins **
