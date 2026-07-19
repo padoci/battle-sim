@@ -26,6 +26,11 @@ test('can you 6-0? — draft board', async ({page}) => {
   await page.goto('/#/sixoh?config=fast&seed=41');
   await page.waitForSelector('.offer-card', {timeout: 60_000});
   await expect(page.locator('.offer-card').first()).toBeVisible();
+  // Each card kicks off its own TCGdex lookup (search + image download) on
+  // mount; without this wait the screenshot races that network activity and
+  // catches cards mid-load (blank tile, neither art nor the icon fallback
+  // yet), which is nondeterministic run to run.
+  await page.waitForTimeout(2_000);
   await expect(page).toHaveScreenshot('sixoh-draft.png', {fullPage: true});
 });
 
