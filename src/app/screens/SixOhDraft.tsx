@@ -22,6 +22,7 @@ import {readDevParams} from '../sixoh/devParams';
 import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/state';
 import {resetSixOhSession} from '../sixoh/session';
 import {useTcgArt} from '../sixoh/useTcgArt';
+import {resizedCardArtUrl} from '../../data/tcgArt';
 
 interface DraftData {
   pool: PoolEntry[];
@@ -52,11 +53,25 @@ function fanTransform(index: number, count: number, rotateStepDeg: number, dipPx
 }
 
 /** Card art window: the TCGdex print once resolved, or the @pkmn/img icon
- * (scaled up) while it loads / if no print was found. */
+ * (scaled up) while it loads / if no print was found. Tries the resized
+ * (much smaller) proxy URL first; if that ever fails to load (the proxy is
+ * down or blocked), falls back to fetching the direct TCGdex URL instead of
+ * showing nothing. */
 function CardArt({species}: {species: string}) {
   const url = useTcgArt(species);
+  const [proxyFailed, setProxyFailed] = useState(false);
   if (url) {
-    return <img className="card-art" src={url} alt={species} loading="lazy" decoding="async" />;
+    const src = proxyFailed ? url : resizedCardArtUrl(url);
+    return (
+      <img
+        className="card-art"
+        src={src}
+        onError={() => setProxyFailed(true)}
+        alt={species}
+        loading="lazy"
+        decoding="async"
+      />
+    );
   }
   return <span className="card-art-fallback" style={Icons.getPokemon(species).css} />;
 }
@@ -281,16 +296,13 @@ export function SixOhDraft() {
                 </div>
                 <div className="bundle-head">
                   <div style={{flex: 1, minWidth: 0}}>
-                    <span className="offer-name" title={offer.species}>{offer.species}</span>
-                    <div className="mono bundle-set" title={offer.setName}>{offer.setName}</div>
+                    <span className="offer-name">{offer.species}</span>
+                    <div className="mono bundle-set">{offer.setName}</div>
                   </div>
                   <TypeBadges species={offer.species} />
                 </div>
                 <MoveList moves={offer.set!.moves} />
-                <p
-                  className="mono set-meta"
-                  title={`${offer.set!.item || 'No item'} · ${offer.set!.nature}${offer.set!.teraType ? ` · Tera ${offer.set!.teraType}` : ''}`}
-                >
+                <p className="mono set-meta">
                   {offer.set!.item || 'No item'} · {offer.set!.nature}
                   {offer.set!.teraType ? ` · Tera ${offer.set!.teraType}` : ''}
                 </p>

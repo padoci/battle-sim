@@ -1360,7 +1360,14 @@ button.primary:disabled {
   padding: 9px 11px 7px;
 }
 
+/* Stacked (name+set above, badges below) instead of a row: a row splits the
+   card's ~140px of width between the text and the badge column, which is
+   narrow enough that even two-word set names wrap one-word-per-line. Full
+   width cuts most wraps down to one or two lines without hiding anything. */
 .offer-grid.bundles .bundle-head {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
   padding: 7px 9px 3px;
 }
 
@@ -1369,14 +1376,16 @@ button.primary:disabled {
   gap: 3px;
 }
 
+.offer-grid.bundles .bundle-head .type-badges {
+  flex-direction: row;
+  margin-top: 2px;
+}
+
 .bundle-set {
   color: var(--signal);
   font-family: var(--font-mono);
   font-size: 0.68rem;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .offer-name {
@@ -1387,14 +1396,19 @@ button.primary:disabled {
 }
 
 /* Set names ("Physically Defensive Pivot" vs. "Utility") and species names
-   ("Slowking-Galar" vs. "Gliscor") vary a lot in length — without clamping
-   both to one line, longer ones wrap and make that card visibly taller than
-   its neighbors in the fan. */
-.bundle-head .offer-name {
+   ("Slowking-Galar" vs. "Gliscor") vary a lot in length. Truncating them
+   loses real information a drafter needs, so instead reserve enough height
+   for the common wrapped case (up to 2 lines) — most cards land at the same
+   height without anything being cut; a genuinely long combination can still
+   push one card slightly taller, which beats hiding text. */
+.offer-grid.bundles .bundle-head .offer-name {
   display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-height: 2.1em;
+}
+
+.offer-grid.bundles .bundle-set {
+  display: block;
+  min-height: 1.8em;
 }
 
 .usage {
@@ -1446,14 +1460,10 @@ button.primary:disabled {
   margin-top: 4px;
 }
 
-/* In the fanned hand (unlike the plain .offer-grid.sets grid below), a
-   wrapped line makes that one card taller than its fan neighbors — clamp to
-   one line there. The full item/nature/tera is still one hover away via the
-   native title tooltip (see the bundle card JSX). */
+/* Same reasoning as .bundle-set above: reserve room for a wrapped second
+   line instead of truncating it away. */
 .offer-grid.bundles .set-meta:last-of-type {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-height: 2.4em;
 }
 
 .set-card h4 {

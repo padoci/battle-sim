@@ -24,6 +24,19 @@ function baseSpeciesName(species: string): string | undefined {
   return i > 0 ? species.slice(0, i) : undefined;
 }
 
+/** TCGdex's search is "laxist" (fuzzy substring, its own docs' word) rather
+ * than exact — it can hand back a loosely-related card instead of an empty
+ * result (seen in practice: a "Dragonite" search returning a Pikachu print,
+ * "Ogerpon" returning an unrelated Ghost-type card). Require the card's own
+ * name to actually contain the species as a whole word before trusting it —
+ * a word-boundary check rather than an exact match, so "Dragonite ex" /
+ * "Radiant Dragonite" still pass for a "Dragonite" query, but an unrelated
+ * name that merely shares a substring doesn't. */
+function cardNameMatches(cardName: string, query: string): boolean {
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${escaped}\\b`, 'i').test(cardName);
+}
+
 async function searchCardImage(name: string, rarity?: string): Promise<string | undefined> {
   try {
     const params = new URLSearchParams({name});
@@ -31,7 +44,7 @@ async function searchCardImage(name: string, rarity?: string): Promise<string | 
     const res = await fetch(`${CARDS_ENDPOINT}?${params}`);
     if (!res.ok) return undefined;
     const cards = (await res.json()) as CardBrief[];
-    return cards.find(c => c.image)?.image;
+    return cards.find(c => c.image && cardNameMatches(c.name, name))?.image;
   } catch {
     // Offline, blocked, or the API is down — treat exactly like "no card found".
     return undefined;
@@ -43,10 +56,13 @@ async function searchCardImage(name: string, rarity?: string): Promise<string | 
  * over the whole card and crop wrong under that same rectangle. "Rare Holo"
  * is the most common classic-template rarity that still covers
  * high-profile Pokémon (most get at least one basic reprint), so try it
- * before falling back to whatever print turns up first. */
+ * before falling back to whatever print turns up first. Sequential, not
+ * parallel: most species have a Rare Holo print, so this is one search
+ * request most of the time rather than two for every one of the ten cards
+ * on screen at once. */
 async function bestCardImage(name: string): Promise<string | undefined> {
-  const [classic, any] = await Promise.all([searchCardImage(name, 'Rare Holo'), searchCardImage(name)]);
-  return classic ?? any;
+  const classic = await searchCardImage(name, 'Rare Holo');
+  return classic ?? searchCardImage(name);
 }
 
 /**
@@ -82,4 +98,19 @@ export async function tcgCardArtUrl(
 ): Promise<string | undefined> {
   const base = await tcgCardImageBase(species);
   return base ? `${base}/${quality}.${ext}` : undefined;
+}
+
+/**
+ * Routes a card image through wsrv.nl (a free image resizing proxy) to have
+ * it downscaled server-side before it reaches the browser. Even `low`
+ * quality is still a full card scan — every pixel beyond what a ~150px-wide
+ * cropped window (see .card-art-window in app.css) actually shows is bytes
+ * spent on detail that gets thrown away, times up to ten cards on the draft
+ * screen at once. `width` is sized for the window's on-screen footprint at
+ * up to 2x device pixel ratio, well above what it displays but far below a
+ * full scan. Purely an optimization: if the proxy is ever unreachable, the
+ * caller falls back to the direct TCGdex URL (see CardArt in SixOhDraft.tsx).
+ */
+export function resizedCardArtUrl(url: string, width = 240): string {
+  return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=${width}&output=webp&q=80`;
 }
