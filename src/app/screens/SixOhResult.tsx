@@ -19,7 +19,7 @@ function RosterIcons({sets, className, tiled}: {sets: PokemonSet[]; className?: 
             className="mon-tile"
             style={{backgroundImage: typeGradient(gen9().species.get(set.species)?.types ?? [])}}
           >
-            <span style={Icons.getPokemon(set.species).css} title={set.species} />
+            <span className="team-icon" style={Icons.getPokemon(set.species).css} title={set.species} />
           </span>
         ) : (
           <span key={i} className="team-icon" style={Icons.getPokemon(set.species).css} title={set.species} />
