@@ -37,7 +37,10 @@ export const FAST: SearchConfig = {
   // lever in logs/ai-round-report.md) — the extra switch branch dilutes the
   // root equilibrium more than it helps at this depth.
   rootSwitchK: 2,
-  rootTeraVariants: 2,
+  // Widened 2->3: Round 1 added a new competitor (defensive Tera+Status)
+  // for the same slots Tera attacks already fill, and 3 won its A/B 25/40
+  // (63% of decided) — see logs/tera-variants-round.md.
+  rootTeraVariants: 3,
   // Shipped default: won its A/B 22/40 (55% of decided) with a confirmed-live
   // behavioral probe (logs/tera-defense-round.md) — Tera+Status/setup lines
   // now compete for a root tera slot on defensive merit, not just offense.

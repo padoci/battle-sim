@@ -158,8 +158,12 @@ describe('rootCandidates / interiorCandidates', () => {
     const table2 = buildCalcTable(gen, [p1, p2]);
     const state = extractState(battle);
 
+    // Pinned to 2 slots regardless of FAST's shipped rootTeraVariants (a
+    // separate, later-widened lever — logs/tera-variants-round.md) so this
+    // isolates teraDefenseWeight specifically: 3 candidates competing for 2
+    // slots is what actually exercises the cut.
     const teraSlots = (cfg: typeof FAST) =>
-      rootCandidates(battle, 0, state, table2, cfg)
+      rootCandidates(battle, 0, state, table2, {...cfg, rootTeraVariants: 2})
         .filter(a => a.kind === 'move' && a.tera)
         .map(a => (a as {slot: number}).slot);
 
