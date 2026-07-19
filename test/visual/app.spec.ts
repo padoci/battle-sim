@@ -44,6 +44,12 @@ test('retro battle stage — chrome + sprites', async ({page}, testInfo) => {
   }
   await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
   await page.waitForSelector('.battle-stage', {timeout: 120_000});
+  // Drop to the slowest speed immediately so the replay clock all but stops —
+  // at the default 2x, enough beats (switches, faints, boost stacking) play
+  // out during Playwright's screenshot-stability polling to change the DOM
+  // structure itself (not just pixels a mask can cover), which no amount of
+  // masking can stabilize.
+  await page.getByLabel('Playback speed').fill('0.1');
   await page.waitForSelector('.hp-bar', {timeout: 30_000});
 
   // Snapshot the deterministic lead-in immediately: both leads out at full HP.
