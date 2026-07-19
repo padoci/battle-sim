@@ -4,7 +4,15 @@
  * trading-card visual language. This is presentation-only "flavor" art (not
  * game data), so a lookup miss just means falling back to the existing
  * @pkmn/img icon — never a hard failure.
+ *
+ * Species→art is resolved ONCE, offline, by scripts/generate-tcg-art-map.mjs
+ * (mirrors the matching logic below) and checked in as tcgArtMap.json — a
+ * card draft never needs to hit the TCGdex search API itself, only fetch
+ * the (proxied, resized) image for whatever tcgArtMap.json already points
+ * at. The live search code below only runs for a species that map doesn't
+ * cover yet (e.g. one added since the map was last generated).
  */
+import artMap from './tcgArtMap.json';
 
 const CARDS_ENDPOINT = 'https://api.tcgdex.net/v2/en/cards';
 
@@ -22,6 +30,28 @@ const cache = new Map<string, Promise<string | undefined>>();
 function baseSpeciesName(species: string): string | undefined {
   const i = species.indexOf('-');
   return i > 0 ? species.slice(0, i) : undefined;
+}
+
+/** Showdown writes regional forms as "Species-Region" (e.g. "Slowking-Galar",
+ * "Moltres-Galar"); the TCG prints them as "Region-adjective Species" (e.g.
+ * "Galarian Slowking"). Without this, a search for "Slowking-Galar" never
+ * matches and silently falls back to whatever plain "Slowking" print turns
+ * up — the wrong color palette and type for a regional form. Only covers
+ * the regions with a well-established, consistent TCG naming convention;
+ * anything else (Therian, Origin, Primal, ...) still falls back to the base
+ * species below, same as before. */
+const REGIONAL_FORM_ADJECTIVES: Record<string, string> = {
+  Alola: 'Alolan',
+  Galar: 'Galarian',
+  Hisui: 'Hisuian',
+  Paldea: 'Paldean',
+};
+
+function regionalFormName(species: string): string | undefined {
+  const i = species.indexOf('-');
+  if (i < 0) return undefined;
+  const adjective = REGIONAL_FORM_ADJECTIVES[species.slice(i + 1)];
+  return adjective ? `${adjective} ${species.slice(0, i)}` : undefined;
 }
 
 /** TCGdex's search is "laxist" (fuzzy substring, its own docs' word) rather
@@ -65,19 +95,30 @@ async function bestCardImage(name: string): Promise<string | undefined> {
   return classic ?? searchCardImage(name);
 }
 
+async function resolveCardImage(species: string): Promise<string | undefined> {
+  const direct = await bestCardImage(species);
+  if (direct) return direct;
+  const regional = regionalFormName(species);
+  if (regional) {
+    const viaRegionalName = await bestCardImage(regional);
+    if (viaRegionalName) return viaRegionalName;
+  }
+  const base = baseSpeciesName(species);
+  return base ? bestCardImage(base) : undefined;
+}
+
 /**
  * Resolves a species to a TCGdex card image URL (a base path — callers
  * append `/<quality>.<ext>`, e.g. `/high.webp`), or `undefined` if no card
  * art could be found. Cached per species for the life of the page.
  */
 export function tcgCardImageBase(species: string): Promise<string | undefined> {
+  const embedded = (artMap as Record<string, string>)[species];
+  if (embedded) return Promise.resolve(embedded);
+
   let promise = cache.get(species);
   if (!promise) {
-    promise = bestCardImage(species).then(image => {
-      if (image) return image;
-      const base = baseSpeciesName(species);
-      return base ? bestCardImage(base) : undefined;
-    });
+    promise = resolveCardImage(species);
     cache.set(species, promise);
   }
   return promise;

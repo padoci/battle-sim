@@ -76,6 +76,17 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Generate TCGdex art map (bootstrap on first run)
+        run: |
+          if [ "$(cat src/data/tcgArtMap.json)" = "{}" ]; then
+            echo "::notice::Art map is empty — resolving it against the real TCGdex API and committing."
+            node scripts/generate-tcg-art-map.mjs
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/data/tcgArtMap.json
+            git commit -m "chore: bootstrap TCGdex art map [skip ci]"
+            git push
+          fi
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Compare against baselines (bootstrap them on first run)
