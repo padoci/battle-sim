@@ -1,9 +1,10 @@
+import {Teams} from '@pkmn/sim';
 import {describe, expect, it} from 'vitest';
 import {MemoryStore} from '../../src/data/cache';
 import type {DataClient} from '../../src/data/client';
 import {fetchSampleTeams, loadOpponentTeams, mergeTeams} from '../../src/data/sampleTeams';
 import {setToTeamMember, teamMemberToSet} from '../../src/data/team';
-import type {Team} from '../../src/data/types';
+import type {PokemonSet, Team} from '../../src/data/types';
 
 const LEGAL_TEAM = `Great Tusk @ Heavy-Duty Boots
 Ability: Protosynthesis
@@ -168,6 +169,26 @@ describe('fetchSampleTeams', () => {
     expect(teams[0].data.map(m => m.species)).toContain('Great Tusk');
   });
 
+  it('resolves crob.at refs via /api/team/:slug, not a pokepaste-style /json suffix', async () => {
+    // crob.at's team pages don't answer a `/json` suffix — its real API is
+    // `/api/team/:slug`, returning `{..., teams: [{paste}]}`. This is a
+    // regression test for that exact shape mismatch.
+    const index = [{name: 'Spikestack', author: 'noonemorebased', url: 'https://crob.at/4kyuAXc4'}];
+    const {fetchFn} = stubFetch(index, {
+      'https://crob.at/api/team/4kyuAXc4': {
+        slug: '4kyuAXc4',
+        name: 'Spikestack',
+        author: 'noonemorebased',
+        teams: [{format: 'gen9ou', name: 'Spikestack', paste: LEGAL_TEAM}],
+      },
+    });
+    const teams = await fetchSampleTeams({store: new MemoryStore(), fetchFn, indexUrl: 'https://crob.at/api/samples/gen9ou'});
+    expect(teams).toHaveLength(1);
+    expect(teams[0].name).toBe('Spikestack');
+    expect(teams[0].author).toBe('noonemorebased');
+    expect(teams[0].data).toHaveLength(6);
+  });
+
   it('accepts inline export text in the index (no round-trip)', async () => {
     const index = {teams: [{name: 'Inline', paste: LEGAL_TEAM}]};
     const {fetchFn, calls} = stubFetch(index, {});
@@ -205,8 +226,13 @@ describe('fetchSampleTeams', () => {
 });
 
 describe('loadOpponentTeams — built-in pool + vendored pack (no runtime fetch)', () => {
-  // Distinct fake species so this base team never dedups against a real vendored one.
-  const baseTeam: Team = {name: 'Base', data: ['Zx1', 'Zx2', 'Zx3', 'Zx4', 'Zx5', 'Zx6'].map(s => ({species: s, ability: '', moves: []}))};
+  // A real, legal team (species distinct from every vendored one, so it never
+  // dedups against a real vendored team) — must be legal, since loadOpponentTeams
+  // now revalidates the base pool against the current ruleset too.
+  const baseTeam: Team = {
+    name: 'Base',
+    data: (Teams.import(LEGAL_TEAM) as unknown as PokemonSet[]).map(setToTeamMember),
+  };
 
   it('merges the built-in teams with the vendored sample teams', async () => {
     const client = {teams: async () => [baseTeam]} as unknown as DataClient;

@@ -1,12 +1,16 @@
 import {Teams, TeamValidator} from '@pkmn/sim';
 import type {KVStore} from './cache';
 import type {DataClient} from './client';
-import {setToTeamMember} from './team';
+import {setToTeamMember, teamMemberToSet} from './team';
 import type {PokemonSet, Team} from './types';
+import minedTeamsJson from './mined-teams.gen9ou.json';
 import vendoredTeamsJson from './vendored-teams.gen9ou.json';
 
 /** Real sample teams shipped as a static asset (see scripts/build-sample-teams.ts). */
 const vendoredTeams = vendoredTeamsJson as unknown as Team[];
+/** Real high-ladder team *compositions* paired with a standard build per
+ *  species, mined from public replays (see scripts/mine-ladder-teams.ts). */
+const minedTeams = minedTeamsJson as unknown as Team[];
 
 /**
  * Augment the built-in opponent pool with real, externally-sourced teams
@@ -27,8 +31,9 @@ const TTL_MS = 24 * 60 * 60 * 1000;
 /** A failed/empty attempt is negative-cached this long so a dead/blocked source
  *  doesn't re-fetch on every navigation (but recovers within the hour). */
 const NEGATIVE_TTL_MS = 60 * 60 * 1000;
-/** Cap the fan-out: bounded fetches, aggressively cached. */
-const MAX_TEAMS = 12;
+/** Cap the fan-out: bounded fetches, aggressively cached. Well above the
+ *  source's current size (~21) so it can grow without another code change. */
+const MAX_TEAMS = 40;
 const CONCURRENCY = 6;
 /** Hard cap on the whole network fetch — it can never hang. */
 const FETCH_TIMEOUT_MS = 8000;
@@ -97,6 +102,28 @@ function toRef(item: unknown): SampleRef | undefined {
   return undefined;
 }
 
+/**
+ * crob.at is its own team-storage site, not a pokepaste-compatible host — its
+ * team pages don't answer a `/json` suffix (that 404s or, worse, 200s with the
+ * HTML page itself). Its real API is documented at https://crob.at/api:
+ * `GET /api/team/:slug` returns `{..., teams: [{paste}]}`. Everything else
+ * (pokepast.es and compatible hosts) keeps the plain `/json` → `{paste}` shape.
+ */
+function apiRequestFor(url: string): {apiUrl: string; extractPaste: (body: unknown) => string | undefined} {
+  const trimmed = url.replace(/\/+$/, '');
+  const crobAt = /^https?:\/\/crob\.at\/([^/]+)$/i.exec(trimmed);
+  if (crobAt) {
+    return {
+      apiUrl: `https://crob.at/api/team/${crobAt[1]}`,
+      extractPaste: body => (body as {teams?: Array<{paste?: string}>} | undefined)?.teams?.[0]?.paste,
+    };
+  }
+  return {
+    apiUrl: `${trimmed}/json`,
+    extractPaste: body => (body as {paste?: string} | undefined)?.paste,
+  };
+}
+
 async function resolveExport(
   ref: SampleRef,
   fetchFn: typeof fetch,
@@ -104,13 +131,18 @@ async function resolveExport(
 ): Promise<ResolvedExport | undefined> {
   if (ref.paste) return {text: ref.paste, title: ref.title, author: ref.author};
   if (!ref.url) return undefined;
-  const jsonUrl = `${ref.url.replace(/\/+$/, '')}/json`;
+  const {apiUrl, extractPaste} = apiRequestFor(ref.url);
   try {
-    const res = await fetchFn(jsonUrl, {signal});
+    const res = await fetchFn(apiUrl, {signal});
     if (!res.ok) return undefined;
-    const body = (await res.json()) as {paste?: string; title?: string; author?: string};
-    if (!body.paste) return undefined;
-    return {text: body.paste, title: ref.title ?? strOrNull(body.title), author: ref.author ?? strOrNull(body.author)};
+    const body = (await res.json()) as {title?: string; name?: string; author?: string};
+    const paste = extractPaste(body);
+    if (!paste) return undefined;
+    return {
+      text: paste,
+      title: ref.title ?? strOrNull(body.title ?? body.name),
+      author: ref.author ?? strOrNull(body.author),
+    };
   } catch {
     return undefined;
   }
@@ -233,9 +265,29 @@ export function mergeTeams(...groups: Team[][]): Team[] {
 }
 
 /**
- * The full opponent pool for a client: the built-in `/teams` set plus the
+ * Drop any team the current ruleset no longer allows — e.g. a species
+ * suspended to Ubers after a source's snapshot was taken. The crob.at/vendored
+ * build pipeline already validates before including a team (see `toTeam`
+ * above); this closes the same gap for `data.pkmn.cc`'s `/teams` resource,
+ * which is fetched fresh on every load and isn't guaranteed to be revalidated
+ * against ban changes upstream.
+ */
+function dropIllegal(teams: Team[], validator: TeamValidator): Team[] {
+  return teams.filter(team => {
+    try {
+      return (validator.validateTeam(team.data.map(teamMemberToSet) as never) ?? []).length === 0;
+    } catch {
+      return false;
+    }
+  });
+}
+
+/**
+ * The full opponent pool for a client: the built-in `/teams` set, the
  * **vendored** sample teams (`vendored-teams.gen9ou.json`, built server-side by
- * scripts/build-sample-teams.ts and shipped as a static import), deduped.
+ * scripts/build-sample-teams.ts), and the **mined** high-ladder teams
+ * (`mined-teams.gen9ou.json`, built by scripts/mine-ladder-teams.ts) — all
+ * re-validated against the current ruleset, deduped.
  *
  * This is synchronous once `client.teams()` resolves — no runtime network fetch,
  * so it can never stall "Dealing your first hand…" or CORS-fail in the browser
@@ -243,5 +295,10 @@ export function mergeTeams(...groups: Team[][]): Team[] {
  */
 export async function loadOpponentTeams(client: DataClient): Promise<Team[]> {
   const base = await client.teams();
-  return mergeTeams(base, vendoredTeams);
+  const validator = new TeamValidator('gen9ou');
+  return mergeTeams(
+    dropIllegal(base, validator),
+    dropIllegal(vendoredTeams, validator),
+    dropIllegal(minedTeams, validator)
+  );
 }
