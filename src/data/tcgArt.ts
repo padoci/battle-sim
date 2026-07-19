@@ -54,10 +54,17 @@ export function tcgCardImageBase(species: string): Promise<string | undefined> {
   return promise;
 }
 
-/** Convenience wrapper returning a ready-to-use `<img src>`. */
+/**
+ * Convenience wrapper returning a ready-to-use `<img src>`. Defaults to
+ * `low` quality: every card is displayed cropped down to a small illustration
+ * window (see .card-art-crop in app.css), so the full-resolution scan buys
+ * nothing visually while costing a lot of load time across a ten-card hand —
+ * `low` is a fraction of the size of `high` and still looks sharp once
+ * cropped and scaled to the small window.
+ */
 export async function tcgCardArtUrl(
   species: string,
-  quality: 'high' | 'low' = 'high',
+  quality: 'high' | 'low' = 'low',
   ext: 'webp' | 'png' = 'webp'
 ): Promise<string | undefined> {
   const base = await tcgCardImageBase(species);

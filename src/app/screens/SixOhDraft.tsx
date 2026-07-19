@@ -56,7 +56,7 @@ function fanTransform(index: number, count: number, rotateStepDeg: number, dipPx
 function CardArt({species}: {species: string}) {
   const url = useTcgArt(species);
   if (url) {
-    return <img className="card-art" src={url} alt={species} loading="lazy" />;
+    return <img className="card-art" src={url} alt={species} loading="lazy" decoding="async" />;
   }
   return <span className="card-art-fallback" style={Icons.getPokemon(species).css} />;
 }

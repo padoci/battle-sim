@@ -1212,9 +1212,17 @@ button.primary:disabled {
 
 /* Card art window: a type-gradient tile with a soft radial highlight behind
    the TCGdex print art (or the @pkmn/img icon while it loads / if no print
-   was found). */
+   was found). TCGdex only serves the full card scan (no artwork-only crop
+   endpoint), so .card-art crops down to just the illustration itself — an
+   oversized, offset background rather than the whole card with its own
+   name/HP/border baked in. The crop rectangle (art_left/top/w/h below) is a
+   best-effort estimate of the standard modern card template's art region,
+   not pixel-calibrated against a real render — this sandbox can't reach the
+   TCGdex CDN to check, so treat it as a first pass to eyeball and correct
+   once it's actually visible. */
 .card-art-window {
   position: relative;
+  aspect-ratio: 1.236;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.4);
@@ -1222,12 +1230,7 @@ button.primary:disabled {
   background-blend-mode: normal;
 }
 
-.offer-grid.ten .card-art-window {
-  height: 118px;
-}
-
 .offer-grid.bundles .card-art-window {
-  height: 96px;
   border-radius: 0;
 }
 
@@ -1243,30 +1246,27 @@ button.primary:disabled {
   font-size: 0.5rem;
 }
 
+/* art_left: 5%, art_top: 8%, art_w: 90%, art_h: 52% of the full card scan —
+   scaled up by 1/art_w and 1/art_h respectively, then shifted by
+   -(art_top/art_h) and -(art_left/art_w) so that region fills the window. */
 .card-art {
   position: absolute;
-  bottom: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 84%;
-  height: 96%;
-  object-fit: contain;
-  object-position: bottom;
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.28));
+  top: -15.38%;
+  left: -5.56%;
+  width: 111.11%;
+  height: 192.31%;
+  object-fit: cover;
 }
 
+/* Icons.getPokemon().css sets fixed pixel width/height + a background-position
+   offset into a shared spritesheet (inline, so it wins over any CSS width/
+   height/background-position here) — center it in the window and scale it up
+   with a transform instead, which the inline style doesn't touch. */
 .card-art-fallback {
   position: absolute;
-  bottom: 6px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%) scale(1.8);
-  transform-origin: bottom center;
-}
-
-/* The art window is much taller than a tray tile — scale the icon fallback
-   up further so a card with no TCGdex print doesn't look sparse. */
-.card-art-window .card-art-fallback {
-  transform: translateX(-50%) scale(2.6);
+  transform: translate(-50%, -50%) scale(2.2);
 }
 
 .card-footer {
@@ -1528,9 +1528,12 @@ button.primary:disabled {
   100% { transform: scale(1); }
 }
 
+/* Matches .card-art-window's 1.236 aspect ratio so CardArt's crop offsets
+   (computed for that ratio) land on the same region here, not a squashed
+   version of it. */
 .tray-slot .mon-tile {
-  width: 62px;
-  height: 62px;
+  width: 68px;
+  height: 55px;
 }
 
 .tray-name {
