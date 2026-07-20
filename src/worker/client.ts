@@ -25,9 +25,21 @@ export function createSimClient(): SimClient {
   const worker = new Worker(new URL('./sim.worker.ts', import.meta.url), {type: 'module'});
   let nextId = 1;
   let inFlightId: number | null = null;
+  // Set once the worker dies (failed to load, threw uncaught, or sent an
+  // unparseable message) - no further message from it can be trusted, so
+  // every pending and future call fails fast with this instead of hanging.
+  let fatalError: Error | null = null;
 
   let readyResolve!: (ms: number) => void;
-  const ready = new Promise<number>(resolve => (readyResolve = resolve));
+  let readyReject!: (error: Error) => void;
+  const ready = new Promise<number>((resolve, reject) => {
+    readyResolve = resolve;
+    readyReject = reject;
+  });
+  // Nobody may ever await `ready` (run() surfaces the same fatalError to its
+  // own caller) - without this, a worker that fails before anyone reads
+  // `ready` would log an unhandled-rejection warning.
+  ready.catch(() => {});
 
   const pending = new Map<
     number,
@@ -37,6 +49,23 @@ export function createSimClient(): SimClient {
       onProgress?: (done: number, total: number, result: BattleResult) => void;
     }
   >();
+
+  function fail(error: Error) {
+    if (fatalError) return;
+    fatalError = error;
+    readyReject(error);
+    inFlightId = null;
+    for (const job of pending.values()) job.reject(error);
+    pending.clear();
+  }
+
+  worker.onerror = (event: ErrorEvent) => {
+    fail(new Error(`sim worker error: ${event.message || 'the worker failed to load or threw uncaught'}`));
+    event.preventDefault();
+  };
+  worker.onmessageerror = () => {
+    fail(new Error('sim worker sent an unparseable message'));
+  };
 
   worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
     const message = event.data;
@@ -62,6 +91,7 @@ export function createSimClient(): SimClient {
   return {
     ready,
     run(jobs, onProgress) {
+      if (fatalError) return Promise.reject(fatalError);
       const id = nextId++;
       inFlightId = id;
       return new Promise((resolve, reject) => {
