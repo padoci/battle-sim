@@ -356,7 +356,9 @@ export function SixOhGauntlet() {
     navigate('sixoh-draft');
   };
   const retry = () => {
-    retryBattle(index);
+    // Retry the rung that actually failed - a prefetched next rung can error
+    // while the on-screen one is still fine, so this isn't always `index`.
+    retryBattle(state.errorIndex ?? index);
     dispatch({type: 'CLEAR_ERROR'});
   };
 
@@ -429,27 +431,34 @@ export function SixOhGauntlet() {
           Battle {index + 1} of {state.opponents.length} — vs {state.opponents[index]?.name}
         </h2>
 
-        {!state.error && (battle?.phase === 'pending' || battle?.phase === 'computing') && (
-          <div className="simulating">
-            <div className="pulse" />
-            <p>
-              Simulating battle {index + 1}… <span className="mono">{elapsed}s</span>
-            </p>
-            <p className="hint">Both AIs are searching every turn. This is the real thing.</p>
-          </div>
-        )}
+        {/* A prefetched next rung can error while this on-screen rung is
+            still fine (still computing, or replaying a win) - only treat the
+            error as blocking THIS rung's display when it's actually the one
+            that failed; otherwise it surfaces once the run reaches it. */}
+        {(!state.error || state.errorIndex !== index) &&
+          (battle?.phase === 'pending' || battle?.phase === 'computing') && (
+            <div className="simulating">
+              <div className="pulse" />
+              <p>
+                Simulating battle {index + 1}… <span className="mono">{elapsed}s</span>
+              </p>
+              <p className="hint">Both AIs are searching every turn. This is the real thing.</p>
+            </div>
+          )}
 
-        {!state.error && (battle?.phase === 'ready' || battle?.phase === 'replaying') && beats && (
-          <BattleStage
-            team={state.team}
-            opponentSets={state.opponents[index].sets}
-            beats={beats}
-            sceneIndex={index}
-            onDone={() => dispatch({type: 'REPLAY_FINISHED', index})}
-          />
-        )}
+        {(!state.error || state.errorIndex !== index) &&
+          (battle?.phase === 'ready' || battle?.phase === 'replaying') &&
+          beats && (
+            <BattleStage
+              team={state.team}
+              opponentSets={state.opponents[index].sets}
+              beats={beats}
+              sceneIndex={index}
+              onDone={() => dispatch({type: 'REPLAY_FINISHED', index})}
+            />
+          )}
 
-        {state.error && (
+        {state.error && state.errorIndex === index && (
           <div className="empty-state">
             <p className="problems">Battle {index + 1} failed: {state.error}</p>
             <div className="result-actions">

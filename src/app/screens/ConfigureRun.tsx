@@ -11,7 +11,7 @@ import {clampN} from '../clamp';
 import {navigate} from '../router';
 import {useAppDispatch, useAppState, type PoolEntryWithMeta} from '../state';
 
-function PoolRow({entry}: {entry: PoolEntryWithMeta}) {
+function PoolRow({entry, locked}: {entry: PoolEntryWithMeta; locked: boolean}) {
   const dispatch = useAppDispatch();
   return (
     <tr className={entry.enabled ? '' : 'pool-row-off'}>
@@ -19,6 +19,7 @@ function PoolRow({entry}: {entry: PoolEntryWithMeta}) {
         <input
           type="checkbox"
           checked={entry.enabled}
+          disabled={locked}
           onChange={event =>
             dispatch({type: 'UPDATE_POOL_ENTRY', teamId: entry.teamId, patch: {enabled: event.target.checked}})
           }
@@ -43,6 +44,7 @@ function PoolRow({entry}: {entry: PoolEntryWithMeta}) {
           min={0}
           max={9}
           value={entry.weight}
+          disabled={locked}
           onChange={event =>
             dispatch({
               type: 'UPDATE_POOL_ENTRY',
@@ -101,6 +103,11 @@ export function ConfigureRun() {
   const {run, team, pool} = state;
   const enabledCount = pool.filter(p => p.enabled && p.weight > 0).length;
   const done = run.battles.length;
+  // A weight/enabled edit only ever reaches the scheduler at the next
+  // calibrate()/extend() call - once a run is in flight (or finished) there's
+  // no way to feed an edit back in, so lock the table rather than let it
+  // silently do nothing.
+  const poolLocked = run.status !== 'idle' && run.status !== 'calibrated';
 
   if (!team) {
     return (
@@ -133,13 +140,21 @@ export function ConfigureRun() {
     dispatch({type: 'RUN_STATUS', status: 'running'});
     try {
       const runner = getRunner(team.sets);
-      const outcome = await runner.extend(run.n, done, update => {
-        dispatch({
-          type: 'BATTLE_DONE',
-          battle: {teamId: update.teamId, result: update.result},
-          emaMsPerBattle: update.emaMsPerBattle,
-        });
-      });
+      // Re-init the scheduler from the current pool: weights/enabled flags
+      // may have changed since calibrate() first captured it, and the pool
+      // table stays editable right up until this click (locked afterward).
+      const outcome = await runner.extend(
+        run.n,
+        done,
+        update => {
+          dispatch({
+            type: 'BATTLE_DONE',
+            battle: {teamId: update.teamId, result: update.result},
+            emaMsPerBattle: update.emaMsPerBattle,
+          });
+        },
+        pool
+      );
       dispatch({type: 'RUN_STATUS', status: outcome.aborted ? 'cancelled' : 'done'});
       navigate('test-results');
     } catch (error) {
@@ -175,11 +190,14 @@ export function ConfigureRun() {
           </thead>
           <tbody>
             {pool.map(entry => (
-              <PoolRow key={entry.teamId} entry={entry} />
+              <PoolRow key={entry.teamId} entry={entry} locked={poolLocked} />
             ))}
           </tbody>
         </table>
       </div>
+      {poolLocked && (
+        <p className="hint">Pool locks once a run starts — cancel and reset to change it.</p>
+      )}
 
       {run.status === 'idle' && (
         <section className="run-controls">

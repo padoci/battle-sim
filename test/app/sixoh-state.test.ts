@@ -84,13 +84,36 @@ describe('sixOhReducer', () => {
   it('CLEAR_ERROR clears the error and resets the current rung to pending (retry)', () => {
     let state = freshRun();
     state = sixOhReducer(state, {type: 'BATTLE_COMPUTING', index: 0});
-    state = sixOhReducer(state, {type: 'RUN_ERROR', error: 'worker died'});
+    state = sixOhReducer(state, {type: 'RUN_ERROR', index: 0, error: 'worker died'});
     expect(state.error).toBe('worker died');
+    expect(state.errorIndex).toBe(0);
     expect(state.battles[0].phase).toBe('computing');
 
     const cleared = sixOhReducer(state, {type: 'CLEAR_ERROR'});
     expect(cleared.error).toBeUndefined();
+    expect(cleared.errorIndex).toBeUndefined();
     expect(cleared.battles[0].phase).toBe('pending');
     expect(cleared.battles[0].result).toBeUndefined();
+  });
+
+  it('a prefetched rung failing does not disturb the currently-displayed rung (retry targets the real failure)', () => {
+    let state = freshRun();
+    // Rung 0 is still on screen, mid-computation - not yet won, so battleIndex stays 0.
+    state = sixOhReducer(state, {type: 'BATTLE_COMPUTING', index: 0});
+    // A prefetch of a LATER rung (as ensureComputed can submit ahead of the
+    // displayed one once a win lands) fails instead.
+    state = sixOhReducer(state, {type: 'BATTLE_COMPUTING', index: 1});
+    state = sixOhReducer(state, {type: 'RUN_ERROR', index: 1, error: 'worker died'});
+
+    expect(state.battleIndex).toBe(0);
+    expect(state.errorIndex).toBe(1);
+    // The on-screen rung must be untouched by an error that belongs to rung 1.
+    expect(state.battles[0].phase).toBe('computing');
+
+    const cleared = sixOhReducer(state, {type: 'CLEAR_ERROR'});
+    expect(cleared.error).toBeUndefined();
+    // Retry must reset the rung that actually failed (1), not the displayed one (0).
+    expect(cleared.battles[1].phase).toBe('pending');
+    expect(cleared.battles[0].phase).toBe('computing');
   });
 });

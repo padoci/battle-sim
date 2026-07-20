@@ -26,6 +26,10 @@ export interface SixOhState {
   phase: 'draft' | 'gauntlet' | 'finished';
   outcome?: 'flawless' | 'eliminated';
   error?: string;
+  /** Which rung `error` belongs to - the failure can be a prefetched rung
+   * ahead of `battleIndex` (see ensureComputed), not necessarily the one
+   * currently on screen. */
+  errorIndex?: number;
 }
 
 export type SixOhAction =
@@ -36,7 +40,7 @@ export type SixOhAction =
   | {type: 'BATTLE_COMPUTED'; index: number; result: BattleResult}
   | {type: 'REPLAY_STARTED'; index: number}
   | {type: 'REPLAY_FINISHED'; index: number}
-  | {type: 'RUN_ERROR'; error: string}
+  | {type: 'RUN_ERROR'; index: number; error: string}
   | {type: 'CLEAR_ERROR'}
   | {type: 'RESET'};
 
@@ -97,14 +101,18 @@ export function sixOhReducer(state: SixOhState, action: SixOhAction): SixOhState
       return {...next, record, battleIndex: action.index + 1};
     }
     case 'RUN_ERROR':
-      return {...state, error: action.error};
-    case 'CLEAR_ERROR':
-      // Retry: drop the error and reset the current rung so it recomputes.
-      return patchBattle({...state, error: undefined}, state.battleIndex, battle => ({
+      return {...state, error: action.error, errorIndex: action.index};
+    case 'CLEAR_ERROR': {
+      // Retry: drop the error and reset the rung that actually failed (which
+      // may be a prefetched rung ahead of battleIndex, not the on-screen one)
+      // so it recomputes.
+      const target = state.errorIndex ?? state.battleIndex;
+      return patchBattle({...state, error: undefined, errorIndex: undefined}, target, battle => ({
         ...battle,
         phase: 'pending',
         result: undefined,
       }));
+    }
     case 'RESET':
       return initialSixOhState;
   }

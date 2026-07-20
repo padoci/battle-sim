@@ -109,7 +109,7 @@ export function ensureComputed(
       .then(({results}) => {
         if (results[0]) dispatch({type: 'BATTLE_COMPUTED', index, result: results[0]});
       })
-      .catch(error => dispatch({type: 'RUN_ERROR', error: String(error)}));
+      .catch(error => dispatch({type: 'RUN_ERROR', index, error: String(error)}));
   };
 
   const current = state.battles[state.battleIndex];

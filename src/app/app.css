@@ -248,6 +248,12 @@ main.landing {
   max-width: 980px;
   margin: 0 auto;
   padding: 1.5rem;
+  /* .shell is a column flexbox (see below) and main is its stretched flex
+     item - flex items default to min-width: auto, which floors width at the
+     content's min-content size. Deep non-wrapping content (the mode-toggle's
+     hint text, the fanned draft hand) would otherwise force this - and with
+     it the whole viewport - wider than the screen on narrow devices. */
+  min-width: 0;
 }
 
 /* Landing has nothing below the hero/mode-cards, so without this the
@@ -2678,6 +2684,16 @@ button.primary:disabled {
   .mode-toggle {
     flex-direction: column;
     width: 100%;
+  }
+  /* The gauntlet-ahead ladder rungs (number + name + archetype tag + 6 fixed-
+     size roster icons, all nowrap) don't fit a narrow screen on one line -
+     wrap the icon row onto its own line rather than force horizontal scroll. */
+  .ladder-rung {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+  }
+  .rung-icons {
+    flex-basis: 100%;
   }
   .stage-field {
     height: 220px;
