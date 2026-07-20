@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /dev
+Disallow: /dev.html
+Disallow: /measure
+Disallow: /measure.html
