@@ -61,6 +61,30 @@ describe('cachedJson', () => {
     expect(calls).toEqual(URLS);
   });
 
+  it('fails over to the mirror when the primary stalls, within the timeout', async () => {
+    const store = new MemoryStore();
+    const calls: string[] = [];
+    const impl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      calls.push(url);
+      if (url.startsWith('https://primary')) {
+        // Never resolves on its own; only settles if aborted - simulates a
+        // primary that hangs rather than erroring or responding slowly.
+        return new Promise<Response>((_, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+        });
+      }
+      return new Response(JSON.stringify({from: 'mirror'}), {
+        status: 200,
+        headers: {'content-type': 'application/json'},
+      });
+    }) as typeof fetch;
+
+    const result = await cachedJson('x', URLS, {store, now: () => 0, fetchFn: impl, timeoutMs: 20});
+    expect(result.data).toEqual({from: 'mirror'});
+    expect(calls).toEqual(URLS);
+  });
+
   it('serves a stale entry when every source fails', async () => {
     const store = new MemoryStore();
     let time = 0;

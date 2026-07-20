@@ -8,6 +8,7 @@ export interface DataClientOptions {
   ttlMs?: number;
   now?: () => number;
   fetchFn?: typeof fetch;
+  timeoutMs?: number;
 }
 
 export interface ResourceMeta {
@@ -44,6 +45,7 @@ export class DataClient {
           ttlMs: this.options.ttlMs,
           now: this.options.now,
           fetchFn: this.options.fetchFn,
+          timeoutMs: this.options.timeoutMs,
         })
       );
       this.memo.set(resource, pending);

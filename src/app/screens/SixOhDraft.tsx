@@ -24,6 +24,11 @@ import {resetSixOhSession} from '../sixoh/session';
 import {useTcgArt} from '../sixoh/useTcgArt';
 import {resizedCardArtUrl} from '../../data/tcgArt';
 
+/** Above the ~10s a slow-but-failing-over data fetch takes (see cachedJson's
+ * per-URL timeout) with headroom for a genuinely slow connection, but still a
+ * hard ceiling so a stall never spins forever. */
+const LOAD_WATCHDOG_MS = 25_000;
+
 interface DraftData {
   pool: PoolEntry[];
   sets: SetsData;
@@ -132,12 +137,27 @@ export function SixOhDraft() {
     return raw === 'easy' || raw === 'hard' ? raw : 'normal';
   }, []);
 
-  // Load pool + sets + opponent teams, then deal the first hand.
+  // Load pool + sets + opponent teams, then deal the first hand. Guarded by a
+  // watchdog: a stall anywhere in this chain (a slow/hung fetch, IndexedDB
+  // taking unusually long to open, a slow synchronous TeamValidator pass over
+  // the opponent pool) would otherwise leave "Dealing your first hand…"
+  // spinning forever with no way out but a manual reload. The race surfaces
+  // the same error panel a rejection already gets, on a bounded timeout
+  // instead of an indefinite hang.
   useEffect(() => {
     if (state.draft || data) return;
+    let settled = false;
     const client = new DataClient('gen9ou');
+    const watchdog = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      setError('timed out loading the draft data — check your connection and reload');
+    }, LOAD_WATCHDOG_MS);
     Promise.all([client.pool(), client.sets(), loadOpponentTeams(client)])
       .then(([pool, sets, teams]) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
         const seed = dev.seed ?? Math.floor(Math.random() * 2 ** 31);
         const opponentIndices = sampleOpponents(teams.length, 6, seed ^ 0x0bb57);
         const opponents = opponentIndices.map(i => {
@@ -155,7 +175,16 @@ export function SixOhDraft() {
           opponents,
         });
       })
-      .catch(e => setError(String(e)));
+      .catch(e => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        setError(String(e));
+      });
+    return () => {
+      settled = true;
+      clearTimeout(watchdog);
+    };
   }, [state.draft, data, dispatch, dev.seed, initialMode]);
 
   const draft = state.draft;

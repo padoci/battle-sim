@@ -2,6 +2,11 @@ import type {KVStore} from './cache';
 
 export const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
 
+/** Hard per-URL network timeout: a stalled (not merely erroring) primary must
+ * still fail over to the next URL in bounded time rather than hang the whole
+ * load — see the AbortController pattern this mirrors in sampleTeams.ts. */
+export const DEFAULT_FETCH_TIMEOUT_MS = 8000;
+
 export interface CachedJsonOptions {
   store: KVStore;
   /** Cache freshness window; entries older than this are refetched. */
@@ -10,6 +15,8 @@ export interface CachedJsonOptions {
   now?: () => number;
   /** Injectable fetch for tests. */
   fetchFn?: typeof fetch;
+  /** Per-URL network timeout before failing over to the next URL. */
+  timeoutMs?: number;
 }
 
 export interface CachedJsonResult<T> {
@@ -30,7 +37,13 @@ export async function cachedJson<T>(
   urls: string[],
   options: CachedJsonOptions
 ): Promise<CachedJsonResult<T>> {
-  const {store, ttlMs = DEFAULT_TTL_MS, now = Date.now, fetchFn = fetch} = options;
+  const {
+    store,
+    ttlMs = DEFAULT_TTL_MS,
+    now = Date.now,
+    fetchFn = fetch,
+    timeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
+  } = options;
 
   const cached = await store.get(key);
   if (cached && now() - cached.fetchedAt < ttlMs) {
@@ -39,8 +52,10 @@ export async function cachedJson<T>(
 
   let lastError: unknown;
   for (const url of urls) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetchFn(url);
+      const response = await fetchFn(url, {signal: controller.signal});
       if (!response.ok) {
         lastError = new Error(`GET ${url} -> HTTP ${response.status}`);
         continue;
@@ -51,6 +66,8 @@ export async function cachedJson<T>(
       return {data, fetchedAt, fromCache: false};
     } catch (error) {
       lastError = error;
+    } finally {
+      clearTimeout(timer);
     }
   }
 
