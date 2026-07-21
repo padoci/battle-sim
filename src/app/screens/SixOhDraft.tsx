@@ -117,6 +117,7 @@ export function SixOhDraft() {
   const dispatch = useSixOhDispatch();
   const [data, setData] = useState<DraftData>();
   const [error, setError] = useState<string>();
+  const [loadElapsedMs, setLoadElapsedMs] = useState(0);
   const gen = useMemo(() => gen9(), []);
   const dev = useMemo(() => readDevParams(), []);
   // Starting difficulty from the hash (`#/sixoh?mode=hard`) so "Step up" and
@@ -142,11 +143,23 @@ export function SixOhDraft() {
       settled = true;
       setError('timed out loading the draft data — check your connection and reload');
     }, LOAD_WATCHDOG_MS);
+    // A slow-but-healthy fetch (the third-party data host being slow that
+    // moment, or a first visit with nothing cached yet — see cachedJson's
+    // per-URL timeout+failover) looks IDENTICAL to a hung one without this:
+    // a static "Dealing your first hand…" with no sense of elapsed time reads
+    // as broken well before the 25s watchdog, and is the direct cause of
+    // users refreshing a load that was actually still progressing normally.
+    const startedAt = Date.now();
+    const ticker = setInterval(() => {
+      if (settled) return;
+      setLoadElapsedMs(Date.now() - startedAt);
+    }, 1000);
     Promise.all([client.pool(), client.sets(), loadOpponentTeams(client)])
       .then(([pool, sets, realTeams]) => {
         if (settled) return;
         settled = true;
         clearTimeout(watchdog);
+        clearInterval(ticker);
         const loaded: DraftData = {pool, sets, realTeams, gymLeaderTeams: loadGymLeaderTeams()};
         const seed = dev.seed ?? Math.floor(Math.random() * 2 ** 31);
         const opponents = buildOpponents(initialMode, loaded, seed ^ 0x0bb57, gen);
@@ -164,11 +177,13 @@ export function SixOhDraft() {
         if (settled) return;
         settled = true;
         clearTimeout(watchdog);
+        clearInterval(ticker);
         setError(String(e));
       });
     return () => {
       settled = true;
       clearTimeout(watchdog);
+      clearInterval(ticker);
     };
   }, [state.draft, data, dispatch, dev.seed, initialMode, gen]);
 
@@ -202,7 +217,16 @@ export function SixOhDraft() {
   if (!draft || !data) {
     return (
       <main className="screen">
-        <div className="empty-state">Dealing your first hand…</div>
+        <div className="empty-state">
+          Dealing your first hand…
+          {loadElapsedMs > 3000 && (
+            <p className="load-status mono">
+              {loadElapsedMs > 7000
+                ? 'still working — the tier data host is responding slowly right now, hang tight'
+                : 'fetching the latest tier data…'}
+            </p>
+          )}
+        </div>
       </main>
     );
   }

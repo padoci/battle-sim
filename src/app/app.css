@@ -1072,6 +1072,12 @@ button.primary:disabled {
   color: var(--signal);
 }
 
+.empty-state .load-status {
+  margin: 0.5rem 0 0;
+  font-size: 0.85em;
+  opacity: 0.75;
+}
+
 /* "What to change" — prescriptive reads. */
 .suggestions h2,
 .suggestions h4 {

@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState, type CSSProperties} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState, type CSSProperties} from 'react';
 import {Icons, Sprites} from '@pkmn/img';
 import type {PokemonSet} from '../../data/types';
 import {parseProtocol} from '../../replay/parse';
@@ -383,6 +383,17 @@ export function SixOhGauntlet() {
     if (battle?.phase === 'ready') dispatch({type: 'REPLAY_STARTED', index});
   }, [battle?.phase, dispatch, index]);
 
+  // Memoized so BattleStage's usePlayback sees a STABLE onDone across
+  // renders this screen makes for unrelated reasons (most commonly a
+  // background rung-prefetch resolving while this battle is still
+  // replaying) — an inline `() => dispatch(...)` here is a new function
+  // reference every such render, which cascades through usePlayback's
+  // finish/step useCallbacks and retriggers its progress-reset effect,
+  // silently snapping the in-progress battle back to turn 0.
+  const handleReplayFinished = useCallback(() => {
+    dispatch({type: 'REPLAY_FINISHED', index});
+  }, [dispatch, index]);
+
   if (!state.team || state.phase === 'draft') {
     return (
       <main className="screen">
@@ -470,7 +481,7 @@ export function SixOhGauntlet() {
               opponentSets={state.opponents[index].sets}
               beats={beats}
               sceneIndex={index}
-              onDone={() => dispatch({type: 'REPLAY_FINISHED', index})}
+              onDone={handleReplayFinished}
             />
           )}
 

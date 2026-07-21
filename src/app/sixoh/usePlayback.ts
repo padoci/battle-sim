@@ -69,14 +69,25 @@ export function usePlayback(
   const speedRef = useRef<PlaybackSpeed>(speed);
   const viewRef = useRef<ViewState | undefined>();
   const doneRef = useRef(false);
+  const onDoneRef = useRef(onDone);
   speedRef.current = speed;
+  onDoneRef.current = onDone;
 
+  // Read via a ref rather than closing over `onDone` directly: callers
+  // routinely pass an inline callback that gets a new identity on every
+  // render (e.g. SixOhGauntlet re-rendering because an unrelated background
+  // rung-prefetch resolved while this battle is still replaying). If `finish`
+  // depended on `onDone`, that unrelated re-render would recreate `finish`,
+  // then `step` (which depends on `finish`), then retrigger the (re)start
+  // effect below (keyed on `step`) — silently wiping the in-progress battle
+  // back to turn 0. Reading the latest callback through a ref keeps `finish`
+  // (and therefore `step`) stable across those renders.
   const finish = useCallback(() => {
     if (doneRef.current) return;
     doneRef.current = true;
     setDone(true);
-    onDone();
-  }, [onDone]);
+    onDoneRef.current();
+  }, []);
 
   const step = useCallback(() => {
     if (!beats || !viewRef.current) return;
