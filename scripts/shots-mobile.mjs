@@ -31,12 +31,54 @@ Jolly Nature
 
 Kingambit @ Leftovers
 Ability: Supreme Overlord
+Tera Type: Ghost
 EVs: 112 HP / 252 Atk / 144 Spe
 Adamant Nature
 - Swords Dance
 - Kowtow Cleave
 - Sucker Punch
 - Iron Head
+
+Dragapult @ Choice Specs
+Ability: Infiltrator
+Tera Type: Ghost
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+- Shadow Ball
+- Draco Meteor
+- Flamethrower
+- U-turn
+
+Gholdengo @ Air Balloon
+Ability: Good as Gold
+Tera Type: Fighting
+EVs: 252 SpA / 4 SpD / 252 Spe
+Timid Nature
+- Make It Rain
+- Shadow Ball
+- Nasty Plot
+- Recover
+
+Gliscor @ Toxic Orb
+Ability: Poison Heal
+Tera Type: Water
+EVs: 244 HP / 248 SpD / 16 Spe
+Careful Nature
+- Earthquake
+- Knock Off
+- Protect
+- Spikes
+
+Slowking-Galar @ Heavy-Duty Boots
+Ability: Regenerator
+Tera Type: Water
+EVs: 248 HP / 8 Def / 252 SpD
+Sassy Nature
+IVs: 0 Atk / 0 Spe
+- Chilly Reception
+- Future Sight
+- Sludge Bomb
+- Thunder Wave
 `;
 
 async function routeData(page) {
@@ -78,14 +120,13 @@ async function main() {
     await page.screenshot({path: `${shotsDir}/mobile-draft.png`, fullPage: true});
     console.log('shot: mobile-draft');
 
-    // Retro battle stage: Easy mode (fast, random early opponent), draft via
-    // the two-stage flow, start the gauntlet, capture the first battle.
+    // Retro battle stage: Easy mode (fast, random early opponent), draft (one
+    // click per bundle — cards show a single committed build), start the
+    // gauntlet, capture the first battle.
     await page.locator('.mode-toggle button', {hasText: 'Easy'}).click();
     await page.waitForTimeout(200);
     for (let i = 0; i < 6; i++) {
       await page.locator('.offer-card').first().click();
-      await page.waitForSelector('.set-card', {timeout: 10_000});
-      await page.locator('.set-card').first().click();
       await page.waitForTimeout(120);
     }
     await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();

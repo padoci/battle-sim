@@ -40,11 +40,9 @@ test('Gen 5 battle stage — chrome + sprites', async ({page}, testInfo) => {
   await page.goto('/#/sixoh?config=fast&seed=41');
   await page.locator('.mode-toggle button', {hasText: 'Easy'}).click();
   await page.waitForTimeout(200);
-  // Two-stage draft: pick the first offer, then its first set, six times.
+  // Bundle cards show one committed build — drafting is a single click, six times.
   for (let i = 0; i < 6; i++) {
     await page.locator('.offer-card').first().click();
-    await page.waitForSelector('.set-card', {timeout: 15_000});
-    await page.locator('.set-card').first().click();
     await page.waitForTimeout(120);
   }
   await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
