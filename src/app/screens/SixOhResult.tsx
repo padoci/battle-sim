@@ -5,6 +5,7 @@ import {buildPostMortem} from '../../analysis/postmortem';
 import type {PokemonSet} from '../../data/types';
 import type {DraftMode} from '../../draft/draft';
 import {ReadItem as Read} from '../components/ReadItem';
+import {TrainerPortrait} from '../components/TrainerPortrait';
 import {resetSixOhSession} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState} from '../sixoh/state';
 import {typeGradient} from '../sixoh/typeColors';
@@ -92,6 +93,7 @@ export function SixOhResult() {
                 className={`game-row ${won ? 'won' : 'lost'} ${index === killerIndex ? 'killer' : ''}`}
               >
                 <span className="mono game-num">{index + 1}</span>
+                {opponent?.avatarKey && <TrainerPortrait avatarKey={opponent.avatarKey} className="rung-portrait" />}
                 <span className="game-name">{opponent?.name}</span>
                 {opponent && <RosterIcons sets={opponent.sets} />}
                 <span className="mono game-turns">{battle.result!.turns} turns</span>

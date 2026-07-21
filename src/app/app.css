@@ -1621,6 +1621,21 @@ button.primary:disabled {
   display: flex;
 }
 
+.trainer-portrait {
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top center;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.rung-portrait {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+
 /* ============ Arena — the cinematic battle (light "duel mat") ============ */
 
 .arena {
@@ -1684,6 +1699,15 @@ button.primary:disabled {
 .battle-title {
   margin: 0 0 0.85rem;
   font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.title-portrait {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-width: 2px;
 }
 
 .battle-below {
@@ -2073,6 +2097,20 @@ button.primary:disabled {
 @keyframes switchPop {
   0% { transform: translateY(14px) scale(0.6); opacity: 0; }
   100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* The outgoing mon on a switch — a second sprite-holder overlapping the same
+   slot as the incoming one (both absolutely positioned), sitting behind it
+   (z-index 0 vs the default 1) while it shrinks/fades out. Removed on the
+   next beat's re-render, same as every other momentary FX class here. */
+.switch-out {
+  z-index: 0;
+  animation: switchOut 0.3s ease-in forwards;
+}
+
+@keyframes switchOut {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(10px) scale(0.6); opacity: 0; }
 }
 
 .tera-flash {
@@ -2738,6 +2776,7 @@ button.primary:disabled {
   .faint-drop,
   .float-num,
   .switch-pop,
+  .switch-out,
   .fx-status.lunge-right,
   .fx-status.lunge-left,
   .fx-special.lunge-right,

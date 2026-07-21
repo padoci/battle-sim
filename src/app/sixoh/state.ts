@@ -12,6 +12,9 @@ export interface GauntletOpponent {
   /** Gym Leader mode: signature type (+ "Champion" for the final rung),
    * shown on the ladder in place of the computed archetype tag. */
   badge?: string;
+  /** Gym Leader mode: trainer sprite key for Sprites.getAvatar (lowercased
+   * trainer name, e.g. "brock"). Unset for Easy/Hard — no trainer identity. */
+  avatarKey?: string;
 }
 
 export interface SixOhState {

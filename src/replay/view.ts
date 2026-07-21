@@ -43,6 +43,11 @@ export interface FxItem {
   moveType?: string;
   /** Physical → contact spark, Special → beam, Status → self glow. */
   category?: 'Physical' | 'Special' | 'Status';
+  /** `switch` only: the species leaving the field this beat, if any (undefined
+   *  at the turn-0 lead placement, or when the outgoing mon already fainted
+   *  and played its own exit) — lets the stage render a switch-out alongside
+   *  the switch-in pop instead of a bare cut. */
+  outgoingSpecies?: string;
 }
 
 const HAZARDS = new Set(['Stealth Rock', 'Spikes', 'Toxic Spikes', 'Sticky Web', 'G-Max Steelsurge']);
@@ -99,6 +104,10 @@ export function applyBeat(state: ViewState, beat: Beat): {state: ViewState; fx: 
         break;
       case 'switch': {
         const side = next.sides[event.ref.side];
+        // Captured before activeIndex moves on — the mon leaving the field,
+        // if any (undefined at turn-0 lead placement, or a fainted mon that
+        // already dropped off-stage with its own faint animation).
+        const outgoing = side.activeIndex !== undefined ? side.mons[side.activeIndex] : undefined;
         let mon = findMon(side, event.ref.name, event.species);
         if (!mon) {
           mon = {name: event.ref.name, species: event.species, hp: event.hp, maxhp: event.maxhp, fainted: false, boosts: {}};
@@ -111,7 +120,13 @@ export function applyBeat(state: ViewState, beat: Beat): {state: ViewState; fx: 
         side.activeIndex = side.mons.indexOf(mon);
         // Switch-in pop — but not for the initial lead placement (turn 0):
         // the lead-in frame must stay at rest for the visual baseline.
-        if (state.turn >= 1) fx.push({type: 'switch', side: event.ref.side});
+        if (state.turn >= 1) {
+          fx.push({
+            type: 'switch',
+            side: event.ref.side,
+            outgoingSpecies: outgoing && !outgoing.fainted ? outgoing.species : undefined,
+          });
+        }
         break;
       }
       case 'move': {

@@ -10,6 +10,7 @@ import {ensureComputed, resetSixOhSession, retryBattle} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState} from '../sixoh/state';
 import {typeColor} from '../sixoh/typeColors';
 import {MAX_SPEED, MIN_SPEED, usePlayback} from '../sixoh/usePlayback';
+import {TrainerPortrait} from '../components/TrainerPortrait';
 
 /** The 2D-animated set (`gen5ani`) only covers Gen 1-5 Pokémon — most Gen 9
  * mons (Great Tusk, Kingambit, Gholdengo…) fall back to the static `gen5`
@@ -188,6 +189,7 @@ function BattleStage({
   const mine = active(0);
   const theirs = active(1);
   const fxFor = (side: 0 | 1, type: FxItem['type']) => fx.find(f => f.side === side && f.type === type);
+  const outgoingFor = (side: 0 | 1) => fxFor(side, 'switch')?.outgoingSpecies;
 
   // Category + move-type flavor for a side's FX this beat: the category picks
   // the animation style (contact spark / beam / self-glow), the type colors it
@@ -251,10 +253,20 @@ function BattleStage({
             <span className="ground-shadow theirs" />
             <span className="ground-shadow mine" />
 
+            {outgoingFor(1) && (
+              <div key={`t-out-${fxKey}`} className="sprite-holder theirs switch-out">
+                <SpriteWithFallback species={outgoingFor(1)!} back={false} />
+              </div>
+            )}
             {theirs && !theirs.fainted && (
               <div key={`t-${fxKey}`} className={holderClasses(1, 'lunge-left')} style={holderStyle(1)}>
                 <SpriteWithFallback species={theirs.species} back={false} />
                 {fxFor(1, 'float') && <span className="float-num">{fxFor(1, 'float')!.text}</span>}
+              </div>
+            )}
+            {outgoingFor(0) && (
+              <div key={`m-out-${fxKey}`} className="sprite-holder mine switch-out">
+                <SpriteWithFallback species={outgoingFor(0)!} back={true} />
               </div>
             )}
             {mine && !mine.fainted && (
@@ -412,6 +424,7 @@ export function SixOhGauntlet() {
             return (
               <li key={i} className={`ladder-rung ${i === index ? 'current' : ''} ${b.phase === 'done' ? 'played' : ''}`}>
                 <span className="rung-number mono">{i + 1}</span>
+                {opponent.avatarKey && <TrainerPortrait avatarKey={opponent.avatarKey} className="rung-portrait" />}
                 <span className="rung-name">{opponent.name}</span>
                 <span className="mono rung-mark">{mark}</span>
               </li>
@@ -428,6 +441,9 @@ export function SixOhGauntlet() {
 
       <section className="gauntlet-main">
         <h2 className="battle-title">
+          {state.opponents[index]?.avatarKey && (
+            <TrainerPortrait avatarKey={state.opponents[index].avatarKey!} className="title-portrait" />
+          )}
           Battle {index + 1} of {state.opponents.length} — vs {state.opponents[index]?.name}
         </h2>
 

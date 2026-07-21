@@ -142,4 +142,26 @@ describe('switch-in FX', () => {
     const {fx} = applyBeat(state, {events: [switchEvent(0, t1[1].species, t1[1].species)], durationMs: 0});
     expect(fx.some(f => f.type === 'switch' && f.side === 0)).toBe(true);
   });
+
+  it('carries the previously-active mon as outgoingSpecies', () => {
+    let state = initView([t1, t2]);
+    state = applyBeat(state, {events: [switchEvent(0, t1[0].species, t1[0].species)], durationMs: 0}).state; // lead, turn 0
+    state = applyBeat(state, {events: [{kind: 'turn', turn: 1}], durationMs: 0}).state;
+    const {fx} = applyBeat(state, {events: [switchEvent(0, t1[1].species, t1[1].species)], durationMs: 0});
+    const switchFx = fx.find(f => f.type === 'switch' && f.side === 0);
+    expect(switchFx?.outgoingSpecies).toBe(t1[0].species);
+  });
+
+  it('omits outgoingSpecies when the previous mon already fainted', () => {
+    let state = initView([t1, t2]);
+    state = applyBeat(state, {events: [switchEvent(0, t1[0].species, t1[0].species)], durationMs: 0}).state; // lead, turn 0
+    state = applyBeat(state, {events: [{kind: 'turn', turn: 1}], durationMs: 0}).state;
+    state = applyBeat(state, {
+      events: [{kind: 'faint', ref: {side: 0, name: t1[0].species}, logText: ''}],
+      durationMs: 0,
+    }).state;
+    const {fx} = applyBeat(state, {events: [switchEvent(0, t1[1].species, t1[1].species)], durationMs: 0});
+    const switchFx = fx.find(f => f.type === 'switch' && f.side === 0);
+    expect(switchFx?.outgoingSpecies).toBeUndefined();
+  });
 });

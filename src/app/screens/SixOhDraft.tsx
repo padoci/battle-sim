@@ -16,6 +16,7 @@ import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/s
 import {resetSixOhSession} from '../sixoh/session';
 import {useTcgArt} from '../sixoh/useTcgArt';
 import {resizedCardArtUrl} from '../../data/tcgArt';
+import {TrainerPortrait} from '../components/TrainerPortrait';
 import type {Generation} from '@pkmn/data';
 
 /** Above the ~10s a slow-but-failing-over data fetch takes (see cachedJson's
@@ -39,10 +40,12 @@ function buildOpponents(mode: DraftMode, data: DraftData, seed: number, gen: Gen
   if (mode === 'gymleader') {
     return sampleGymLeaders(data.gymLeaderTeams, seed).map(i => {
       const team = data.gymLeaderTeams[i];
+      const name = team.name ?? team.signatureType;
       return {
-        name: team.name ?? team.signatureType,
+        name,
         sets: team.data.map(teamMemberToSet),
         badge: team.isChampion ? `${team.signatureType} · Champion` : team.signatureType,
+        avatarKey: team.name?.toLowerCase(),
       };
     });
   }
@@ -320,6 +323,7 @@ export function SixOhDraft() {
           {state.opponents.map((opponent, i) => (
             <li key={i} className="ladder-rung">
               <span className="rung-number mono">{i + 1}</span>
+              {opponent.avatarKey && <TrainerPortrait avatarKey={opponent.avatarKey} className="rung-portrait" />}
               <span className="rung-name">{opponent.name}</span>
               <span className="archetype-tag">{opponent.badge ?? classifyTeam(gen, opponent.sets).label}</span>
               <span className="rung-icons">
