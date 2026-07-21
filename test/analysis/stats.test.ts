@@ -7,7 +7,7 @@ import type {BattleStats} from '../../src/search/stats';
 const archetype = (label = 'Balance'): ArchetypeResult => ({
   primary: label === 'Rain' ? 'rain' : 'balance',
   label,
-  features: {offensiveCount: 2, defensiveCount: 2, offensiveMons: [], defensiveMons: []},
+  features: {offensiveCount: 2, defensiveCount: 2, offensiveMons: [], defensiveMons: [], keyMons: []},
 });
 
 function battle(

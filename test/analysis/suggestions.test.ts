@@ -17,7 +17,7 @@ const gen = gen9();
 const archetype: ArchetypeResult = {
   primary: 'balance',
   label: 'Balance',
-  features: {offensiveCount: 2, defensiveCount: 2, offensiveMons: [], defensiveMons: []},
+  features: {offensiveCount: 2, defensiveCount: 2, offensiveMons: [], defensiveMons: [], keyMons: []},
 };
 
 /** Synthetic MatchupAggregate with quiet defaults; override per heuristic. */

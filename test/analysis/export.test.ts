@@ -8,7 +8,7 @@ import type {BattleResult} from '../../src/search/runner';
 const rainArch: ArchetypeResult = {
   primary: 'rain',
   label: 'Rain',
-  features: {offensiveCount: 4, defensiveCount: 1, offensiveMons: [], defensiveMons: []},
+  features: {offensiveCount: 4, defensiveCount: 1, offensiveMons: [], defensiveMons: [], keyMons: []},
 };
 
 function recorded(winner: 0 | 1): RecordedBattle {
