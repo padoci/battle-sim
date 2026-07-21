@@ -249,9 +249,12 @@ If missed: pruning knobs first (interior 3×2, rootSwitchK=1), then search-spec 
 - Symmetry note: exact zero-sum/mirror invariants hold at the solver and eval level
   (unit-tested); end-to-end side balance is statistical because the sim's own
   p1/p2 tie-breaks and per-cell PRNG forks differ.
-- Chance handling is single-sample per matrix cell + eval smoothing
-  (koProb/expectedFrac); \`samplesPerCell\` is the reserve knob if logs show
-  noise-driven misplays.
+- Chance handling: FAST now averages \`samplesPerCell: 2\` independent
+  chance-draws per root cell (non-negative vs 1 at 22/40; 3 samples cost
+  2.69x for a wash against 2 in their own head-to-head, so 2 ships as the
+  cheaper equally-strong option — see logs/ai-improvements-round-2.md).
+  STRONG stays at 1 sample (its own, smaller A/B lost) plus eval smoothing
+  (koProb/expectedFrac) and d2's minimax bracketing over the interior grid.
 `;
   writeFileSync(`${LOGS}/gate-report.md`, report);
   console.log(`wrote ${LOGS}/gate-report.md`);

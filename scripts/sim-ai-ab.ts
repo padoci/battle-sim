@@ -17,6 +17,11 @@
  *             is re-widened; see logs/ai-round-report.md.)
  *   all     — OLD side gets both the old eval AND the old breadth (the
  *             headline old-brain-vs-new-brain number).
+ *   samples — NEW side averages `--samples N` (default 3) independent
+ *             chance-draws per matrix cell (samplesPerCell); OLD side keeps
+ *             samplesPerCell=1 (today's shipped default). Everything else
+ *             (breadth, eval) identical — isolates the noise-smoothing
+ *             lever from search.ts's cellValue.
  *
  * Acceptance (logs/ai-round-report.md): NEW score (wins + draws/2) >= RUNS/2,
  * with measure.ts cost inside budget.
@@ -39,15 +44,19 @@ function flag(name: string, fallback: string): string {
 }
 const RUNS = Number(flag('runs', '40'));
 const CONFIG_NAME = flag('config', 'fast') as 'fast' | 'strong';
-const LEVER = flag('lever', 'all') as 'eval' | 'breadth' | 'all';
-const NEW_CFG: SearchConfig = CONFIG_NAME === 'strong' ? STRONG : FAST;
-// The old search breadth, at the same depth.
-const OLD_CFG: SearchConfig = {...NEW_CFG, rootSwitchK: 2};
+const LEVER = flag('lever', 'all') as 'eval' | 'breadth' | 'samples' | 'all';
+const SAMPLES = Number(flag('samples', '3'));
+const OLD_SAMPLES = Number(flag('old-samples', '1'));
+const BASE_CFG: SearchConfig = CONFIG_NAME === 'strong' ? STRONG : FAST;
+const NEW_CFG: SearchConfig = LEVER === 'samples' ? {...BASE_CFG, samplesPerCell: SAMPLES} : BASE_CFG;
+// The old search: same breadth+samples as NEW except the one lever under test.
+const OLD_CFG: SearchConfig =
+  LEVER === 'samples' ? {...BASE_CFG, samplesPerCell: OLD_SAMPLES} : {...NEW_CFG, rootSwitchK: 2};
 // Zeroing the new weights reproduces the old eval exactly.
 const OLD_EVAL: EvalOverrides = {statusThreatWeight: 0, sweeperDangerWeight: 0, speedTierWeight: 0};
 
 const useOldEval = LEVER === 'eval' || LEVER === 'all';
-const useOldCfg = LEVER === 'breadth' || LEVER === 'all';
+const useOldCfg = LEVER === 'breadth' || LEVER === 'all' || LEVER === 'samples';
 
 const teams = (JSON.parse(readFileSync('test/fixtures/gen9ou.teams.full.json', 'utf8')) as Team[]).map(t =>
   t.data.map(teamMemberToSet)
@@ -56,7 +65,11 @@ const search = (config: SearchConfig): Policy => ({kind: 'search', config});
 
 function main() {
   mkdirSync(LOGS, {recursive: true});
-  console.log(`sim-ai-ab: ${RUNS} battles · config=${CONFIG_NAME} · lever=${LEVER}\n`);
+  console.log(
+    `sim-ai-ab: ${RUNS} battles · config=${CONFIG_NAME} · lever=${LEVER}` +
+      (LEVER === 'samples' ? ` · samples=${SAMPLES} vs old-samples=${OLD_SAMPLES}` : '') +
+      '\n'
+  );
   const start = performance.now();
 
   let newWins = 0;

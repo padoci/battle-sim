@@ -6,7 +6,7 @@ import {loadGymLeaderTeams} from '../../data/gymLeaderTeams';
 import {teamMemberToSet} from '../../data/team';
 import {gen9} from '../../data/gen';
 import type {GymLeaderTeam, PoolEntry, SetsData, Team} from '../../data/types';
-import {classifyTeam, fallbackTeamName} from '../../analysis/archetype';
+import {classifyTeam, teamDisplayName} from '../../analysis/archetype';
 import {createDraft, pickBundle, TEAM_SIZE, type DraftMode} from '../../draft/draft';
 import {sampleGymLeaders, sampleOpponents} from '../../draft/opponents';
 import {navigate} from '../router';
@@ -48,7 +48,7 @@ function buildOpponents(mode: DraftMode, data: DraftData, seed: number, gen: Gen
   }
   return sampleOpponents(data.realTeams.length, 6, seed).map(i => {
     const sets = data.realTeams[i].data.map(teamMemberToSet);
-    return {name: data.realTeams[i].name ?? fallbackTeamName(gen, sets), sets};
+    return {name: teamDisplayName(gen, sets), sets};
   });
 }
 

@@ -96,6 +96,41 @@ describe('runBattle (FAST self-play)', () => {
   });
 });
 
+describe('samplesPerCell', () => {
+  it('scales node count and stays deterministic per seed', () => {
+    const asymmetric = job({policies: [
+      {kind: 'search', config: {...FAST, samplesPerCell: 1}},
+      {kind: 'search', config: {...FAST, samplesPerCell: 3}},
+    ]});
+    const a = runBattle(gen, asymmetric);
+    const b = runBattle(gen, asymmetric);
+    expect(a.nodes).toBe(b.nodes); // same seeds -> identical work, not just identical outcome
+    expect(a.winner).toBe(b.winner);
+
+    const oneEach = job({policies: [
+      {kind: 'search', config: {...FAST, samplesPerCell: 1}},
+      {kind: 'search', config: {...FAST, samplesPerCell: 1}},
+    ]});
+    const threeEach = job({policies: [
+      {kind: 'search', config: {...FAST, samplesPerCell: 3}},
+      {kind: 'search', config: {...FAST, samplesPerCell: 3}},
+    ]});
+    const lowNodes = runBattle(gen, oneEach).nodes;
+    const highNodes = runBattle(gen, threeEach).nodes;
+    expect(highNodes).toBeGreaterThan(lowNodes * 2); // ~3x, sloppy bound allows for turn-count drift
+  });
+
+  it('samplesPerCell=1 is fully deterministic (the sampleBase=0 fast path)', () => {
+    const config = {...FAST, samplesPerCell: 1};
+    const onePolicy = job({policies: [{kind: 'search', config}, {kind: 'search', config}]});
+    const a = runBattle(gen, onePolicy);
+    const b = runBattle(gen, onePolicy);
+    expect(a.nodes).toBe(b.nodes);
+    expect(a.turns).toBe(b.turns);
+    expect(a.winner).toBe(b.winner);
+  });
+});
+
 describe('runBattle (STRONG / d2)', () => {
   it('completes a d2 self-play battle deterministically', () => {
     const d2Job = job({

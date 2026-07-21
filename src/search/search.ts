@@ -45,16 +45,43 @@ function terminalValue(battle: Battle): number | null {
   return w === 0 ? WIN_SCORE : -WIN_SCORE;
 }
 
+/** Fork-seed stride between independent `samplesPerCell` draws of the same
+ *  cell — must exceed any single draw's largest interior offset
+ *  (1 + interiorCandidates^2) so samples never share a branch's RNG. */
+const SAMPLE_STRIDE = 1000;
+
 /**
  * Value (P1 pov) of one root matrix cell: step the joint action on a
  * re-seeded branch; at depth 1 evaluate; at depth 2 expand an m x m
  * pessimistic interior and aggregate by the saddle midpoint
  * (maxmin + minmax)/2 — exactly antisymmetric under pov swap, brackets the
  * true value, equals it whenever the interior has a saddle point.
+ *
+ * `cfg.samplesPerCell` independent chance-resolutions of the SAME cell are
+ * averaged to smooth the noise from one unlucky/lucky RNG roll (miss, crit,
+ * proc) standing in for the whole distribution; samplesPerCell=1 (the
+ * shipped default) is exactly the original single-draw behavior.
  */
 function cellValue(ctx: SearchContext, snap: BattleSnapshot, i: number, j: number, a: Action, b: Action): number {
+  const samples = Math.max(1, ctx.cfg.samplesPerCell);
+  let total = 0;
+  for (let s = 0; s < samples; s++) {
+    total += cellValueSample(ctx, snap, i, j, a, b, s * SAMPLE_STRIDE);
+  }
+  return total / samples;
+}
+
+function cellValueSample(
+  ctx: SearchContext,
+  snap: BattleSnapshot,
+  i: number,
+  j: number,
+  a: Action,
+  b: Action,
+  sampleBase: number
+): number {
   const branch = restore(snap);
-  reseed(branch, forkSeed(ctx.searchSeed, ctx.turn, i, j, 0));
+  reseed(branch, forkSeed(ctx.searchSeed, ctx.turn, i, j, sampleBase));
   makeJointChoice(branch, toChoice(a), toChoice(b));
   ctx.nodes++;
 
@@ -74,7 +101,7 @@ function cellValue(ctx: SearchContext, snap: BattleSnapshot, i: number, j: numbe
     inner.push([]);
     for (let v = 0; v < bCands.length; v++) {
       const leafBranch = restore(innerSnap);
-      reseed(leafBranch, forkSeed(ctx.searchSeed, ctx.turn, i, j, 1 + u * bCands.length + v));
+      reseed(leafBranch, forkSeed(ctx.searchSeed, ctx.turn, i, j, sampleBase + 1 + u * bCands.length + v));
       makeJointChoice(leafBranch, toChoice(aCands[u]), toChoice(bCands[v]));
       ctx.nodes++;
       const leafTerminal = terminalValue(leafBranch);

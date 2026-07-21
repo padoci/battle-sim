@@ -47,7 +47,17 @@ export const FAST: SearchConfig = {
   teraDefenseWeight: 1,
   teraDefenseThreshold: 0.3,
   interiorCandidates: 3,
-  samplesPerCell: 1,
+  // 1->2: averaging independent chance-draws per root cell smooths the
+  // single-RNG-roll noise a depth-1 leaf eval is otherwise fully exposed to
+  // (miss/crit/proc standing in for the whole distribution) — non-negative
+  // vs samplesPerCell=1 (22/40, 55% of decided). 3 samples costs 2.69x a
+  // single draw (vs 2's 1.74x) for a 3-vs-2 head-to-head that came back
+  // 23/40 — a wash, not a win — so 2 ships as the cheaper, equally-strong
+  // option; see logs/ai-improvements-round-2.md. STRONG's d2 interior layer
+  // already gets a similar effect from minimax bracketing over the interior
+  // grid, and doubling samplesPerCell there LOST its own (smaller, n=10)
+  // A/B — left at 1 for STRONG.
+  samplesPerCell: 2,
   matchupWeightByDepth: [20, 10],
   solverIterations: 2000,
   epsilonPrune: 0.03,

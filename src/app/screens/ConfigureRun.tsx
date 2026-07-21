@@ -4,7 +4,7 @@ import {DataClient} from '../../data/client';
 import {loadOpponentTeams} from '../../data/sampleTeams';
 import {teamMemberToSet} from '../../data/team';
 import {gen9} from '../../data/gen';
-import {classifyTeam, fallbackTeamName} from '../../analysis/archetype';
+import {classifyTeam, teamDisplayName} from '../../analysis/archetype';
 import {CALIBRATION_BATTLES, etaMs, formatEta} from '../../run/calibration';
 import {cancelRun, getRunner} from '../simSession';
 import {clampN} from '../clamp';
@@ -88,7 +88,7 @@ export function ConfigureRun() {
           const sets = team.data.map(teamMemberToSet);
           return {
             teamId: `team-${index}`,
-            teamName: team.name ?? fallbackTeamName(gen, sets),
+            teamName: teamDisplayName(gen, sets),
             team: sets,
             weight: 1,
             enabled: true,
