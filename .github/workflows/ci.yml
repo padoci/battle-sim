@@ -1,10 +1,19 @@
 name: CI
 
-# Runs on every pull request (and on demand). Unlike the local dev sandbox,
-# GitHub runners have real network access, so the e2e walkthroughs load the
-# real Pokémon sprites and their screenshots (uploaded as artifacts) show the
-# actually-rendered app — the thing the sandbox can't see.
+# Runs on every push to main, every pull request, and on demand. Unlike the
+# local dev sandbox, GitHub runners have real network access, so the e2e
+# walkthroughs load the real Pokémon sprites and their screenshots (uploaded
+# as artifacts) show the actually-rendered app — the thing the sandbox can't
+# see.
+#
+# The push trigger matters here specifically: this repo's actual workflow is
+# committing straight to main, not through PRs, and without it every commit
+# this ran against was actually only ever build-checked by Cloudflare Pages'
+# own deploy (tsc -b + vite build, no tests, no e2e) — the full suite never
+# ran at all.
 on:
+  push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -49,6 +58,12 @@ jobs:
         run: node scripts/e2e-six-oh.mjs --shots-dir logs
       - name: E2E — Test your team
         run: node scripts/e2e-test-your-team.mjs --shots-dir logs
+      - name: E2E — Load resilience (fault injection)
+        run: node scripts/e2e-load-resilience.mjs --shots-dir logs
+      - name: E2E — Configure load resilience (fault injection)
+        run: node scripts/e2e-configure-load-resilience.mjs --shots-dir logs
+      - name: E2E — Live playback (real-time, crosses a rung transition)
+        run: node scripts/e2e-live-playback.mjs --shots-dir logs
       - name: Mobile + reduced-motion screenshots
         run: node scripts/shots-mobile.mjs --shots-dir logs
       - name: Upload screenshots

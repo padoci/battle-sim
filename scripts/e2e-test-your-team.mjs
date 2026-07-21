@@ -212,9 +212,31 @@ async function main() {
     const vendored = JSON.parse(require('fs').readFileSync('src/data/vendored-teams.gen9ou.json', 'utf8'));
     const poolRows = await page.locator('.pool-table tbody tr').count();
     if (poolRows <= baseTeams) fail(`expected vendored teams merged in: ${poolRows} rows vs ${baseTeams} built-in`);
-    const poolNames = await page.locator('.pool-name').allTextContents();
-    if (!vendored.some(v => poolNames.some(n => n.includes(v.name)))) {
-      fail('merged pool should include a vendored sample team');
+    // teamDisplayName() synthesizes pool row names purely from team
+    // composition (see src/analysis/archetype.ts) — it never surfaces a
+    // vendored team's stored `name` field, so matching against `v.name` here
+    // can never pass and was a stale assertion (silently broken since the
+    // display-name rewrite in dac9688, undetected because CI never ran on a
+    // direct push — see the push trigger just added above). Match by species
+    // signature instead: that's the one thing a vendored team's row is
+    // guaranteed to carry, regardless of how its display name is rendered.
+    const vendoredSignatures = vendored.map(v =>
+      v.data
+        .map(m => m.species)
+        .slice()
+        .sort()
+        .join('|')
+    );
+    const poolRowSignatures = await page.locator('.pool-table tbody tr').evaluateAll(rows =>
+      rows.map(row =>
+        Array.from(row.querySelectorAll('.pool-icons span'))
+          .map(span => span.getAttribute('title'))
+          .sort()
+          .join('|')
+      )
+    );
+    if (!vendoredSignatures.some(sig => poolRowSignatures.includes(sig))) {
+      fail('merged pool should include a vendored sample team (matched by species signature)');
     }
     const archetypeTags = await page.locator('.archetype-tag').allTextContents();
     if (!archetypeTags.every(tag => tag.length > 0)) fail('every pool team needs an archetype tag');

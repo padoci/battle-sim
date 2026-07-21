@@ -11,6 +11,11 @@ import {clampN} from '../clamp';
 import {navigate} from '../router';
 import {useAppDispatch, useAppState, type PoolEntryWithMeta} from '../state';
 
+/** Same budget as SixOhDraft's load watchdog: above the ~10s a slow-but-
+ * failing-over data fetch takes (cachedJson's per-URL timeout+mirror), with
+ * headroom for a genuinely slow connection, but still a hard ceiling. */
+const POOL_WATCHDOG_MS = 25_000;
+
 function PoolRow({entry, locked}: {entry: PoolEntryWithMeta; locked: boolean}) {
   const dispatch = useAppDispatch();
   return (
@@ -74,16 +79,37 @@ export function ConfigureRun() {
   const dispatch = useAppDispatch();
   const gen = useMemo(() => gen9(), []);
   const [poolError, setPoolError] = useState<string>();
+  const [poolLoadElapsedMs, setPoolLoadElapsedMs] = useState(0);
   // In-progress text of the battle-count number input; committed (clamped to
   // the slider's contract) on blur/Enter, then cleared to resync with run.n.
   const [nDraft, setNDraft] = useState<string>();
 
-  // Load + classify the opponent pool once.
+  // Load + classify the opponent pool once. Guarded by a watchdog + elapsed-
+  // time feedback, mirroring SixOhDraft's load effect: without it, a slow (not
+  // down) data host left this table silently empty forever — no spinner, no
+  // error, nothing to tell the user anything was happening — which is the
+  // same underlying bug the "Dealing your first hand…" stall was, just with
+  // no loading UI at all instead of a static one.
   useEffect(() => {
     if (state.pool.length > 0) return;
+    let settled = false;
     const dataClient = new DataClient('gen9ou');
+    const watchdog = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      setPoolError('timed out loading the opponent pool — check your connection and reload');
+    }, POOL_WATCHDOG_MS);
+    const startedAt = Date.now();
+    const ticker = setInterval(() => {
+      if (settled) return;
+      setPoolLoadElapsedMs(Date.now() - startedAt);
+    }, 1000);
     loadOpponentTeams(dataClient)
       .then(teams => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        clearInterval(ticker);
         const pool: PoolEntryWithMeta[] = teams.map((team, index) => {
           const sets = team.data.map(teamMemberToSet);
           return {
@@ -97,7 +123,18 @@ export function ConfigureRun() {
         });
         dispatch({type: 'SET_POOL', pool});
       })
-      .catch(error => setPoolError(String(error)));
+      .catch(error => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        clearInterval(ticker);
+        setPoolError(String(error));
+      });
+    return () => {
+      settled = true;
+      clearTimeout(watchdog);
+      clearInterval(ticker);
+    };
   }, [state.pool.length, dispatch, gen]);
 
   const {run, team, pool} = state;
@@ -114,6 +151,31 @@ export function ConfigureRun() {
       <main className="screen">
         <div className="empty-state">
           No team loaded yet — <a href="#/test/import">paste one to analyze</a> and come back.
+        </div>
+      </main>
+    );
+  }
+
+  if (poolError) {
+    return (
+      <main className="screen">
+        <p className="problems">Couldn't load the opponent pool: {poolError}. Check your connection and reload.</p>
+      </main>
+    );
+  }
+
+  if (pool.length === 0) {
+    return (
+      <main className="screen">
+        <div className="empty-state">
+          Loading the opponent pool…
+          {poolLoadElapsedMs > 3000 && (
+            <p className="load-status mono">
+              {poolLoadElapsedMs > 7000
+                ? 'still working — the tier data host is responding slowly right now, hang tight'
+                : 'fetching the latest tier data…'}
+            </p>
+          )}
         </div>
       </main>
     );
@@ -170,12 +232,6 @@ export function ConfigureRun() {
       <p className="screen-sub">
         Your team fights a weighted field of real meta teams. Weight a matchup up to pressure-test it.
       </p>
-
-      {poolError && (
-        <p className="problems">
-          Couldn't load the opponent pool: {poolError}. Check your connection and reload.
-        </p>
-      )}
 
       <div className="table-scroll">
         <table className="pool-table">
