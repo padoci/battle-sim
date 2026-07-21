@@ -111,6 +111,25 @@ export function usePlayback(
     return () => clearTimeout(timerRef.current);
   }, [teams, beats, step]);
 
+  // A speed change should be felt right away, not just from the next beat
+  // onward: `step` schedules its timeout using the speed at THAT moment, so
+  // without this a pending wait keeps running at the old speed — e.g. crank
+  // 0.1x up to 10x mid-beat and it'd still take the full 0.1x-paced delay to
+  // respond. Re-arm the in-flight wait (from its full paced duration, not a
+  // precisely interpolated remainder — simple, and the worst case is now one
+  // beat at the NEW speed instead of one at the old one) whenever speed
+  // changes mid-battle.
+  // Deliberately keyed on `speed` alone — `beats` changing is the battle
+  // (re)start effect's job (which already resets indexRef to 0, making this
+  // one a no-op for that render).
+  useEffect(() => {
+    if (!beats || doneRef.current) return;
+    const pendingBeat = beats[indexRef.current - 1];
+    if (!pendingBeat) return;
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(step, pendingBeat.durationMs / speed);
+  }, [speed]);
+
   const skipToEnd = useCallback(() => {
     clearTimeout(timerRef.current);
     if (!beats || !viewRef.current) return;

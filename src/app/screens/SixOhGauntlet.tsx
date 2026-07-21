@@ -305,11 +305,11 @@ function BattleStage({
               style={{'--_fill': `${((speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100}%`} as CSSProperties}
             />
             <div className="playback-ticks">
-              <span>0.1×</span>
-              <span>1×</span>
-              <span>2×</span>
-              <span>5×</span>
-              <span>10×</span>
+              {[0.1, 1, 2, 5, 10].map(tick => (
+                <span key={tick} style={{left: `${((tick - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100}%`}}>
+                  {tick}×
+                </span>
+              ))}
             </div>
           </div>
           <span className="playback-value mono">{speed.toFixed(1)}×</span>

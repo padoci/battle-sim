@@ -2356,13 +2356,30 @@ button.primary:disabled {
   height: 8px;
 }
 
+/* Positioned (not flex space-between) so each label sits under its actual
+   value on the track — the scale is linear (0.1-10) and the marks aren't
+   evenly spaced on it (2x sits at ~19%, not 50%); evenly-spaced labels would
+   misrepresent where each speed actually falls when dragging. */
 .playback-ticks {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 1em;
   font-family: var(--font-mono);
   font-size: 0.6rem;
   color: var(--ghost);
   margin-top: 0.3rem;
+}
+
+.playback-ticks span {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.playback-ticks span:first-child {
+  transform: none;
+}
+
+.playback-ticks span:last-child {
+  transform: translateX(-100%);
 }
 
 .playback-label {
