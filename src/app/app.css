@@ -1215,52 +1215,30 @@ button.primary:disabled {
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
 
-.offer-grid.sets {
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-}
-
-/* The fanned hand (species offers + hard-mode bundles): cards overlap in a
+/* The fanned hand (every mode drafts pre-made bundles): cards overlap in a
    centered arc, each rotated + dipped by its distance from center (set
    inline per-card — see fanTransform() in SixOhDraft.tsx), and lift out of
    the fan on hover to be read. A fan needs width, so it collapses to a
    wrapping grid below --bp-narrow (see responsive section). */
-.offer-grid.ten,
 .offer-grid.bundles {
   display: flex;
   grid-template-columns: none;
   justify-content: center;
   align-items: flex-end;
   flex-wrap: nowrap;
-  padding: 44px 20px 14px;
+  padding: 56px 20px 14px;
   margin-bottom: 14px;
 }
 
-.offer-grid.bundles {
-  padding-top: 56px;
-}
-
-.offer-grid.ten .offer-card,
 .offer-grid.bundles .offer-card {
   flex: none;
   transform-origin: bottom center;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
   animation: none;
-}
-
-.offer-grid.ten .offer-card {
-  width: 132px;
-  margin-left: -42px;
-  padding: 0;
-  align-items: stretch;
-  gap: 0;
-}
-
-.offer-grid.bundles .offer-card {
   width: 158px;
   margin-left: -56px;
 }
 
-.offer-grid.ten .offer-card:first-child,
 .offer-grid.bundles .offer-card:first-child {
   margin-left: 0;
 }
@@ -1269,12 +1247,6 @@ button.primary:disabled {
    inline per-card (rotation + arc dip), so overriding it on hover needs
    !important — a deliberate, narrowly-scoped override of that one dynamic
    inline value, not a specificity workaround. */
-.offer-grid.ten .offer-card:hover {
-  transform: translateY(-42px) rotate(0deg) scale(1.05) !important;
-  z-index: 60 !important;
-  box-shadow: 0 28px 48px rgba(60, 40, 120, 0.42);
-}
-
 .offer-grid.bundles .offer-card:hover {
   transform: translateY(-54px) rotate(0deg) scale(1.05) !important;
   z-index: 60 !important;
@@ -1361,8 +1333,7 @@ button.primary:disabled {
   margin-top: 5px;
 }
 
-.offer-card,
-.set-card {
+.offer-card {
   /* Gradient card frame, no extra wrapper: a transparent border plus two
      background layers — one clipped to the padding box (inner fill), one
      to the border box (the gradient frame itself). */
@@ -1383,12 +1354,12 @@ button.primary:disabled {
   animation: dealIn 0.34s ease-out backwards;
 }
 
-.offer-card:nth-child(1), .set-card:nth-child(1) { animation-delay: 0.02s; }
-.offer-card:nth-child(2), .set-card:nth-child(2) { animation-delay: 0.06s; }
-.offer-card:nth-child(3), .set-card:nth-child(3) { animation-delay: 0.1s; }
-.offer-card:nth-child(4), .set-card:nth-child(4) { animation-delay: 0.14s; }
-.offer-card:nth-child(5), .set-card:nth-child(5) { animation-delay: 0.18s; }
-.offer-card:nth-child(6), .set-card:nth-child(6) { animation-delay: 0.22s; }
+.offer-card:nth-child(1) { animation-delay: 0.02s; }
+.offer-card:nth-child(2) { animation-delay: 0.06s; }
+.offer-card:nth-child(3) { animation-delay: 0.1s; }
+.offer-card:nth-child(4) { animation-delay: 0.14s; }
+.offer-card:nth-child(5) { animation-delay: 0.18s; }
+.offer-card:nth-child(6) { animation-delay: 0.22s; }
 .offer-card:nth-child(7) { animation-delay: 0.26s; }
 .offer-card:nth-child(8) { animation-delay: 0.3s; }
 .offer-card:nth-child(9) { animation-delay: 0.34s; }
@@ -1401,19 +1372,16 @@ button.primary:disabled {
   }
 }
 
-.offer-card:hover,
-.set-card:hover {
+.offer-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 26px rgba(60, 40, 120, 0.28);
 }
 
-.offer-card:active,
-.set-card:active {
+.offer-card:active {
   transform: translateY(-1px);
 }
 
-.offer-card.bundle,
-.set-card {
+.offer-card.bundle {
   align-items: stretch;
   border-width: 5px;
   border-radius: var(--r-l);
@@ -1535,11 +1503,6 @@ button.primary:disabled {
    line instead of truncating it away. */
 .offer-grid.bundles .set-meta:last-of-type {
   min-height: 2.4em;
-}
-
-.set-card h4 {
-  margin: 0;
-  font-size: 0.85rem;
 }
 
 .tray {
@@ -2650,7 +2613,6 @@ button.primary:disabled {
   }
   /* A fan needs width it doesn't have on narrow screens — flatten to a
      wrapping grid, no rotation/overlap. */
-  .offer-grid.ten,
   .offer-grid.bundles {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -2659,13 +2621,11 @@ button.primary:disabled {
     padding: 0;
     gap: 0.75rem;
   }
-  .offer-grid.ten .offer-card,
   .offer-grid.bundles .offer-card {
     width: auto;
     margin-left: 0;
     transform: none !important;
   }
-  .offer-grid.ten .offer-card:hover,
   .offer-grid.bundles .offer-card:hover {
     transform: translateY(-4px) !important;
     z-index: auto !important;
@@ -2752,7 +2712,6 @@ button.primary:disabled {
 /* ---- Reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
   .offer-card,
-  .set-card,
   .ladder-rung,
   .tray-slot.filled,
   .lunge-right,
@@ -2782,22 +2741,18 @@ button.primary:disabled {
   .hp-fill,
   .mode-card,
   .offer-card,
-  .set-card,
   .mode-toggle button {
     transition: none;
   }
   .offer-card:hover,
-  .set-card:hover,
   .mode-card:not(.disabled):hover {
     transform: none;
   }
   /* Beats the fan's own !important hover-lift (same specificity, later in
      the stylesheet) — no lift/settle under reduced motion, per spec. */
-  .offer-grid.ten .offer-card,
   .offer-grid.bundles .offer-card {
     transition: none;
   }
-  .offer-grid.ten .offer-card:hover,
   .offer-grid.bundles .offer-card:hover {
     transform: none !important;
   }

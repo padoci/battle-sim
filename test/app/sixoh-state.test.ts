@@ -14,7 +14,7 @@ function freshRun(): SixOhState {
   let state = sixOhReducer(initialSixOhState, {
     type: 'NEW_RUN',
     seed: 1,
-    mode: 'normal',
+    mode: 'easy',
     draft: completeDraft,
     opponents: Array.from({length: 6}, (_, i) => ({name: `T${i}`, sets: []})),
   });

@@ -88,6 +88,17 @@ export interface Team {
   data: TeamMemberWire[];
 }
 
+/**
+ * One entry of `gym-leader-teams.gen9ou.json` (Gym Leader mode's opponent
+ * pool): a real trainer's expanded roster, tagged by their signature type
+ * (used to draw 5 mutually-distinct-type rungs) and whether they're a
+ * champion (drawn separately, for the gauntlet's final rung).
+ */
+export interface GymLeaderTeam extends Team {
+  signatureType: string;
+  isChampion: boolean;
+}
+
 /** One species in the draft pool (sets ⋈ usage stats). */
 export interface PoolEntry {
   species: string;

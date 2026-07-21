@@ -9,6 +9,9 @@ export type BattlePhase = 'pending' | 'computing' | 'ready' | 'replaying' | 'don
 export interface GauntletOpponent {
   name: string;
   sets: PokemonSet[];
+  /** Gym Leader mode: signature type (+ "Champion" for the final rung),
+   * shown on the ladder in place of the computed archetype tag. */
+  badge?: string;
 }
 
 export interface SixOhState {
@@ -46,7 +49,7 @@ export type SixOhAction =
 
 export const initialSixOhState: SixOhState = {
   runSeed: 0,
-  mode: 'normal',
+  mode: 'gymleader',
   opponents: [],
   battles: [],
   battleIndex: 0,

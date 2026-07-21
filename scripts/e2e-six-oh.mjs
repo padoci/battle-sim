@@ -1,19 +1,20 @@
 /**
- * Stage 4 (v-next) end-to-end walkthrough of "Can you 6-0?":
- * landing -> Easy two-stage draft (10 species -> set, Species Clause, ladder) ->
- * gauntlet (simulating state, Gen 5 battle stage at 1x, skip to result) -> result
- * (flawless or eliminated) with post-mortem -> Draft again. Plus a Hard-mode
- * bundle spot-check. The opponent pool is the built-in teams merged with
- * mocked external sample teams (crob.at + pokepaste).
+ * End-to-end walkthrough of "Can you 6-0?" across its three modes (Gym
+ * Leader, Easy, Hard): landing -> Gym Leader bundle draft (6 pre-made
+ * options, Species Clause, ladder with 5 distinct-signature-type leaders +
+ * a champion last) -> gauntlet (simulating state, Gen 5 battle stage at 1x,
+ * skip to result) -> result (flawless or eliminated) with post-mortem ->
+ * "Step up to Easy" -> Draft again. Plus Easy and Hard bundle spot-checks.
+ * The Easy/Hard opponent pool is the built-in teams merged with mocked
+ * external sample teams (crob.at + pokepaste); Gym Leader's pool is the
+ * vendored gym-leader-teams.gen9ou.json, no mocking needed.
  *
- * Uses ?config=fast&seed=41 — FAST battles keep the run quick and Easy mode's
- * early rungs field random opponents, quicker still. config is real product
- * surface (the Tera-tuning session tool).
+ * Uses ?config=fast&seed=41 — FAST battles keep the run quick.
+ * config is real product surface (the Tera-tuning session tool).
  *
  * Usage:
  *   npm run build
- *   NODE_PATH=/opt/node22/lib/node_modules CHROMIUM_PATH=/opt/pw-browsers/chromium \
- *     node scripts/e2e-six-oh.mjs [--shots-dir DIR]
+ *   NODE_PATH=... CHROMIUM_PATH=... node scripts/e2e-six-oh.mjs [--shots-dir DIR]
  */
 import {spawn} from 'node:child_process';
 import {mkdirSync, readFileSync} from 'node:fs';
@@ -160,6 +161,33 @@ async function routeData(page) {
   });
 }
 
+/** Draft all 6 bundles by clicking the first offer each round; returns the
+ * picked species names in order. Species Clause: fails if any repeats. */
+async function draftSixBundles(page) {
+  const picked = [];
+  for (let i = 0; i < 6; i++) {
+    const name = await page.locator('.offer-card .offer-name').first().textContent();
+    if (picked.includes(name)) fail(`species offered again after drafting: ${name}`);
+    picked.push(name);
+    if (i === 0) {
+      // Bundle cards show ONE committed build: no slashed alternatives in the
+      // move list or the Tera line (the EV line legitimately uses ' / ').
+      const moveLines = await page.locator('.offer-card .set-moves li').allTextContents();
+      const slashedMove = moveLines.find(m => m.includes('/'));
+      if (slashedMove) fail(`bundle card shows unresolved move alternatives: ${slashedMove}`);
+      const teraLines = await page.locator('.offer-card .set-meta', {hasText: 'Tera'}).allTextContents();
+      const slashedTera = teraLines.find(t => t.includes(' / '));
+      if (slashedTera) fail(`bundle card shows unresolved tera alternatives: ${slashedTera}`);
+      ok(`bundle cards show committed builds (${moveLines.length} move lines, no slashes)`);
+    }
+    await page.locator('.offer-card').first().click();
+    await page.waitForTimeout(150);
+  }
+  const filled = await page.locator('.tray-slot.filled').count();
+  if (filled !== 6) fail(`tray should be full, got ${filled}`);
+  return picked;
+}
+
 async function main() {
   mkdirSync(shotsDir, {recursive: true});
   const preview = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], {stdio: 'ignore'});
@@ -182,19 +210,15 @@ async function main() {
     if (!/not affiliated/i.test(footer ?? '')) fail('footer should carry the attribution/disclaimer');
     ok('footer attribution present');
 
-    // 2. Draft screen. Default is Normal (two-stage, 10 species).
+    // 2. Draft screen. Default is Gym Leader (6 pre-made bundles).
     await page.goto(`http://localhost:${PORT}/#/sixoh?config=fast&seed=41`);
     await page.waitForSelector('.offer-card', {timeout: 60_000});
-    const normalCount = await page.locator('.offer-card').count();
-    if (normalCount !== 10) fail(`normal mode should offer 10 species, got ${normalCount}`);
-    ok('default Normal mode deals 10 species (two-stage)');
-
-    // Switch to Easy (same two-stage draft; opponents ramp in difficulty).
-    await page.locator('.mode-toggle button', {hasText: 'Easy'}).click();
-    await page.waitForTimeout(300);
-    const easyCount = await page.locator('.offer-card').count();
-    if (easyCount !== 10) fail(`easy mode should offer 10 species, got ${easyCount}`);
-    ok('Easy mode selected — 10 species offers');
+    const glCount = await page.locator('.offer-card').count();
+    if (glCount !== 6) fail(`Gym Leader mode should offer 6 bundles, got ${glCount}`);
+    if (!(await page.locator('.mode-toggle button.active', {hasText: 'Gym Leader'}).count())) {
+      fail('default mode should be Gym Leader');
+    }
+    ok('default Gym Leader mode deals 6 pre-made bundles');
 
     // Ladder preview visible pre-gauntlet.
     const rungs = await page.locator('.ladder-preview .ladder-rung').count();
@@ -205,32 +229,16 @@ async function main() {
     const placeholder = rungNames.find(n => /^Team #\d+$/.test(n.trim()));
     if (placeholder) fail(`opponent shows placeholder name: ${placeholder}`);
     ok('all opponents have real display names (no "Team #N")');
+    // Gym Leader ladder: 5 mutually distinct signature types, champion last.
+    const badges = await page.locator('.ladder-preview .archetype-tag').allTextContents();
+    const leaderTypes = badges.slice(0, 5).map(b => b.trim());
+    if (new Set(leaderTypes).size !== 5) fail(`gym leader rungs 1-5 should have distinct types, got: ${leaderTypes.join(', ')}`);
+    if (!/Champion/.test(badges[5])) fail(`rung 6 should be tagged Champion, got: ${badges[5]}`);
+    ok(`gym leader ladder: 5 distinct types (${leaderTypes.join(', ')}) + champion last`);
 
-    // Draft 6 via the two-stage flow (species -> set); Species Clause check.
-    const picked = [];
-    for (let i = 0; i < 6; i++) {
-      const name = await page.locator('.offer-card .offer-name').first().textContent();
-      if (picked.includes(name)) fail(`species offered again after drafting: ${name}`);
-      picked.push(name);
-      if (i === 2) await page.screenshot({path: `${shotsDir}/e2e-sixoh-draft.png`, fullPage: true});
-      await page.locator('.offer-card').first().click(); // pick species
-      await page.waitForSelector('.set-card', {timeout: 10_000});
-      if (i === 0) {
-        // Set cards show ONE committed build: no slashed alternatives in the
-        // move list or the Tera line (the EV line legitimately uses ' / ').
-        const moveLines = await page.locator('.set-card .set-moves li').allTextContents();
-        const slashedMove = moveLines.find(m => m.includes('/'));
-        if (slashedMove) fail(`set card shows unresolved move alternatives: ${slashedMove}`);
-        const teraLines = await page.locator('.set-card .set-meta', {hasText: 'Tera'}).allTextContents();
-        const slashedTera = teraLines.find(t => t.includes(' / '));
-        if (slashedTera) fail(`set card shows unresolved tera alternatives: ${slashedTera}`);
-        ok(`set cards show committed builds (${moveLines.length} move lines, no slashes)`);
-      }
-      await page.locator('.set-card').first().click(); // pick its set
-      await page.waitForTimeout(150);
-    }
-    const filled = await page.locator('.tray-slot.filled').count();
-    if (filled !== 6) fail(`tray should be full, got ${filled}`);
+    // Draft 6 bundles; Species Clause + committed-build checks.
+    const picked = await draftSixBundles(page);
+    await page.screenshot({path: `${shotsDir}/e2e-sixoh-draft.png`, fullPage: true});
     ok(`drafted 6 distinct mons: ${picked.join(', ')}`);
 
     // 3. Start the gauntlet.
@@ -243,10 +251,21 @@ async function main() {
     await page.waitForSelector('.battle-stage', {timeout: 120_000});
     await page.waitForSelector('.hp-bar', {timeout: 30_000});
     if ((await page.locator('.stage-field .hp-block').count()) < 1) fail('HP meters should render on the field');
-    const logLen1 = (await page.locator('.battle-log').textContent()).length;
-    await page.waitForTimeout(4000);
-    const logText = await page.locator('.battle-log').textContent();
-    if (logText.length <= logLen1) fail('battle log should grow during 1x replay');
+    // A weak-enough drafted team can finish a rung in just a few turns, so a
+    // single before/after snapshot can straddle a battle transition (log
+    // resets, shorter, for the next rung) or even land on a same-length
+    // coincidence. Poll instead: succeed the moment the log differs at all
+    // from the initial snapshot — growth within a battle or a reset into the
+    // next one are equally good evidence the replay is live, not frozen.
+    const initialLog = await page.locator('.battle-log').textContent();
+    let logText = initialLog;
+    let changed = false;
+    for (let i = 0; i < 8 && !changed; i++) {
+      await page.waitForTimeout(500);
+      logText = await page.locator('.battle-log').textContent();
+      changed = logText !== initialLog;
+    }
+    if (!changed) fail('battle log should change (grow, or reset into the next battle) during 1x replay');
     // No raw protocol leaks (· -end|..., -ability|...) and no broken possessive.
     if (/·|\|p[12]a:/.test(logText)) fail(`battle log leaks raw protocol: ${logText.slice(0, 120)}`);
     if (/You's|Them's|undefined/.test(logText)) fail(`battle log has a grammar/interp bug: ${logText.slice(0, 120)}`);
@@ -272,7 +291,7 @@ async function main() {
     // Keep clicking Skip to result as new battles arrive until the result
     // route. Budget generously — a stall matchup can compute to maxTurns
     // before it replays. Fail fast if the run hits an actual error panel.
-    for (let guard = 0; guard < 120; guard++) {
+    for (let guardCount = 0; guardCount < 120; guardCount++) {
       if (page.url().includes('/sixoh/result')) break;
       if (await page.locator('.problems', {hasText: 'failed'}).count()) {
         fail(`gauntlet run errored: ${(await page.locator('.problems').first().textContent()).trim()}`);
@@ -327,13 +346,18 @@ async function main() {
     await page.locator('.empty-state button', {hasText: 'See the result'}).click();
     await page.waitForSelector('.result-card', {timeout: 10_000});
 
-    // 8. "Step up" actually changes difficulty (this run was Easy → Normal).
-    await page.locator('.result-actions button', {hasText: 'Step up to Normal'}).click();
+    // 8. "Step up" actually changes difficulty (this run was Gym Leader → Easy).
+    await page.locator('.result-actions button', {hasText: 'Step up to Easy'}).click();
     await page.waitForSelector('.offer-card', {timeout: 60_000});
-    if (!(await page.locator('.mode-toggle button.active', {hasText: 'Normal'}).count())) {
-      fail('Step up to Normal should start the draft in Normal mode');
+    if (!(await page.locator('.mode-toggle button.active', {hasText: 'Easy'}).count())) {
+      fail('Step up to Easy should start the draft in Easy mode');
     }
-    ok('Step up threads the mode into the draft (Easy → Normal)');
+    const easyCount = await page.locator('.offer-card').count();
+    if (easyCount !== 6) fail(`Easy mode should offer 6 bundles, got ${easyCount}`);
+    // Easy's opponent pool is real meta teams, not gym leaders — no Champion tag.
+    const easyBadges = await page.locator('.ladder-preview .archetype-tag').allTextContents();
+    if (easyBadges.some(b => /Champion/.test(b))) fail('Easy mode ladder should not carry a Champion tag');
+    ok('Step up threads the mode into the draft (Gym Leader → Easy), pool switches to real teams');
 
     // 9. ?mode=hard deals 6 bundles with Hard pre-selected (mode from the hash).
     const page2 = await browser.newPage({viewport: {width: 1440, height: 1000}});
@@ -351,7 +375,7 @@ async function main() {
     await page2.locator('.offer-card').first().click();
     await page2.waitForTimeout(200);
     if ((await page2.locator('.tray-slot.filled').count()) !== 1) fail('bundle pick should fill tray slot 1');
-    ok('hard bundle flow works from the hash (6 bundles -> one-click pick fills tray)');
+    ok('hard mode bundle flow works from the hash (6 bundles -> one-click pick fills tray)');
     await page2.close();
 
     assertNoSilentBreakage();

@@ -2,20 +2,13 @@ import {useEffect, useMemo, useState, type CSSProperties} from 'react';
 import {Icons} from '@pkmn/img';
 import {DataClient} from '../../data/client';
 import {loadOpponentTeams} from '../../data/sampleTeams';
+import {loadGymLeaderTeams} from '../../data/gymLeaderTeams';
 import {teamMemberToSet} from '../../data/team';
 import {gen9} from '../../data/gen';
-import type {PoolEntry, SetsData} from '../../data/types';
+import type {GymLeaderTeam, PoolEntry, SetsData, Team} from '../../data/types';
 import {classifyTeam, fallbackTeamName} from '../../analysis/archetype';
-import {
-  createDraft,
-  pickBundle,
-  pickSet,
-  pickSpecies,
-  TEAM_SIZE,
-  type DraftMode,
-  type SetOption,
-} from '../../draft/draft';
-import {sampleOpponents} from '../../draft/opponents';
+import {createDraft, pickBundle, TEAM_SIZE, type DraftMode} from '../../draft/draft';
+import {sampleGymLeaders, sampleOpponents} from '../../draft/opponents';
 import {navigate} from '../router';
 import {typeColor, typeGradient, typeBorderGradient} from '../sixoh/typeColors';
 import {readDevParams} from '../sixoh/devParams';
@@ -23,6 +16,7 @@ import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/s
 import {resetSixOhSession} from '../sixoh/session';
 import {useTcgArt} from '../sixoh/useTcgArt';
 import {resizedCardArtUrl} from '../../data/tcgArt';
+import type {Generation} from '@pkmn/data';
 
 /** Above the ~10s a slow-but-failing-over data fetch takes (see cachedJson's
  * per-URL timeout) with headroom for a genuinely slow connection, but still a
@@ -32,7 +26,30 @@ const LOAD_WATCHDOG_MS = 25_000;
 interface DraftData {
   pool: PoolEntry[];
   sets: SetsData;
-  opponents: GauntletOpponent[];
+  /** Easy/Hard opponent pool: real meta teams. */
+  realTeams: Team[];
+  /** Gym Leader opponent pool: real trainers' rosters. */
+  gymLeaderTeams: GymLeaderTeam[];
+}
+
+/** This mode's 6 gauntlet opponents for a given seed — a different pool and
+ * sampler for Gym Leader (5 distinct-signature-type leaders + a champion)
+ * than Easy/Hard (uniform draw from the real-team pool). */
+function buildOpponents(mode: DraftMode, data: DraftData, seed: number, gen: Generation): GauntletOpponent[] {
+  if (mode === 'gymleader') {
+    return sampleGymLeaders(data.gymLeaderTeams, seed).map(i => {
+      const team = data.gymLeaderTeams[i];
+      return {
+        name: team.name ?? team.signatureType,
+        sets: team.data.map(teamMemberToSet),
+        badge: team.isChampion ? `${team.signatureType} · Champion` : team.signatureType,
+      };
+    });
+  }
+  return sampleOpponents(data.realTeams.length, 6, seed).map(i => {
+    const sets = data.realTeams[i].data.map(teamMemberToSet);
+    return {name: data.realTeams[i].name ?? fallbackTeamName(gen, sets), sets};
+  });
 }
 
 function TypeBadges({species}: {species: string}) {
@@ -48,9 +65,7 @@ function TypeBadges({species}: {species: string}) {
   );
 }
 
-/** The fanned hand's per-card rotation + arc dip, by distance from center —
- * generalizes to whatever offer count the draft engine deals (10 for
- * easy/normal, 6 for hard-mode bundles). */
+/** The fanned hand's per-card rotation + arc dip, by distance from center. */
 function fanTransform(index: number, count: number, rotateStepDeg: number, dipPx: number): string {
   const center = (count - 1) / 2;
   const d = index - center;
@@ -94,35 +109,6 @@ function MoveList({moves}: {moves: string[]}) {
   );
 }
 
-function SetCard({species, option, onPick}: {species: string; option: SetOption; onPick: () => void}) {
-  // Render the RESOLVED set only — the card shows exactly the moves/tera
-  // that will battle (the draft committed to one build per option; the wire
-  // format's slashed alternatives are no longer re-expanded here).
-  const {set} = option;
-  const evs = Object.entries(set.evs)
-    .filter(([, v]) => v > 0)
-    .map(([stat, v]) => `${v} ${stat}`)
-    .join(' / ');
-  return (
-    <button className="set-card" onClick={onPick}>
-      <div className="bundle-head">
-        <span className="mon-tile" style={{backgroundImage: typeGradient(gen9().species.get(species)?.types ?? [])}}>
-          <span style={Icons.getPokemon(species).css} />
-        </span>
-        <div>
-          <h4>{species}</h4>
-          <div className="mono bundle-set">{option.setName}</div>
-        </div>
-      </div>
-      <MoveList moves={set.moves} />
-      <p className="mono set-meta">
-        {set.item || 'No item'} · {set.nature} · {evs}
-      </p>
-      <p className="mono set-meta">Tera {set.teraType ?? '—'}</p>
-    </button>
-  );
-}
-
 export function SixOhDraft() {
   const state = useSixOhState();
   const dispatch = useSixOhDispatch();
@@ -131,19 +117,19 @@ export function SixOhDraft() {
   const gen = useMemo(() => gen9(), []);
   const dev = useMemo(() => readDevParams(), []);
   // Starting difficulty from the hash (`#/sixoh?mode=hard`) so "Step up" and
-  // "Draft again" can pick the mode; defaults to normal.
+  // "Draft again" can pick the mode; defaults to Gym Leader (the entry tier).
   const initialMode = useMemo<DraftMode>(() => {
     const raw = new URLSearchParams(location.hash.split('?')[1] ?? '').get('mode');
-    return raw === 'easy' || raw === 'hard' ? raw : 'normal';
+    return raw === 'easy' || raw === 'hard' || raw === 'gymleader' ? raw : 'gymleader';
   }, []);
 
-  // Load pool + sets + opponent teams, then deal the first hand. Guarded by a
-  // watchdog: a stall anywhere in this chain (a slow/hung fetch, IndexedDB
-  // taking unusually long to open, a slow synchronous TeamValidator pass over
-  // the opponent pool) would otherwise leave "Dealing your first hand…"
-  // spinning forever with no way out but a manual reload. The race surfaces
-  // the same error panel a rejection already gets, on a bounded timeout
-  // instead of an indefinite hang.
+  // Load pool + sets + both opponent pools, then deal the first hand. Guarded
+  // by a watchdog: a stall anywhere in this chain (a slow/hung fetch,
+  // IndexedDB taking unusually long to open, a slow synchronous
+  // TeamValidator pass over the opponent pool) would otherwise leave "Dealing
+  // your first hand…" spinning forever with no way out but a manual reload.
+  // The race surfaces the same error panel a rejection already gets, on a
+  // bounded timeout instead of an indefinite hang.
   useEffect(() => {
     if (state.draft || data) return;
     let settled = false;
@@ -154,17 +140,13 @@ export function SixOhDraft() {
       setError('timed out loading the draft data — check your connection and reload');
     }, LOAD_WATCHDOG_MS);
     Promise.all([client.pool(), client.sets(), loadOpponentTeams(client)])
-      .then(([pool, sets, teams]) => {
+      .then(([pool, sets, realTeams]) => {
         if (settled) return;
         settled = true;
         clearTimeout(watchdog);
+        const loaded: DraftData = {pool, sets, realTeams, gymLeaderTeams: loadGymLeaderTeams()};
         const seed = dev.seed ?? Math.floor(Math.random() * 2 ** 31);
-        const opponentIndices = sampleOpponents(teams.length, 6, seed ^ 0x0bb57);
-        const opponents = opponentIndices.map(i => {
-          const sets = teams[i].data.map(teamMemberToSet);
-          return {name: teams[i].name ?? fallbackTeamName(gen, sets), sets};
-        });
-        const loaded = {pool, sets, opponents};
+        const opponents = buildOpponents(initialMode, loaded, seed ^ 0x0bb57, gen);
         setData(loaded);
         resetSixOhSession();
         dispatch({
@@ -185,14 +167,24 @@ export function SixOhDraft() {
       settled = true;
       clearTimeout(watchdog);
     };
-  }, [state.draft, data, dispatch, dev.seed, initialMode]);
+  }, [state.draft, data, dispatch, dev.seed, initialMode, gen]);
 
   const draft = state.draft;
-  const canSwitchMode = draft && draft.team.length === 0 && draft.phase === 'species';
+  const canSwitchMode = draft && draft.team.length === 0 && draft.phase === 'drafting';
 
+  // Switching mode before any pick is, in effect, starting the run over in
+  // that mode — the opponent pool/sampler differs per mode, so both the
+  // draft and the gauntlet ladder are re-rolled together.
   const switchMode = (mode: DraftMode) => {
     if (!data || !canSwitchMode || mode === draft.mode) return;
-    dispatch({type: 'SET_DRAFT', draft: createDraft(data.pool, data.sets, mode, state.runSeed ^ 0xd4af7)});
+    const seed = state.runSeed;
+    dispatch({
+      type: 'NEW_RUN',
+      seed,
+      mode,
+      draft: createDraft(data.pool, data.sets, mode, seed ^ 0xd4af7),
+      opponents: buildOpponents(mode, data, seed ^ 0x0bb57, gen),
+    });
   };
 
   if (error) {
@@ -221,90 +213,42 @@ export function SixOhDraft() {
     <main className="screen draft-screen">
       <h1>Can you 6-0?</h1>
       <p className="screen-sub">
-        Draft six from randomized, usage-weighted offers. Then the AI pilots them through a
-        six-battle gauntlet — win all six to go flawless.
+        Draft six pre-made cards. Then the AI pilots them through a six-battle gauntlet — win all
+        six to go flawless.
       </p>
 
       <div className="mode-toggle" role="group" aria-label="Difficulty">
+        <button
+          className={draft.mode === 'gymleader' ? 'active' : ''}
+          disabled={!canSwitchMode && draft.mode !== 'gymleader'}
+          onClick={() => switchMode('gymleader')}
+        >
+          Gym Leader <span className="hint">6 options — real gym leaders, building to a champion finale</span>
+        </button>
         <button
           className={draft.mode === 'easy' ? 'active' : ''}
           disabled={!canSwitchMode && draft.mode !== 'easy'}
           onClick={() => switchMode('easy')}
         >
-          Easy <span className="hint">10 options — opponents start weak and ramp up</span>
-        </button>
-        <button
-          className={draft.mode === 'normal' ? 'active' : ''}
-          disabled={!canSwitchMode && draft.mode !== 'normal'}
-          onClick={() => switchMode('normal')}
-        >
-          Normal <span className="hint">10 options — full-strength opponents all six</span>
+          Easy <span className="hint">6 options — opponents start weak and ramp up</span>
         </button>
         <button
           className={draft.mode === 'hard' ? 'active' : ''}
           disabled={!canSwitchMode && draft.mode !== 'hard'}
           onClick={() => switchMode('hard')}
         >
-          Hard <span className="hint">6 options — mon and set together, full strength</span>
+          Hard <span className="hint">6 options — full-strength opponents from rung one</span>
         </button>
       </div>
 
       {draft.phase !== 'complete' && (
         <h2 className="round-header">
           Pick {draft.team.length + 1} of {TEAM_SIZE}
-          {draft.phase === 'set' ? ` — choose ${draft.offers[0]?.species}'s set` : ''}
-          {draft.phase === 'species' && (
-            <span className="mono hint">
-              your hand of {draft.offers.length} · hover to lift, click to draft
-              {draft.mode === 'hard' ? ' the package' : ''}
-            </span>
-          )}
+          <span className="mono hint">your hand of {draft.offers.length} · hover to lift, click to draft the package</span>
         </h2>
       )}
 
-      {draft.phase === 'species' && draft.mode !== 'hard' && (
-        <div className="offer-grid ten">
-          {draft.offers.map((offer, index) => {
-            const types = gen9().species.get(offer.species)?.types ?? [];
-            return (
-              <button
-                key={offer.species}
-                className="offer-card"
-                style={{
-                  transform: fanTransform(index, draft.offers.length, 4.4, 2.4),
-                  zIndex: index,
-                  background: `linear-gradient(#fdfbff, var(--panel-lilac)) padding-box, ${typeBorderGradient(types)} border-box`,
-                }}
-                onClick={() => dispatch({type: 'SET_DRAFT', draft: pickSpecies(draft, data.sets, offer.species)})}
-              >
-                <div className="card-art-window" style={{backgroundImage: typeGradient(types)}}>
-                  <span className="mono usage">{(offer.usageWeighted * 100).toFixed(1)}%</span>
-                  <CardArt species={offer.species} />
-                </div>
-                <div className="card-footer">
-                  <span className="offer-name">{offer.species}</span>
-                  <TypeBadges species={offer.species} />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {draft.phase === 'set' && draft.setOptions && (
-        <div className="offer-grid sets">
-          {draft.setOptions.map(option => (
-            <SetCard
-              key={option.setName}
-              species={draft.offers[0]?.species ?? ''}
-              option={option}
-              onPick={() => dispatch({type: 'SET_DRAFT', draft: pickSet(draft, data.pool, data.sets, option.setName)})}
-            />
-          ))}
-        </div>
-      )}
-
-      {draft.phase === 'species' && draft.mode === 'hard' && (
+      {draft.phase === 'drafting' && (
         <div className="offer-grid bundles">
           {draft.offers.map((offer, index) => {
             const types = gen9().species.get(offer.species)?.types ?? [];
@@ -330,10 +274,10 @@ export function SixOhDraft() {
                   </div>
                   <TypeBadges species={offer.species} />
                 </div>
-                <MoveList moves={offer.set!.moves} />
+                <MoveList moves={offer.set.moves} />
                 <p className="mono set-meta">
-                  {offer.set!.item || 'No item'} · {offer.set!.nature}
-                  {offer.set!.teraType ? ` · Tera ${offer.set!.teraType}` : ''}
+                  {offer.set.item || 'No item'} · {offer.set.nature}
+                  {offer.set.teraType ? ` · Tera ${offer.set.teraType}` : ''}
                 </p>
               </button>
             );
@@ -377,7 +321,7 @@ export function SixOhDraft() {
             <li key={i} className="ladder-rung">
               <span className="rung-number mono">{i + 1}</span>
               <span className="rung-name">{opponent.name}</span>
-              <span className="archetype-tag">{classifyTeam(gen, opponent.sets).label}</span>
+              <span className="archetype-tag">{opponent.badge ?? classifyTeam(gen, opponent.sets).label}</span>
               <span className="rung-icons">
                 {opponent.sets.map((set, j) => (
                   <span key={j} style={Icons.getPokemon(set.species).css} title={set.species} />

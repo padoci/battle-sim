@@ -118,8 +118,8 @@ export function SixOhResult() {
           <button className="primary" onClick={() => restartAs(state.mode)}>
             Draft again
           </button>
-          {state.mode === 'easy' && <button onClick={() => restartAs('normal')}>Step up to Normal</button>}
-          {state.mode === 'normal' && <button onClick={() => restartAs('hard')}>Step up to Hard</button>}
+          {state.mode === 'gymleader' && <button onClick={() => restartAs('easy')}>Step up to Easy</button>}
+          {state.mode === 'easy' && <button onClick={() => restartAs('hard')}>Step up to Hard</button>}
         </div>
       </div>
     </main>

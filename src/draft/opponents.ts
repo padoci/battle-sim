@@ -1,4 +1,4 @@
-import {nextRng} from './sample';
+import {nextRng, sampleWithoutReplacement} from './sample';
 
 /**
  * Choose the gauntlet's opponents: uniform, without replacement, seeded.
@@ -17,4 +17,43 @@ export function sampleOpponents(teamCount: number, count: number, seed: number):
     indices.splice(index, 1);
   }
   return picked;
+}
+
+/**
+ * Choose the Gym Leader gauntlet's opponents: 5 leaders with mutually
+ * distinct `signatureType` (so a run never fields the same theme twice),
+ * then 1 champion for the final rung — both draws seeded and without
+ * replacement. Returns indices into `teams`, champion last.
+ */
+export function sampleGymLeaders(
+  teams: ReadonlyArray<{signatureType: string; isChampion: boolean}>,
+  seed: number
+): number[] {
+  const leaderIndicesByType = new Map<string, number[]>();
+  const championIndices: number[] = [];
+  teams.forEach((team, i) => {
+    if (team.isChampion) {
+      championIndices.push(i);
+      return;
+    }
+    const list = leaderIndicesByType.get(team.signatureType) ?? [];
+    list.push(i);
+    leaderIndicesByType.set(team.signatureType, list);
+  });
+
+  const types = [...leaderIndicesByType.keys()];
+  const {picked: pickedTypes, state: afterTypes} = sampleWithoutReplacement(types, () => 1, 5, seed >>> 0);
+
+  let state = afterTypes;
+  const leaders = pickedTypes.map(type => {
+    const candidates = leaderIndicesByType.get(type)!;
+    const step = nextRng(state);
+    state = step.state;
+    return candidates[Math.min(candidates.length - 1, Math.floor(step.value * candidates.length))];
+  });
+
+  const step = nextRng(state);
+  const champion = championIndices[Math.min(championIndices.length - 1, Math.floor(step.value * championIndices.length))];
+
+  return [...leaders, champion];
 }

@@ -2,34 +2,29 @@
  * Headless "Can you 6-0?" simulator — drives full gauntlet runs in Node with
  * the real draft engine + search, no browser. Collects how far runs get, the
  * per-rung win rate, and the flawless rate, so we can see whether a mode (and
- * the Easy difficulty ramp in particular) behaves as intended.
+ * the Easy/Gym Leader difficulty ramps in particular) behaves as intended.
  *
  * Run:
  *   npx vite-node scripts/sim-gauntlet.ts -- [--runs N] [--config fast|strong]
- *                 [--modes easy,normal,hard] [--draft greedy|random] [--seed S]
+ *                 [--modes gymleader,easy,hard] [--draft greedy|random] [--seed S]
+ *                 [--gl-ramp e0,e1,e2,e3,e4,e5]
  *
- * Defaults: 15 runs per mode, FAST search, modes easy+normal, greedy draft.
+ * Defaults: 15 runs per mode, FAST search, modes gymleader+easy, greedy draft.
  * Note FAST understates the shipped default (STRONG); it keeps a batch quick
- * and, because Easy's top rungs mirror the player's own config, the *relative*
- * difficulty across rungs is preserved either way. Writes logs/gauntlet-sim.json
- * and logs/gauntlet-sim.md.
+ * and, because Easy/Gym Leader's top rungs mirror the player's own config, the
+ * *relative* difficulty across rungs is preserved either way. Writes
+ * logs/gauntlet-sim.json and logs/gauntlet-sim.md.
  */
 import {mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {gen9} from '../src/data/gen';
 import {teamMemberToSet} from '../src/data/team';
+import {loadGymLeaderTeams} from '../src/data/gymLeaderTeams';
 import type {PoolEntry, SetsData, StatsData, Team} from '../src/data/types';
 import {seedFromInts} from '../src/engine/rng';
 import {FAST, STRONG, type SearchConfig} from '../src/search/config';
 import {runBattle, type BattleJob, type Policy} from '../src/search/runner';
-import {
-  createDraft,
-  pickBundle,
-  pickSet,
-  pickSpecies,
-  type DraftMode,
-  type DraftState,
-} from '../src/draft/draft';
-import {sampleOpponents} from '../src/draft/opponents';
+import {createDraft, pickBundle, type DraftMode, type DraftState} from '../src/draft/draft';
+import {sampleGymLeaders, sampleOpponents} from '../src/draft/opponents';
 
 const LOGS = 'logs';
 const gen = gen9();
@@ -42,7 +37,7 @@ function flag(name: string, fallback: string): string {
 const RUNS = Number(flag('runs', '15'));
 const CONFIG_NAME = flag('config', 'fast') as 'fast' | 'strong';
 const CONFIG: SearchConfig = CONFIG_NAME === 'strong' ? STRONG : FAST;
-const MODES = flag('modes', 'easy,normal').split(',') as DraftMode[];
+const MODES = flag('modes', 'gymleader,easy').split(',') as DraftMode[];
 const DRAFT = flag('draft', 'greedy') as 'greedy' | 'random';
 const BASE_SEED = Number(flag('seed', '1000'));
 /** Easy ramp shape: `cliff` = shipped (random/FAST/config), `smooth` = mix-based. */
@@ -64,6 +59,7 @@ const search = (config: SearchConfig): Policy => ({kind: 'search', config});
 const sets = JSON.parse(readFileSync('test/fixtures/gen9ou.sets.full.json', 'utf8')) as SetsData;
 const stats = JSON.parse(readFileSync('test/fixtures/stats.fixture.json', 'utf8')) as unknown as StatsData;
 const teams = JSON.parse(readFileSync('test/fixtures/gen9ou.teams.full.json', 'utf8')) as Team[];
+const gymLeaderTeams = loadGymLeaderTeams();
 const pool: PoolEntry[] = Object.entries(sets).map(([species, byName]) => ({
   species,
   setNames: Object.keys(byName),
@@ -73,14 +69,26 @@ const pool: PoolEntry[] = Object.entries(sets).map(([species, byName]) => ({
 /** Blunder rate per rung for the `smooth` ramp (75% → 0% across the six). */
 const SMOOTH_EPSILON = [0.75, 0.55, 0.4, 0.25, 0.1, 0];
 
+/** Gym Leader ramp under test — overridable via `--gl-ramp e0,e1,e2,e3,e4,e5`
+ * for tuning experiments; defaults to the shipped src/app/sixoh/session.ts
+ * GYMLEADER_BLUNDER. */
+const GL_RAMP_FLAG = flag('gl-ramp', '');
+const GL_RAMP = GL_RAMP_FLAG ? GL_RAMP_FLAG.split(',').map(Number) : [0.85, 0.7, 0.55, 0.4, 0.25, 0.1];
+
 /**
  * The Easy difficulty ramp. `cliff` mirrors the shipped
  * src/app/sixoh/session.ts `opponentPolicy` (random → FAST → player config).
  * `smooth` uses a mix player whose blunder rate decays each rung, so the
  * curve slopes instead of jumping from random pushover to full FAST. Both
- * end at a fair mirror on the last rung. normal/hard are full strength.
+ * end at a fair mirror on the last rung. Gym Leader always uses its own
+ * (gentler, slower-decaying) mix ramp; hard is full strength.
  */
 function opponentPolicy(mode: DraftMode, index: number): Policy {
+  if (mode === 'gymleader') {
+    const epsilon = GL_RAMP[index] ?? 0;
+    if (epsilon <= 0) return search(CONFIG);
+    return {kind: 'mix', epsilon, config: index >= 4 ? CONFIG : FAST};
+  }
   if (mode !== 'easy') return search(CONFIG);
   if (RAMP === 'smooth') {
     const epsilon = SMOOTH_EPSILON[index];
@@ -94,24 +102,29 @@ function opponentPolicy(mode: DraftMode, index: number): Policy {
   return search(CONFIG);
 }
 
-/** Auto-draft a team. greedy = highest-usage species + its first set. */
+/** Auto-draft a team. greedy = highest-usage species + its first set;
+ * random = a seed-derived pick each round. Every mode drafts pre-made
+ * (species, set) bundles — no two-stage flow left to branch on. */
 function draftTeam(mode: DraftMode, seed: number) {
   let draft: DraftState = createDraft(pool, sets, mode, seed);
   const pickIndex = (n: number, offers: {usageWeighted: number}[]) =>
-    DRAFT === 'random' ? seed % n : offers.reduce((best, o, i) => (o.usageWeighted > offers[best].usageWeighted ? i : best), 0);
+    DRAFT === 'random'
+      ? Math.floor(nextSeedFraction(seed, draft.round) * n)
+      : offers.reduce((best, o, i) => (o.usageWeighted > offers[best].usageWeighted ? i : best), 0);
 
   let guard = 0;
   while (draft.phase !== 'complete' && guard++ < 100) {
-    if (mode === 'hard') {
-      draft = pickBundle(draft, pool, sets, pickIndex(draft.offers.length, draft.offers));
-    } else if (draft.phase === 'species') {
-      const i = pickIndex(draft.offers.length, draft.offers);
-      draft = pickSpecies(draft, sets, draft.offers[i].species);
-    } else {
-      draft = pickSet(draft, pool, sets, draft.setOptions![0].setName);
-    }
+    draft = pickBundle(draft, pool, sets, pickIndex(draft.offers.length, draft.offers));
   }
   return draft.team.map(p => p.set);
+}
+
+/** A [0,1) pseudo-fraction varying by round, so a "random" draft doesn't pick
+ * the same offer slot all 6 rounds (a plain `seed % n` would, since n==6
+ * every round under the unified bundle draft). */
+function nextSeedFraction(seed: number, round: number): number {
+  const x = Math.sin(seed * 999 + round * 7919) * 10000;
+  return x - Math.floor(x);
 }
 
 interface RunResult {
@@ -138,10 +151,19 @@ function playerTeraTurn(log: string[] | undefined): number | undefined {
   return undefined;
 }
 
+/** This mode's 6 opponent teams for a run seed — Gym Leader draws from its
+ * own (5 distinct-type leaders + 1 champion) pool; easy/hard from the real
+ * meta-team pool, same as the shipped app. */
+function opponentsFor(mode: DraftMode, runSeed: number) {
+  if (mode === 'gymleader') {
+    return sampleGymLeaders(gymLeaderTeams, runSeed).map(i => gymLeaderTeams[i].data.map(teamMemberToSet));
+  }
+  return sampleOpponents(teams.length, 6, runSeed).map(i => teams[i].data.map(teamMemberToSet));
+}
+
 function runGauntlet(mode: DraftMode, runSeed: number): RunResult {
   const team = draftTeam(mode, runSeed ^ 0xd4af7);
-  const oppIdx = sampleOpponents(teams.length, 6, runSeed ^ 0x0bb57);
-  const opponents = oppIdx.map(i => teams[i].data.map(teamMemberToSet));
+  const opponents = opponentsFor(mode, runSeed ^ 0x0bb57);
 
   const wins: boolean[] = [];
   const turns: number[] = [];
@@ -252,17 +274,28 @@ function main() {
   const start = performance.now();
   const summaries: ModeSummary[] = [];
 
+  let skipped = 0;
   for (const mode of MODES) {
     const results: RunResult[] = [];
     for (let r = 0; r < RUNS; r++) {
       const runSeed = BASE_SEED + r * 101 + MODES.indexOf(mode) * 1_000_000;
-      results.push(runGauntlet(mode, runSeed));
+      try {
+        results.push(runGauntlet(mode, runSeed));
+      } catch (e) {
+        // A rare pre-existing engine edge case (e.g. a trapped-Pokémon
+        // switch-choice conflict) shouldn't kill an otherwise-good tuning
+        // batch - skip this one seed and note it, rather than losing every
+        // other result. Tracked as a known issue outside this tool's scope.
+        skipped++;
+        console.warn(`\nskipping ${mode} seed ${runSeed}: ${e instanceof Error ? e.message : String(e)}`);
+      }
       process.stdout.write(`\r${mode}: ${r + 1}/${RUNS}   `);
     }
     const s = summarize(mode, results);
     summaries.push(s);
     console.log(`\r${mode}: ${s.flawless}/${s.runs} flawless (${pct(s.flawlessRate)})          `);
   }
+  if (skipped) console.log(`(${skipped} run(s) skipped on a pre-existing engine edge case)`);
 
   const elapsed = (performance.now() - start) / 1000;
 

@@ -6,11 +6,9 @@ import type {DevParams} from '../../src/app/sixoh/devParams';
 const dev: DevParams = {config: STRONG, configName: 'strong'};
 
 describe('opponentPolicy — Easy difficulty ramp', () => {
-  it('normal/hard field the player config full strength on every rung', () => {
-    for (const mode of ['normal', 'hard'] as const) {
-      for (let i = 0; i < 6; i++) {
-        expect(opponentPolicy(mode, i, dev)).toEqual({kind: 'search', config: STRONG});
-      }
+  it('hard fields the player config full strength on every rung', () => {
+    for (let i = 0; i < 6; i++) {
+      expect(opponentPolicy('hard', i, dev)).toEqual({kind: 'search', config: STRONG});
     }
   });
 
@@ -34,5 +32,25 @@ describe('opponentPolicy — Easy difficulty ramp', () => {
     const fastDev: DevParams = {config: FAST, configName: 'fast'};
     expect(opponentPolicy('easy', 4, fastDev)).toEqual({kind: 'mix', epsilon: 0.1, config: FAST});
     expect(opponentPolicy('easy', 5, fastDev)).toEqual({kind: 'search', config: FAST});
+  });
+});
+
+describe('opponentPolicy — Gym Leader difficulty ramp', () => {
+  it('ramps a decaying blunder rate, LOWER than Easy at every rung (the roster content is weaker, not the AI)', () => {
+    const ramp = Array.from({length: 6}, (_, i) => opponentPolicy('gymleader', i, dev));
+    const easyRamp = Array.from({length: 6}, (_, i) => opponentPolicy('easy', i, dev));
+    const epsilonOf = (p: {kind: string; epsilon?: number}) => (p.kind === 'mix' ? p.epsilon! : 0);
+    // Counterintuitive but tuning-verified: a heavily-blundering AI on the
+    // (intentionally weaker) gym leader rosters was far too easy, so Gym
+    // Leader's curve blunders LESS than Easy's at every rung.
+    for (let i = 0; i < 6; i++) expect(epsilonOf(ramp[i])).toBeLessThanOrEqual(epsilonOf(easyRamp[i]));
+    // Blunder rate is monotonically non-increasing.
+    const eps = ramp.map(epsilonOf);
+    for (let i = 1; i < eps.length; i++) expect(eps[i]).toBeLessThanOrEqual(eps[i - 1]);
+    // Early rungs search shallowly under the blunders; the top rungs mirror
+    // the player's own config (full strength, no blunders left by rung 5).
+    expect(ramp[0]).toEqual({kind: 'mix', epsilon: expect.any(Number), config: FAST});
+    expect(ramp[4]).toEqual({kind: 'search', config: STRONG});
+    expect(ramp[5]).toEqual({kind: 'search', config: STRONG});
   });
 });

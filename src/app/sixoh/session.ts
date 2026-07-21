@@ -50,17 +50,43 @@ export function retryBattle(index: number): void {
 const EASY_BLUNDER = [0.75, 0.55, 0.4, 0.25, 0.1, 0];
 
 /**
- * The opponent's policy for a given gauntlet rung. Normal/hard field the
- * player's own config (a full-strength mirror) every battle. Easy ramps the
- * opponent from weak-but-coherent to a fair fight: each rung is a real
- * searcher that just blunders sometimes, blundering less each battle. Early
- * rungs search shallowly (FAST) under the blunders to stay cheap; the top
- * rungs use the player's own config so Easy eases into a genuine mirror.
- * The player is always `dev.config` (STRONG by default).
+ * Per-rung blunder rate for Gym Leader. Counterintuitively LOWER than Easy's
+ * at every rung: the gym leader rosters (real trainers' teams, picked for
+ * flavor/authenticity over competitive optimization — see
+ * scripts/build-gym-leader-teams.ts) are simply weaker than Easy/Hard's real
+ * meta-team pool, so a heavily-blundering AI piloting them made the mode far
+ * too easy (57% flawless on a random draft at Easy-equivalent blunder rates).
+ * The AI needs to play close to full strength just to give a fair fight;
+ * "easier than Easy" comes from the opponents' builds, not from the AI
+ * playing worse.
+ *
+ * Tuned via scripts/sim-gauntlet.ts (`--gl-ramp`) against a ~20% flawless
+ * rate on a random draft. Deeper search (STRONG, the shipped default)
+ * widens the gap in the player's favor more than FAST does — a curve tuned
+ * under FAST (23% flawless, n=150) still ran ~45% under STRONG — so this is
+ * calibrated against STRONG specifically (~28% flawless, n=25; noisy at that
+ * sample size, but the closest of everything tried). Treat as a first pass,
+ * not a settled number — re-tune with more STRONG-config runs if the real
+ * flawless rate feels off.
+ */
+const GYMLEADER_BLUNDER = [0.08, 0.05, 0.02, 0, 0, 0];
+
+/**
+ * The opponent's policy for a given gauntlet rung. Hard fields the player's
+ * own config (a full-strength mirror) every battle. Easy and Gym Leader each
+ * ramp the opponent from weak-but-coherent to a fair fight — a real searcher
+ * that just blunders sometimes, blundering less each battle. The two curves
+ * aren't ordered the way the difficulty labels might suggest — see
+ * GYMLEADER_BLUNDER above — because each is tuned against its own opponent
+ * pool's real strength, not a shared notion of "blunder rate". Early rungs
+ * search shallowly (FAST) under the blunders to stay cheap; the top rungs
+ * use the player's own config so the ramp eases into a genuine mirror. The
+ * player is always `dev.config` (STRONG by default).
  */
 export function opponentPolicy(mode: DraftMode, index: number, dev: DevParams): Policy {
-  if (mode !== 'easy') return {kind: 'search', config: dev.config};
-  const epsilon = EASY_BLUNDER[index] ?? 0;
+  const ramp = mode === 'easy' ? EASY_BLUNDER : mode === 'gymleader' ? GYMLEADER_BLUNDER : undefined;
+  if (!ramp) return {kind: 'search', config: dev.config};
+  const epsilon = ramp[index] ?? 0;
   if (epsilon <= 0) return {kind: 'search', config: dev.config};
   return {kind: 'mix', epsilon, config: index >= 4 ? dev.config : FAST};
 }
