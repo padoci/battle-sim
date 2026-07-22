@@ -146,9 +146,8 @@ async function gotoConfigureWithTeam(page) {
   await page.locator('button.primary').click();
 }
 
-/** Scenario 1: primary times out, mirror is healthy. The pool must still
- *  load — via the mirror — with progressive status text while waiting,
- *  never a silently-empty table. */
+/** Scenario 1: primary stalls, mirror is healthy. The staggered race means
+ *  the mirror wins ~1.5s in — the pool loads fast, no status text needed. */
 async function scenarioSlowPrimaryRecoversViaMirror(browser) {
   const page = await browser.newPage({viewport: {width: 1440, height: 1000}});
   await routeData(page, {primary: {delayMs: 9000, down: true}, mirror: {}});
@@ -156,24 +155,57 @@ async function scenarioSlowPrimaryRecoversViaMirror(browser) {
 
   const t0 = Date.now();
   await gotoConfigureWithTeam(page);
+  let reachedPool = false;
+  try {
+    await page.waitForSelector('.pool-summary', {timeout: 15_000});
+    reachedPool = true;
+  } catch {
+    fail('[configure-slow-primary] pool summary never appeared even though the mirror was healthy');
+  }
+  const elapsed = Date.now() - t0;
+  if (reachedPool) {
+    ok(`[configure-slow-primary] mirror won the staggered race (pool in ${elapsed}ms)`);
+    if (elapsed > 7_000) {
+      fail(`[configure-slow-primary] recovery took ${elapsed}ms — the mirror should win the race in ~2s`);
+    }
+  }
+  await page.screenshot({path: `${shotsDir}/e2e-configure-load-slow-primary.png`}).catch(() => {});
+  await page.close();
+}
+
+/** Scenario 1b: BOTH hosts crawling — the case where the progressive status
+ *  text still matters, and the slower-but-alive mirror must still land. */
+async function scenarioBothSlowShowsProgress(browser) {
+  const page = await browser.newPage({viewport: {width: 1440, height: 1000}});
+  // Mirror delay must sit between the 7s status escalation and the 8s
+  // per-attempt timeout: it joins the race at ~1.5s and answers at ~8.5s.
+  await routeData(page, {primary: {delayMs: 20_000, down: true}, mirror: {delayMs: 7000}});
+  page.on('pageerror', error => fail(`[configure-both-slow] page error: ${error.message}`));
+
+  const t0 = Date.now();
+  await gotoConfigureWithTeam(page);
   await page.waitForSelector('.empty-state', {timeout: 5000});
 
   try {
-    await page.waitForFunction(() => document.querySelector('.empty-state')?.textContent?.includes('fetching the latest tier data'), {
-      timeout: 6000,
-    });
-    ok('[configure-slow-primary] showed the 3s progress message during the stall');
+    await page.waitForFunction(
+      () => document.querySelector('.empty-state')?.textContent?.includes('fetching the latest tier data'),
+      undefined,
+      {timeout: 6000}
+    );
+    ok('[configure-both-slow] showed the 3s progress message during the stall');
   } catch {
-    fail('[configure-slow-primary] never showed the "fetching the latest tier data..." progress message');
+    fail('[configure-both-slow] never showed the "fetching the latest tier data..." progress message');
   }
 
   try {
-    await page.waitForFunction(() => document.querySelector('.empty-state')?.textContent?.includes('responding slowly'), {
-      timeout: 6000,
-    });
-    ok('[configure-slow-primary] escalated to the 7s "responding slowly" message');
+    await page.waitForFunction(
+      () => document.querySelector('.empty-state')?.textContent?.includes('responding slowly'),
+      undefined,
+      {timeout: 6000}
+    );
+    ok('[configure-both-slow] escalated to the 7s "responding slowly" message');
   } catch {
-    fail('[configure-slow-primary] never escalated to the "responding slowly" message past 7s');
+    fail('[configure-both-slow] never escalated to the "responding slowly" message past 7s');
   }
 
   let reachedPool = false;
@@ -181,16 +213,12 @@ async function scenarioSlowPrimaryRecoversViaMirror(browser) {
     await page.waitForSelector('.pool-summary', {timeout: 20_000});
     reachedPool = true;
   } catch {
-    fail('[configure-slow-primary] pool never loaded even though the mirror was healthy');
+    fail('[configure-both-slow] pool never loaded even though the mirror was (slowly) healthy');
   }
-  const elapsed = Date.now() - t0;
   if (reachedPool) {
-    ok(`[configure-slow-primary] recovered via the mirror and reached the pool summary (${elapsed}ms)`);
-    if (elapsed > 15_000) {
-      fail(`[configure-slow-primary] recovery took ${elapsed}ms — too close to the watchdog for a single-hop failover`);
-    }
+    ok(`[configure-both-slow] slow mirror still landed the pool (${Date.now() - t0}ms)`);
   }
-  await page.screenshot({path: `${shotsDir}/e2e-configure-load-slow-primary.png`}).catch(() => {});
+  await page.screenshot({path: `${shotsDir}/e2e-configure-load-both-slow.png`}).catch(() => {});
   await page.close();
 }
 
@@ -235,6 +263,7 @@ async function main() {
     const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
     try {
       await scenarioSlowPrimaryRecoversViaMirror(browser);
+      await scenarioBothSlowShowsProgress(browser);
       await scenarioBothSourcesDown(browser);
     } finally {
       await browser.close();

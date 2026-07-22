@@ -1424,19 +1424,13 @@ button.primary:disabled {
   border-radius: 0;
 }
 
-/* Pinned to the LEFT: in the fan, each card's right edge is overlapped by
-   the next (higher z-index) card, so a right-aligned badge would be
-   unreadable on every card but the last. The left edge is never covered. */
-.card-art-window .usage {
-  position: absolute;
-  top: 5px;
-  left: 6px;
-  z-index: 1;
-  color: #fff;
-  background: rgba(36, 26, 58, 0.5);
-  border-radius: var(--r-pill);
-  padding: 1px 6px;
-  font-size: 0.5rem;
+/* Bottom meta line: the labeled usage rate ("11.0% usage"), out of the art
+   window so it reads as a stat rather than an unexplained number. */
+.set-usage {
+  margin: 0.15rem 0 0;
+  padding: 0 11px 8px;
+  font-size: 0.62rem;
+  color: var(--muted-2);
 }
 
 /* art_left: 6%, art_top: 8%, art_w: 88%, art_h: 40% of the full card scan —
@@ -2336,10 +2330,6 @@ button.primary:disabled {
 .intro-searching {
   color: var(--muted);
   font-size: 0.75rem;
-}
-
-.intro-controls {
-  justify-content: flex-end;
 }
 
 .tera-flash {

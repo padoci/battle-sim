@@ -61,7 +61,7 @@ async function main() {
   page.on('pageerror', error => fail(`page error: ${error.message}`));
 
   try {
-    await page.goto(`http://localhost:${PORT}/#/sixoh?config=fast&seed=41`);
+    await page.goto(`http://localhost:${PORT}/#/sixoh?config=fast&seed=41&speed=2`);
     await page.waitForSelector('.offer-card', {timeout: 60_000});
     for (let i = 0; i < 6; i++) {
       await page.locator('.offer-card').first().click();
@@ -71,7 +71,7 @@ async function main() {
     await page.waitForSelector('.battle-stage', {timeout: 120_000});
     ok('gauntlet started, first battle stage visible');
 
-    // Leave speed at its default (2x) rather than cranking it to the max —
+    // Pin 2x via the dev param (the default is 1x now) rather than the max —
     // this needs REAL elapsed wall-clock time for a rung's background
     // prefetch to land while the current rung is still replaying, which a
     // near-instant "10x" playback would race away from reliably.

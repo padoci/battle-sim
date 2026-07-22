@@ -120,10 +120,10 @@ async function main() {
     await page.screenshot({path: `${shotsDir}/mobile-draft.png`, fullPage: true});
     console.log('shot: mobile-draft');
 
-    // Retro battle stage: Easy mode (fast, random early opponent), draft (one
-    // click per bundle — cards show a single committed build), start the
+    // Retro battle stage: Normal mode (fast, random early opponent), draft
+    // (one click per bundle — cards show a single committed build), start the
     // gauntlet, capture the first battle.
-    await page.locator('.mode-toggle button', {hasText: 'Easy'}).click();
+    await page.locator('.mode-toggle button', {hasText: 'Normal'}).click();
     await page.waitForTimeout(200);
     for (let i = 0; i < 6; i++) {
       await page.locator('.offer-card').first().click();
