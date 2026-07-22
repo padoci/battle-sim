@@ -3,22 +3,36 @@ import type {PokemonSet} from '../../data/types';
 import {applyBeat, foldBeats, initView, type FxItem, type ViewState} from '../../replay/view';
 import type {Beat} from '../../replay/pace';
 
-/** Continuous replay-speed multiplier (ui-spec §6a): 0.1x (slow-mo) to 10x
- * (near-instant — beat delays shrink to a few ms, so it *reads* as instant
- * without a special-cased fold branch). */
+/** Continuous replay-speed multiplier (ui-spec §6a): 0.1x (slow-mo) to 5x.
+ * Capped at 5x so playback can never outrun a streaming search by much. */
 export type PlaybackSpeed = number;
 
 export const MIN_SPEED = 0.1;
-export const MAX_SPEED = 10;
-const DEFAULT_SPEED = 2;
+export const MAX_SPEED = 5;
+const DEFAULT_SPEED = 1;
 const SPEED_KEY = 'battlesim.playbackSpeed';
 
+/** Slider position (0..1) <-> speed, log-mapped so the 0.5x-3x band most
+ * users live in owns the middle of the track and 1x sits near center. */
+export function speedToPosition(speed: PlaybackSpeed): number {
+  return Math.log(speed / MIN_SPEED) / Math.log(MAX_SPEED / MIN_SPEED);
+}
+
+export function positionToSpeed(position: number): PlaybackSpeed {
+  const clamped = Math.min(1, Math.max(0, position));
+  const raw = MIN_SPEED * (MAX_SPEED / MIN_SPEED) ** clamped;
+  return Math.round(raw * 10) / 10;
+}
+
 /** The persisted playback speed. Exported so the battle intro (which runs
- * before usePlayback mounts) paces its hold time by the same multiplier. */
+ * before usePlayback mounts) paces its hold time by the same multiplier.
+ * Out-of-range stored values are clamped (a 10x persisted by an older build
+ * lands on today's 5x cap), not reset to the default. */
 export function loadSpeed(): PlaybackSpeed {
   try {
     const raw = Number(localStorage.getItem(SPEED_KEY));
-    return raw >= MIN_SPEED && raw <= MAX_SPEED ? raw : DEFAULT_SPEED;
+    if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_SPEED;
+    return Math.min(MAX_SPEED, Math.max(MIN_SPEED, raw));
   } catch {
     return DEFAULT_SPEED;
   }
