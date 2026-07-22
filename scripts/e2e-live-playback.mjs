@@ -71,7 +71,7 @@ async function main() {
     await page.waitForSelector('.battle-stage', {timeout: 120_000});
     ok('gauntlet started, first battle stage visible');
 
-    // Pin 2x via the dev param (the default is 1x now) rather than the max —
+    // Pin 2x via the dev param (default is 1x; battles also stream now) —
     // this needs REAL elapsed wall-clock time for a rung's background
     // prefetch to land while the current rung is still replaying, which a
     // near-instant "10x" playback would race away from reliably.

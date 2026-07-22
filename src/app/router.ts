@@ -35,7 +35,12 @@ export function screenToHash(screen: Screen): string {
 }
 
 export function navigate(screen: Screen): void {
-  location.hash = screenToHash(screen);
+  // Carry the dev/tuning query (?seed=&config=&tera=&speed=) across in-app
+  // navigation: without this, params set on the draft URL silently never
+  // reached the gauntlet screen's readDevParams (config/tera/speed applied
+  // to the draft only), which contradicted devParams.ts's documented use.
+  const query = location.hash.split('?')[1];
+  location.hash = screenToHash(screen) + (query ? `?${query}` : '');
 }
 
 export function useRoute(): Screen {

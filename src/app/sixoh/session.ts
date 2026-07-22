@@ -103,6 +103,7 @@ function jobFor(state: SixOhState, index: number, dev: DevParams): BattleJob {
     ],
     maxTurns: 300,
     collectLog: true,
+    streamLog: true,
     collectStats: true,
     ...(dev.tera !== undefined ? {evalOverrides: {teraAvailable: dev.tera}} : {}),
   };
@@ -131,7 +132,9 @@ export function ensureComputed(
     submitted.add(index);
     dispatch({type: 'BATTLE_COMPUTING', index});
     getClient()
-      .run([jobFor(state, index, dev)])
+      .run([jobFor(state, index, dev)], undefined, (_jobIndex, logLines) =>
+        dispatch({type: 'BATTLE_CHUNK', index, logLines})
+      )
       .then(({results}) => {
         if (results[0]) dispatch({type: 'BATTLE_COMPUTED', index, result: results[0]});
       })
