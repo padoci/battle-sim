@@ -1085,6 +1085,13 @@ button.primary:disabled {
   color: var(--muted);
 }
 
+.matchup-detail .detail-label {
+  margin: 0.5rem 0 0.1rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--signal);
+}
+
 .matchup-detail-row {
   border-top: 1px dashed var(--line);
   padding: 0.4rem 0;
