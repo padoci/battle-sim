@@ -178,14 +178,14 @@ async function scenarioSlowPrimaryRecoversViaMirror(browser) {
 
   let reachedPool = false;
   try {
-    await page.waitForSelector('.pool-table tbody tr', {timeout: 20_000});
+    await page.waitForSelector('.pool-summary', {timeout: 20_000});
     reachedPool = true;
   } catch {
     fail('[configure-slow-primary] pool never loaded even though the mirror was healthy');
   }
   const elapsed = Date.now() - t0;
   if (reachedPool) {
-    ok(`[configure-slow-primary] recovered via the mirror and reached the pool table (${elapsed}ms)`);
+    ok(`[configure-slow-primary] recovered via the mirror and reached the pool summary (${elapsed}ms)`);
     if (elapsed > 15_000) {
       fail(`[configure-slow-primary] recovery took ${elapsed}ms — too close to the watchdog for a single-hop failover`);
     }

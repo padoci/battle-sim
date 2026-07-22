@@ -27,6 +27,7 @@ export type AppAction =
   | {type: 'SET_TEAM'; sets: PokemonSet[]; raw: string}
   | {type: 'SET_POOL'; pool: PoolEntryWithMeta[]}
   | {type: 'UPDATE_POOL_ENTRY'; teamId: string; patch: Partial<Pick<PoolEntryWithMeta, 'weight' | 'enabled'>>}
+  | {type: 'ADD_POOL_ENTRY'; entry: PoolEntryWithMeta}
   | {type: 'SET_AUTO_STOP'; n?: number}
   | {type: 'RUN_STATUS'; status: RunStatus; error?: string}
   | {type: 'BATTLE_DONE'; battle: RecordedBattle; emaMsPerBattle: number}
@@ -51,6 +52,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           entry.teamId === action.teamId ? {...entry, ...action.patch} : entry
         ),
       };
+    case 'ADD_POOL_ENTRY':
+      return {...state, pool: [...state.pool, action.entry]};
     case 'SET_AUTO_STOP':
       return {...state, run: {...state.run, autoStopN: action.n}};
     case 'RUN_STATUS':
