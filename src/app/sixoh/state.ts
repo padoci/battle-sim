@@ -27,7 +27,14 @@ export interface SixOhState {
   team?: PokemonSet[];
   /** The 6 opponents, fixed + revealed at run start. */
   opponents: GauntletOpponent[];
-  battles: Array<{phase: BattlePhase; result?: BattleResult}>;
+  battles: Array<{
+    phase: BattlePhase;
+    /** Root-battle protocol streamed so far; grows per decision while
+     * `computing`, dropped once `result` (whose protocolLog is the same
+     * lines, authoritative) lands. */
+    partialLog?: string[];
+    result?: BattleResult;
+  }>;
   /** Current rung, 0..5. */
   battleIndex: number;
   record: {wins: number; losses: number};
@@ -45,6 +52,7 @@ export type SixOhAction =
   | {type: 'SET_DRAFT'; draft: DraftState}
   | {type: 'START_GAUNTLET'; team: PokemonSet[]}
   | {type: 'BATTLE_COMPUTING'; index: number}
+  | {type: 'BATTLE_CHUNK'; index: number; logLines: string[]}
   | {type: 'BATTLE_COMPUTED'; index: number; result: BattleResult}
   | {type: 'REPLAY_STARTED'; index: number}
   | {type: 'REPLAY_FINISHED'; index: number}
@@ -84,9 +92,17 @@ export function sixOhReducer(state: SixOhState, action: SixOhAction): SixOhState
       return patchBattle(state, action.index, battle =>
         battle.phase === 'pending' ? {...battle, phase: 'computing'} : battle
       );
+    case 'BATTLE_CHUNK':
+      // Append only while streaming: the phase guard drops stale chunks
+      // that land after a retry/reset already recycled this rung.
+      return patchBattle(state, action.index, battle =>
+        battle.phase === 'computing'
+          ? {...battle, partialLog: [...(battle.partialLog ?? []), ...action.logLines]}
+          : battle
+      );
     case 'BATTLE_COMPUTED':
       return patchBattle(state, action.index, battle =>
-        battle.phase === 'done' ? battle : {...battle, phase: 'ready', result: action.result}
+        battle.phase === 'done' ? battle : {...battle, phase: 'ready', partialLog: undefined, result: action.result}
       );
     case 'REPLAY_STARTED':
       return patchBattle(state, action.index, battle => ({...battle, phase: 'replaying'}));
@@ -118,6 +134,7 @@ export function sixOhReducer(state: SixOhState, action: SixOhAction): SixOhState
       return patchBattle({...state, error: undefined, errorIndex: undefined}, target, battle => ({
         ...battle,
         phase: 'pending',
+        partialLog: undefined,
         result: undefined,
       }));
     }

@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import type {CalcTable} from '../engine/calc/table';
 import {gen9} from '../data/gen';
-import {resolveTable, runBattle} from '../search/runner';
+import {resolveTable, runBattleSteps} from '../search/runner';
 import type {WorkerRequest, WorkerResponse} from './protocol';
 
 /**
@@ -19,12 +19,22 @@ const abortRequested = new Set<number>();
 
 /**
  * Yield a macrotask so queued messages (notably 'abort') get handled
- * between battles — a synchronous loop would starve the event loop and
- * make cancellation impossible until the whole batch finished.
+ * between decisions — a synchronous loop would starve the event loop and
+ * make cancellation impossible until the whole batch finished. Uses a
+ * MessageChannel rather than setTimeout(0): nested timeouts get clamped to
+ * ~4ms after a few levels, and at one yield PER DECISION that clamp would
+ * add ~600ms of dead time to a 150-decision battle.
  */
-const yieldToEventLoop = () => new Promise<void>(resolve => setTimeout(resolve, 0));
+const yieldChannel = new MessageChannel();
+let yieldResolve: (() => void) | undefined;
+yieldChannel.port1.onmessage = () => yieldResolve?.();
+const yieldToEventLoop = () =>
+  new Promise<void>(resolve => {
+    yieldResolve = resolve;
+    yieldChannel.port2.postMessage(null);
+  });
 
-async function handleRun(id: number, jobs: Parameters<typeof runBattle>[1][]): Promise<void> {
+async function handleRun(id: number, jobs: Parameters<typeof runBattleSteps>[1][]): Promise<void> {
   const start = performance.now();
   const results = [];
   // Table cache is scoped to this ONE run request on purpose: it may only
@@ -38,10 +48,26 @@ async function handleRun(id: number, jobs: Parameters<typeof runBattle>[1][]): P
         post({type: 'done', id, results, totalMs: performance.now() - start, aborted: true});
         return;
       }
-      const result = runBattle(gen, job, resolveTable(tables, gen, job));
+      // Drive the battle one decision at a time, yielding between decisions
+      // so an abort can land MID-battle (the partial battle is discarded —
+      // `results` only ever holds completed battles, same contract as
+      // before). Streaming jobs additionally post each decision's log chunk.
+      const steps = runBattleSteps(gen, job, resolveTable(tables, gen, job));
+      let next = steps.next(); // prelude (leads placed, no search yet)
+      while (!next.done) {
+        if (job.streamLog && next.value.logLines.length) {
+          post({type: 'chunk', id, jobIndex: index, ...next.value});
+        }
+        await yieldToEventLoop();
+        if (abortRequested.delete(id)) {
+          post({type: 'done', id, results, totalMs: performance.now() - start, aborted: true});
+          return;
+        }
+        next = steps.next(); // the next search decision (the expensive part)
+      }
+      const result = next.value; // loop exit ⇒ done ⇒ the BattleResult
       results.push(result);
       post({type: 'progress', id, done: index + 1, total: jobs.length, result});
-      await yieldToEventLoop();
     }
     post({type: 'done', id, results, totalMs: performance.now() - start});
   } catch (error) {

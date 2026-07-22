@@ -41,6 +41,9 @@ export interface BattleJob {
    * run (a run-scoped cache) — see resolveTable.
    */
   opponentKey?: string;
+  /** Stream per-decision log chunks from the worker ('chunk' messages).
+   * Consumed by sim.worker only; inert for direct runBattle callers. */
+  streamLog?: boolean;
   /** Dev-only eval tuning knobs (e.g. the gauntlet's ?tera=N). */
   evalOverrides?: EvalOverrides;
   /**
@@ -102,11 +105,29 @@ export function resolveTable(
   return table;
 }
 
+/** One decision boundary's worth of new root-battle protocol log. */
+export interface BattleStep {
+  /** Lines appended to battle.log since the previous step. Step 0 is the
+   * pre-decision prelude (players, lead switch-ins, |turn|1). */
+  logLines: string[];
+  /** Decisions completed so far (0 for the prelude step). */
+  decisions: number;
+  turn: number;
+}
+
 /**
- * Run one AI-vs-AI battle to completion. Deterministic given the job's
- * seeds. This is the API the worker and the Stage 3 bulk sim reuse.
+ * Run one AI-vs-AI battle to completion, yielding at every decision
+ * boundary. Deterministic given the job's seeds; `runBattle` below is the
+ * synchronous drain of this generator, so both share one implementation.
+ * Yield boundaries are exactly `makeChoices` boundaries, which is what makes
+ * incremental re-parsing of the accumulated log safe (a |split| trio or a
+ * move and its consequence lines never straddle a step).
  */
-export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): BattleResult {
+export function* runBattleSteps(
+  gen: Generation,
+  job: BattleJob,
+  table?: CalcTable
+): Generator<BattleStep, BattleResult> {
   // Applied unconditionally: a job WITHOUT overrides must clear any prior
   // battle's overrides in the long-lived worker.
   setEvalOverrides(job.evalOverrides);
@@ -132,6 +153,15 @@ export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): B
   const stats = job.collectStats ? emptyStats() : undefined;
   let nodes = 0;
   let decisions = 0;
+  // Streaming cursor into battle.log; only the ROOT battle's log is read
+  // here (search branches strip theirs), so it grows monotonically.
+  let streamStart = 0;
+
+  // Prelude step: createBattle already emitted the player/lead/turn-1 lines,
+  // which is everything the stage needs to show the send-outs while the
+  // FIRST search decision (below) is still computing.
+  yield {logLines: battle.log.slice(0), decisions: 0, turn: battle.turn};
+  streamStart = battle.log.length;
 
   try {
     while (!isOver(battle) && decisions < maxTurns) {
@@ -175,6 +205,8 @@ export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): B
       if (stats && statePrev) {
         recordTurn(stats, statePrev, extractState(battle), battle.log.slice(logStart), battle.turn);
       }
+      yield {logLines: battle.log.slice(streamStart), decisions, turn: battle.turn};
+      streamStart = battle.log.length;
     }
   } catch (error) {
     throw new Error(
@@ -202,6 +234,19 @@ export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): B
     ...(job.collectLog ? {protocolLog: [...battle.log]} : {}),
     ...(stats ? {stats} : {}),
   };
+}
+
+/**
+ * Run one AI-vs-AI battle to completion. Deterministic given the job's
+ * seeds. This is the API the worker and the Stage 3 bulk sim reuse; it is
+ * the synchronous drain of runBattleSteps, so streamed and non-streamed
+ * runs are the same computation.
+ */
+export function runBattle(gen: Generation, job: BattleJob, table?: CalcTable): BattleResult {
+  const steps = runBattleSteps(gen, job, table);
+  let next = steps.next();
+  while (!next.done) next = steps.next();
+  return next.value;
 }
 
 /**

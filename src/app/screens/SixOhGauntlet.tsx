@@ -262,6 +262,8 @@ function BattleStage({
   opponentSets,
   beats,
   sceneIndex,
+  battleKey,
+  streamDone,
   speedOverride,
   onDone,
 }: {
@@ -270,31 +272,31 @@ function BattleStage({
   beats: ReturnType<typeof toBeats>;
   /** Picks the background scene (battle index — varies rung to rung). */
   sceneIndex: number;
+  /** Rung identity: playback restarts only when this changes, never on the
+   * (growing) beats array. */
+  battleKey: number;
+  /** True once the full result landed — the beats array is final. */
+  streamDone: boolean;
   /** Dev/e2e ?speed= override, applied once on mount. */
   speedOverride?: number;
   onDone: () => void;
 }) {
   const teams = useMemo(() => [team, opponentSets] as [PokemonSet[], PokemonSet[]], [team, opponentSets]);
-  const playback = usePlayback(teams, beats, onDone);
-  const {view, fx, fxKey, caption, speed, setSpeed, skipToEnd} = playback;
-
-  // Mount-only: the override seeds the speed, the slider owns it after.
-  const overrideRef = useRef(speedOverride);
-  useEffect(() => {
-    if (overrideRef.current) setSpeed(overrideRef.current);
-  }, [setSpeed]);
+  const playback = usePlayback(teams, beats, onDone, {streamDone, battleKey, speedOverride});
+  const {view, fx, fxKey, caption, speed, setSpeed, waiting} = playback;
 
   // One-shot send-out window right after the intro hands over: the leads
   // (and their pokeballs) animate in via CSS classes present only during
-  // this window. Kept out of the replay's beat/fx pipeline on purpose — the
+  // this window (mount-only: the stage remounts per rung because the intro
+  // interposes; keying on `beats` would retrigger it on every streamed
+  // chunk). Kept out of the replay's beat/fx pipeline on purpose — the
   // turn-0 lead placement must stay fx-free there so the visual baseline's
   // at-rest frame is unchanged (see replay/view.ts).
   const [leadIn, setLeadIn] = useState(true);
   useEffect(() => {
-    setLeadIn(true);
     const timer = setTimeout(() => setLeadIn(false), 900);
     return () => clearTimeout(timer);
-  }, [beats]);
+  }, []);
 
   const active = (side: 0 | 1): MonView | undefined => {
     const s = view.sides[side];
@@ -447,7 +449,11 @@ function BattleStage({
             </div>
           </div>
           <span className="playback-value mono">{speed.toFixed(1)}×</span>
-          <button onClick={skipToEnd}>Skip to result ⏭</button>
+          {!streamDone && (
+            <span className={waiting ? 'live-chip mono thinking' : 'live-chip mono'}>
+              {waiting ? 'AI is thinking…' : '● LIVE'}
+            </span>
+          )}
         </div>
       </div>
     </>
@@ -508,10 +514,17 @@ export function SixOhGauntlet() {
     dispatch({type: 'CLEAR_ERROR'});
   };
 
+  // Beats over the streamed partial log while the search runs, switching to
+  // the authoritative result log when it lands (same lines by construction,
+  // so the swap is invisible; usePlayback keys restarts on the rung, not
+  // this array's identity). Re-parsing the whole accumulated log per chunk
+  // is a single pass over <=4k lines (~1-2ms) once per decision.
+  const log = battle?.result?.protocolLog ?? battle?.partialLog;
   const beats = useMemo(() => {
-    if (!battle?.result?.protocolLog) return undefined;
-    return toBeats(parseProtocol(battle.result.protocolLog, ['Your', 'The opposing']));
-  }, [battle?.result]);
+    if (!log?.length) return undefined;
+    return toBeats(parseProtocol(log, ['Your', 'The opposing']));
+  }, [log]);
+  const hasBeats = !!beats?.length;
 
   useEffect(() => {
     if (battle?.phase === 'ready') dispatch({type: 'REPLAY_STARTED', index});
@@ -605,16 +618,17 @@ export function SixOhGauntlet() {
               opponent={state.opponents[index]}
               mode={state.mode}
               sceneIndex={index}
-              ready={!!beats}
+              ready={hasBeats}
               speed={dev.speed ?? loadSpeed()}
               onDone={handleIntroDone}
             />
           )}
 
-        {/* Plain simulating panel: reduced-motion users (no intro), or an
-            intro skipped before the search finished. */}
+        {/* Plain simulating panel: reduced-motion users (no intro) in the
+            sliver before the stream's first chunk arrives. */}
         {(!state.error || state.errorIndex !== index) &&
           introDone &&
+          !hasBeats &&
           (battle?.phase === 'pending' || battle?.phase === 'computing') && (
             <div className="simulating">
               <div className="pulse" />
@@ -625,15 +639,20 @@ export function SixOhGauntlet() {
             </div>
           )}
 
+        {/* The stage mounts DURING `computing` now — the battle replays while
+            the search still streams the rest of it. */}
         {(!state.error || state.errorIndex !== index) &&
           introDone &&
-          (battle?.phase === 'ready' || battle?.phase === 'replaying') &&
+          hasBeats &&
+          (battle?.phase === 'computing' || battle?.phase === 'ready' || battle?.phase === 'replaying') &&
           beats && (
             <BattleStage
               team={state.team}
               opponentSets={state.opponents[index].sets}
               beats={beats}
               sceneIndex={index}
+              battleKey={index}
+              streamDone={!!battle?.result}
               speedOverride={dev.speed}
               onDone={handleReplayFinished}
             />

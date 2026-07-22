@@ -117,3 +117,36 @@ describe('sixOhReducer', () => {
     expect(cleared.battles[0].phase).toBe('computing');
   });
 });
+
+describe('sixOhReducer streaming (BATTLE_CHUNK)', () => {
+  it('appends chunks only while computing; stale chunks are dropped', () => {
+    let state = freshRun();
+    // Before computing: a chunk for a pending rung is a no-op.
+    state = sixOhReducer(state, {type: 'BATTLE_CHUNK', index: 0, logLines: ['|start|']});
+    expect(state.battles[0].partialLog).toBeUndefined();
+
+    state = sixOhReducer(state, {type: 'BATTLE_COMPUTING', index: 0});
+    state = sixOhReducer(state, {type: 'BATTLE_CHUNK', index: 0, logLines: ['|start|', '|turn|1']});
+    state = sixOhReducer(state, {type: 'BATTLE_CHUNK', index: 0, logLines: ['|move|p1a: A|Tackle|p2a: B']});
+    expect(state.battles[0].partialLog).toEqual(['|start|', '|turn|1', '|move|p1a: A|Tackle|p2a: B']);
+
+    // The full result lands: partialLog is dropped (protocolLog is authoritative).
+    state = sixOhReducer(state, {type: 'BATTLE_COMPUTED', index: 0, result: result(0)});
+    expect(state.battles[0].partialLog).toBeUndefined();
+    expect(state.battles[0].phase).toBe('ready');
+
+    // A stale chunk arriving after ready is dropped.
+    state = sixOhReducer(state, {type: 'BATTLE_CHUNK', index: 0, logLines: ['|late|']});
+    expect(state.battles[0].partialLog).toBeUndefined();
+  });
+
+  it('CLEAR_ERROR resets the failed rung including its partial log', () => {
+    let state = freshRun();
+    state = sixOhReducer(state, {type: 'BATTLE_COMPUTING', index: 0});
+    state = sixOhReducer(state, {type: 'BATTLE_CHUNK', index: 0, logLines: ['|start|']});
+    state = sixOhReducer(state, {type: 'RUN_ERROR', index: 0, error: 'boom'});
+    state = sixOhReducer(state, {type: 'CLEAR_ERROR'});
+    expect(state.battles[0]).toEqual({phase: 'pending', partialLog: undefined, result: undefined});
+    expect(state.error).toBeUndefined();
+  });
+});

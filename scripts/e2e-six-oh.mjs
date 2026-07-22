@@ -2,8 +2,8 @@
  * End-to-end walkthrough of "Can you 6-0?" across its three modes (Gym
  * Leader, Easy, Hard): landing -> Gym Leader bundle draft (6 pre-made
  * options, Species Clause, ladder with 5 distinct-signature-type leaders +
- * a champion last) -> gauntlet (simulating state, Gen 5 battle stage at 1x,
- * skip to result) -> result (flawless or eliminated) with post-mortem ->
+ * a champion last) -> gauntlet (battle intro, Gen 5 battle stage streaming
+ * live from the search; ?speed=30 fast-forward) -> result with post-mortem ->
  * "Step up to Normal" -> Draft again. Plus Normal and Hard bundle spot-checks.
  * The Easy/Hard opponent pool is the built-in teams merged with mocked
  * external sample teams (crob.at + pokepaste); Gym Leader's pool is the
@@ -211,7 +211,7 @@ async function main() {
     ok('footer attribution present');
 
     // 2. Draft screen. Default is Gym Leader (6 pre-made bundles).
-    await page.goto(`http://localhost:${PORT}/#/sixoh?config=fast&seed=41`);
+    await page.goto(`http://localhost:${PORT}/#/sixoh?config=fast&seed=41&speed=30`);
     await page.waitForSelector('.offer-card', {timeout: 60_000});
     const glCount = await page.locator('.offer-card').count();
     if (glCount !== 6) fail(`Gym Leader mode should offer 6 bundles, got ${glCount}`);
@@ -295,31 +295,24 @@ async function main() {
     await page.screenshot({path: `${shotsDir}/e2e-sixoh-battle.png`});
     ok('Gen 5 battle stage replays with HP windows and a clean, paced log');
 
-    // 5. Skip to the result through the rest of the run (replaced the old
-    // discrete-speed "Instant" button — the speed slider now covers that
-    // top of its range; "Skip to result" is the deterministic fast-forward).
-    await page.locator('.playback-controls button', {hasText: 'Skip to result'}).click();
-    await page.waitForFunction(
-      () => location.hash.includes('/sixoh/result') || document.querySelector('.simulating, .battle-stage'),
-      undefined,
-      {timeout: 60_000}
-    );
-    // Keep clicking Skip to result as new battles arrive until the result
-    // route. Budget generously — a stall matchup can compute to maxTurns
-    // before it replays. Fail fast if the run hits an actual error panel.
-    for (let guardCount = 0; guardCount < 120; guardCount++) {
+    // 5. The run self-advances: battles stream from the search and replay
+    // live (?speed=30 compresses beats to ~30ms), so there is nothing to
+    // click — "Skip to result" is gone by design (you can't skip past turns
+    // that aren't computed yet). Poll to the result route, failing fast on
+    // an error panel. Budget generously — a stall matchup can run to
+    // maxTurns.
+    if (await page.locator('.playback-controls button', {hasText: 'Skip to result'}).count()) {
+      fail('Skip to result should no longer exist (battles stream live)');
+    }
+    for (let guardCount = 0; guardCount < 180; guardCount++) {
       if (page.url().includes('/sixoh/result')) break;
       if (await page.locator('.problems', {hasText: 'failed'}).count()) {
         fail(`gauntlet run errored: ${(await page.locator('.problems').first().textContent()).trim()}`);
       }
-      const skip = page.locator('.playback-controls button', {hasText: 'Skip to result'});
-      if (await skip.count()) {
-        await skip.first().click().catch(() => {});
-      }
       await page.waitForTimeout(2000);
     }
     if (!page.url().includes('/sixoh/result')) fail('run never reached the result screen (timed out)');
-    ok('gauntlet ran to completion via skip-to-result playback');
+    ok('gauntlet streamed + replayed to completion with no skip control');
 
     // 6. Result + post-mortem.
     await page.waitForSelector('.result-card', {timeout: 30_000});
@@ -383,7 +376,7 @@ async function main() {
     const page2 = await browser.newPage({viewport: {width: 1440, height: 1000}});
     await routeData(page2);
     guard(page2);
-    await page2.goto(`http://localhost:${PORT}/#/sixoh?mode=hard&config=fast&seed=7`);
+    await page2.goto(`http://localhost:${PORT}/#/sixoh?mode=hard&config=fast&seed=7&speed=30`);
     await page2.waitForSelector('.offer-card', {timeout: 60_000});
     if (!(await page2.locator('.mode-toggle button.active', {hasText: 'Hard'}).count())) {
       fail('?mode=hard should pre-select Hard mode');

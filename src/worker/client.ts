@@ -13,9 +13,11 @@ export interface SimClient {
   ready: Promise<number>;
   run(
     jobs: BattleJob[],
-    onProgress?: (done: number, total: number, result: BattleResult) => void
+    onProgress?: (done: number, total: number, result: BattleResult) => void,
+    /** Per-decision protocol chunks, for jobs submitted with `streamLog`. */
+    onChunk?: (jobIndex: number, logLines: string[], meta: {decisions: number; turn: number}) => void
   ): Promise<RunOutcome>;
-  /** Ask the in-flight run to stop after the current battle (keeps the worker alive). */
+  /** Ask the in-flight run to stop at the next decision boundary (keeps the worker alive). */
   cancel(): void;
   terminate(): void;
 }
@@ -47,6 +49,7 @@ export function createSimClient(): SimClient {
       resolve: (value: RunOutcome) => void;
       reject: (error: Error) => void;
       onProgress?: (done: number, total: number, result: BattleResult) => void;
+      onChunk?: (jobIndex: number, logLines: string[], meta: {decisions: number; turn: number}) => void;
     }
   >();
 
@@ -75,7 +78,9 @@ export function createSimClient(): SimClient {
     }
     const job = pending.get(message.id);
     if (!job) return;
-    if (message.type === 'progress') {
+    if (message.type === 'chunk') {
+      job.onChunk?.(message.jobIndex, message.logLines, {decisions: message.decisions, turn: message.turn});
+    } else if (message.type === 'progress') {
       job.onProgress?.(message.done, message.total, message.result);
     } else if (message.type === 'done') {
       pending.delete(message.id);
@@ -90,12 +95,12 @@ export function createSimClient(): SimClient {
 
   return {
     ready,
-    run(jobs, onProgress) {
+    run(jobs, onProgress, onChunk) {
       if (fatalError) return Promise.reject(fatalError);
       const id = nextId++;
       inFlightId = id;
       return new Promise((resolve, reject) => {
-        pending.set(id, {resolve, reject, onProgress});
+        pending.set(id, {resolve, reject, onProgress, onChunk});
         worker.postMessage({type: 'run', id, jobs} satisfies WorkerRequest);
       });
     },
