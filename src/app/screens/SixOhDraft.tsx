@@ -33,6 +33,37 @@ interface DraftData {
   gymLeaderTeams: GymLeaderTeam[];
 }
 
+/** Generic trainer sprites for Easy/Hard opponents (verified present on
+ * Showdown's /sprites/trainers/ CDN) so every mode gets a face on the ladder
+ * and a full battle intro, not just Gym Leader. */
+const GENERIC_AVATARS = [
+  'acetrainer',
+  'acetrainerf',
+  'youngster',
+  'lass',
+  'hiker',
+  'blackbelt',
+  'scientist',
+  'psychic',
+  'battlegirl',
+  'veteran',
+  'pokefan',
+  'schoolkid',
+  'swimmer',
+  'roughneck',
+  'waitress',
+];
+/** Strides coprime with GENERIC_AVATARS.length (15), so the 6 rungs of one
+ * run always get 6 DISTINCT sprites, while staying a pure function of the
+ * run seed (stable across replays/re-renders, varied across runs). */
+const AVATAR_STRIDES = [1, 2, 4, 7, 8, 11, 13, 14];
+
+function genericAvatar(seed: number, rung: number): string {
+  const offset = Math.abs(seed) % GENERIC_AVATARS.length;
+  const stride = AVATAR_STRIDES[Math.abs(seed >> 4) % AVATAR_STRIDES.length];
+  return GENERIC_AVATARS[(offset + rung * stride) % GENERIC_AVATARS.length];
+}
+
 /** This mode's 6 gauntlet opponents for a given seed — a different pool and
  * sampler for Gym Leader (5 distinct-signature-type leaders + a champion)
  * than Easy/Hard (uniform draw from the real-team pool). */
@@ -49,9 +80,9 @@ function buildOpponents(mode: DraftMode, data: DraftData, seed: number, gen: Gen
       };
     });
   }
-  return sampleOpponents(data.realTeams.length, 6, seed).map(i => {
-    const sets = data.realTeams[i].data.map(teamMemberToSet);
-    return {name: teamDisplayName(gen, sets), sets};
+  return sampleOpponents(data.realTeams.length, 6, seed).map((teamIndex, rung) => {
+    const sets = data.realTeams[teamIndex].data.map(teamMemberToSet);
+    return {name: teamDisplayName(gen, sets), sets, avatarKey: genericAvatar(seed, rung)};
   });
 }
 
