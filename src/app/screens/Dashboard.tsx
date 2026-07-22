@@ -160,6 +160,7 @@ function MatchupCardView({
             </>
           )}
           <div className="matchup-detail mono">
+            <h4 className="detail-label">Evidence</h4>
             {card.matchups.map(m => (
               <MatchupDetail key={m.teamId} matchup={m} />
             ))}
