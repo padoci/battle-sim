@@ -265,7 +265,8 @@ async function main() {
     // 5. Live dashboard mid-run: verdict + stability readout + Stop button.
     await page.waitForSelector('.verdict', {timeout: 120_000});
     const partial = await page.locator('.verdict .mono').textContent();
-    if (!/battles/.test(partial)) fail('live dashboard should show battle counts');
+    // battles? — the first paint can catch exactly n=1 ("over 1 battle").
+    if (!/over \d+ battles?/.test(partial)) fail('live dashboard should show battle counts');
     if (!/±/.test(partial)) fail(`live dashboard should show the ± stability readout, got: ${partial}`);
     if (!/still running/.test(partial)) fail('live dashboard should say the run is still going');
     if (!(await page.locator('.stop-run').count())) fail('Stop button should be visible mid-run');
