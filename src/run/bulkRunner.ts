@@ -3,29 +3,38 @@ import {randomSeed} from '../engine/rng';
 import {FAST} from '../search/config';
 import type {BattleJob, BattleResult} from '../search/runner';
 import type {SimClient} from '../worker/client';
-import {CALIBRATION_BATTLES, medianMs, updateEma} from './calibration';
 import {drawSchedule, initSwrr, type PoolEntryConfig, type SwrrState} from './pool';
+
+/** Battles per worker batch. Small enough that Stop lands within one batch
+ * boundary even if the in-flight cancel is missed; large enough that batch
+ * overhead is noise. */
+const RUN_CHUNK = 25;
+
+/** EMA update for live throughput re-estimation from actual battle times. */
+export function updateEma(previous: number, latestMs: number, alpha = 0.2): number {
+  return previous <= 0 ? latestMs : alpha * latestMs + (1 - alpha) * previous;
+}
 
 export interface RunUpdate {
   teamId: string;
   result: BattleResult;
   done: number;
-  planned: number;
   emaMsPerBattle: number;
 }
 
 export interface BulkRunOutcome {
   battles: Array<{teamId: string; result: BattleResult}>;
-  aborted: boolean;
+  /** True when the run ended via Stop rather than reaching an auto-stop bound. */
+  stopped: boolean;
 }
 
 /**
- * Orchestrates one test-your-team session's battles: a calibration batch
- * first (counted toward the total), then the remaining battles up to the
- * user's chosen N — all drawn from ONE smooth-weighted-round-robin schedule
- * so any prefix stays representative of the pool mix. Progress streams via
- * `onUpdate` so the dashboard fills progressively; `cancel()` stops after
- * the in-flight battle and keeps partial results analyzable.
+ * Orchestrates one test-your-team session's battles as an open-ended run:
+ * batches drawn from ONE smooth-weighted-round-robin schedule (so any stop
+ * point stays representative of the pool mix), continuing until `cancel()`
+ * or the optional `autoStopN` bound. Progress streams via `onUpdate` so the
+ * live dashboard fills battle by battle; stopping keeps everything run so
+ * far analyzable.
  */
 export class BulkRunner {
   private swrr: SwrrState | null = null;
@@ -33,6 +42,7 @@ export class BulkRunner {
   private battleIndex = 0;
   private emaMsPerBattle = 0;
   private lastProgressAt = 0;
+  private stopRequested = false;
 
   constructor(
     private readonly client: SimClient,
@@ -40,7 +50,7 @@ export class BulkRunner {
     private readonly searchSeed: number = Math.floor(Math.random() * 2 ** 31)
   ) {}
 
-  /** Per-battle wall-clock median from calibration; 0 before calibrate(). */
+  /** Live per-battle wall-clock EMA; 0 before the first battle completes. */
   get msPerBattle(): number {
     return this.emaMsPerBattle;
   }
@@ -67,10 +77,9 @@ export class BulkRunner {
 
   private async runBatch(
     teamIds: string[],
-    plannedTotal: number,
     doneOffset: number,
     onUpdate?: (update: RunUpdate) => void
-  ): Promise<BulkRunOutcome> {
+  ): Promise<{battles: BulkRunOutcome['battles']; aborted: boolean}> {
     const jobs = this.buildJobs(teamIds);
     this.lastProgressAt = performance.now();
     const outcome = await this.client.run(jobs, (done, _total, result) => {
@@ -81,7 +90,6 @@ export class BulkRunner {
         teamId: teamIds[done - 1],
         result,
         done: doneOffset + done,
-        planned: plannedTotal,
         emaMsPerBattle: this.emaMsPerBattle,
       });
     });
@@ -92,53 +100,34 @@ export class BulkRunner {
   }
 
   /**
-   * Run the ~10-battle calibration slice (drawn from the same schedule that
-   * the full run continues). Returns the battles + measured median ms.
+   * Run until `cancel()` or (when set) `autoStopN` battles. The scheduler
+   * re-inits from `pool` at the start of every run, so weight/enabled edits
+   * made between runs always take effect.
    */
-  async calibrate(
+  async run(
     pool: PoolEntryConfig[],
-    onUpdate?: (update: RunUpdate) => void
-  ): Promise<BulkRunOutcome & {msPerBattleP50: number}> {
+    opts: {autoStopN?: number; onUpdate?: (update: RunUpdate) => void} = {}
+  ): Promise<BulkRunOutcome> {
     for (const entry of pool) this.teamsById.set(entry.teamId, entry.team);
     this.swrr = initSwrr(pool);
-    const count = Math.min(CALIBRATION_BATTLES, Math.max(1, pool.filter(p => p.enabled && p.weight > 0).length * 3));
+    this.stopRequested = false;
 
-    const startedAt = performance.now();
-    const perBattleMs: number[] = [];
-    let last = startedAt;
-    const outcome = await this.runBatch(drawSchedule(this.swrr, count), count, 0, update => {
-      const now = performance.now();
-      perBattleMs.push(now - last);
-      last = now;
-      onUpdate?.(update);
-    });
-    const p50 = medianMs(perBattleMs);
-    this.emaMsPerBattle = p50;
-    return {...outcome, msPerBattleP50: p50};
-  }
-
-  /**
-   * Continue the same schedule up to `totalN` battles overall (calibration
-   * included). `reweightedPool` re-inits the scheduler for the REMAINING
-   * picks only (already-run battles stay as they were).
-   */
-  async extend(
-    totalN: number,
-    doneSoFar: number,
-    onUpdate?: (update: RunUpdate) => void,
-    reweightedPool?: PoolEntryConfig[]
-  ): Promise<BulkRunOutcome> {
-    if (reweightedPool) {
-      for (const entry of reweightedPool) this.teamsById.set(entry.teamId, entry.team);
-      this.swrr = initSwrr(reweightedPool);
+    const battles: BulkRunOutcome['battles'] = [];
+    for (;;) {
+      const want = opts.autoStopN ? Math.min(RUN_CHUNK, opts.autoStopN - battles.length) : RUN_CHUNK;
+      if (want <= 0) return {battles, stopped: false};
+      const batch = await this.runBatch(drawSchedule(this.swrr, want), battles.length, opts.onUpdate);
+      battles.push(...batch.battles);
+      // Both checks matter: `aborted` covers a cancel that landed mid-batch,
+      // `stopRequested` covers one that landed in the gap between batches
+      // (where there is no in-flight worker run for cancel() to abort).
+      if (batch.aborted || this.stopRequested) return {battles, stopped: true};
+      if (opts.autoStopN && battles.length >= opts.autoStopN) return {battles, stopped: false};
     }
-    if (!this.swrr) throw new Error('calibrate() must run first');
-    const remaining = Math.max(0, totalN - doneSoFar);
-    if (remaining === 0) return {battles: [], aborted: false};
-    return this.runBatch(drawSchedule(this.swrr, remaining), totalN, doneSoFar, onUpdate);
   }
 
   cancel(): void {
+    this.stopRequested = true;
     this.client.cancel();
   }
 }

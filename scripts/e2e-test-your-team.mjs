@@ -1,8 +1,9 @@
 /**
  * Stage 3 end-to-end walkthrough of "Test your team":
- * landing -> paste (bad + good) -> configure pool -> calibrate -> pick N ->
- * run with live progress -> dashboard -> expand card (game plan + evidence)
- * -> export JSON + Markdown -> separate cancel-path check.
+ * landing -> paste (bad + good) -> configure pool -> Run (open-ended) ->
+ * live dashboard (stability readout, thin-sample tags, Stop) -> stopped
+ * dashboard -> expand card (game plan + evidence) -> export JSON + Markdown
+ * -> separate auto-stop-bound check.
  *
  * Usage:
  *   npm run build
@@ -247,39 +248,54 @@ async function main() {
     await page.locator('.pool-table tbody tr input[type=checkbox]').nth(1).setChecked(false);
     ok('adjusted weights + disabled a team');
 
-    // 4. Calibrate.
+    // 4. Run (open-ended). No calibration step, no battle-count slider: the
+    // auto-stop input is optional and left blank here, and clicking Run lands
+    // straight on the live dashboard.
     await page.screenshot({path: `${shotsDir}/e2e-configure.png`});
-    await page.locator('button.primary').click();
-    await page.waitForSelector('input[type=range]', {timeout: 300_000});
-    const etaText = await page.locator('.run-controls p.mono').first().textContent();
-    if (!/≈/.test(etaText)) fail(`expected an ETA estimate after calibration, got: ${etaText}`);
-    ok(`calibration done -> ${etaText.trim()}`);
     if (!(await page.locator('input[type=number].n-input').count())) {
-      fail('battle-count number input should accompany the slider');
+      fail('optional auto-stop input should be present on the configure screen');
     }
-    ok('numeric battle-count input present beside the slider');
+    if (await page.locator('input[type=range]').count()) {
+      fail('the fixed-N slider should be gone');
+    }
+    await page.locator('button.primary', {hasText: 'Run'}).click();
+    await page.waitForFunction(() => location.hash.includes('/test/results'), undefined, {timeout: 10_000});
+    ok('Run lands on the live dashboard immediately');
 
-    // 5. Pick a small N and run.
-    await page.locator('input[type=range]').fill('30');
-    await page.locator('button.primary').click();
-    await page.waitForSelector('progress', {timeout: 30_000});
-    ok('run started with a progress bar');
-
-    // Peek at partial results mid-run.
-    await page.locator('text=Peek at partial results').click();
+    // 5. Live dashboard mid-run: verdict + stability readout + Stop button.
     await page.waitForSelector('.verdict', {timeout: 120_000});
     const partial = await page.locator('.verdict .mono').textContent();
-    if (!/battles/.test(partial)) fail('partial dashboard should show battle counts');
-    ok(`partial dashboard renders mid-run: ${partial.trim().slice(0, 60)}`);
+    if (!/battles/.test(partial)) fail('live dashboard should show battle counts');
+    if (!/±/.test(partial)) fail(`live dashboard should show the ± stability readout, got: ${partial}`);
+    if (!/still running/.test(partial)) fail('live dashboard should say the run is still going');
+    if (!(await page.locator('.stop-run').count())) fail('Stop button should be visible mid-run');
+    ok(`live dashboard mid-run: ${partial.trim().slice(0, 70)}`);
+    // Thin-sample tags appear while per-card n is small.
+    if (!(await page.locator('.thin-tag').count())) {
+      fail('low-n matchup cards should carry a thin-sample tag early in the run');
+    }
+    ok('thin-sample tags present on early low-n cards');
+    await page.screenshot({path: `${shotsDir}/e2e-dashboard-live.png`, fullPage: true});
 
-    // 6. Wait for completion (route flips to results automatically; we're already there).
+    // 6. Let it accumulate a real sample, then Stop; the run must settle.
+    await page.waitForFunction(
+      () => {
+        const status = document.querySelector('.verdict p[role=status]')?.textContent ?? '';
+        const n = Number(status.match(/over (\d+) battles/)?.[1] ?? 0);
+        return n >= 12;
+      },
+      undefined,
+      {timeout: 300_000, polling: 1000}
+    );
+    await page.locator('.stop-run').click();
     await page.waitForFunction(
       () => !document.body.textContent.includes('still running'),
       undefined,
-      {timeout: 600_000, polling: 2000}
+      {timeout: 120_000, polling: 1000}
     );
+    if (await page.locator('.stop-run').count()) fail('Stop button should disappear once the run settles');
     await page.screenshot({path: `${shotsDir}/e2e-dashboard.png`, fullPage: true});
-    ok('run complete, dashboard settled');
+    ok('Stop settles the run and keeps everything analyzable');
     const bars = await page.locator('.matchup-head .rate-bar').count();
     if (!bars) fail('matchup cards should show a W-L-D rate bar');
     if (!(await page.locator('.verdict [role=status], .verdict[role=status], .verdict p[role=status]').count())) {
@@ -321,7 +337,7 @@ async function main() {
     writeFileSync(`${shotsDir}/e2e-export.md`, md);
     ok('export Markdown has all sections');
 
-    // 9. Cancel path: fresh page, small pool, cancel mid-run.
+    // 9. Auto-stop path: fresh page, bound the run at 12, let it finish itself.
     const page2 = await browser.newPage({viewport: {width: 1440, height: 1050}});
     await routeData(page2);
     guard(page2);
@@ -330,16 +346,23 @@ async function main() {
     await page2.waitForSelector('.team-preview-row');
     await page2.locator('button.primary').click();
     await page2.waitForSelector('.pool-table tbody tr', {timeout: 30_000});
-    await page2.locator('button.primary').click(); // calibrate
-    await page2.waitForSelector('input[type=range]', {timeout: 300_000});
-    await page2.locator('input[type=range]').fill('200');
-    await page2.locator('button.primary').click(); // run 200
-    await page2.waitForSelector('progress', {timeout: 30_000});
-    await page2.locator('text=Cancel (keep partial results)').click();
+    await page2.locator('input[type=number].n-input').fill('12');
+    await page2.locator('input[type=number].n-input').blur();
+    await page2.locator('button.primary', {hasText: 'Run'}).click();
     await page2.waitForSelector('.verdict', {timeout: 120_000});
-    const cancelled = await page2.locator('.verdict .mono').textContent();
-    if (!/cancelled early/.test(cancelled)) fail(`expected cancelled marker, got: ${cancelled}`);
-    ok(`cancel keeps partial results analyzable: ${cancelled.trim().slice(0, 70)}`);
+    // The bounded run shows its progress toward the auto-stop target.
+    if (!(await page2.locator('.live-run-controls progress').count())) {
+      fail('auto-stop run should show a progress bar toward the bound');
+    }
+    ok('auto-stop run shows progress toward the bound');
+    await page2.waitForFunction(
+      () => !document.body.textContent.includes('still running'),
+      undefined,
+      {timeout: 300_000, polling: 1000}
+    );
+    const settled = await page2.locator('.verdict .mono').textContent();
+    if (!/over 12 battles/.test(settled)) fail(`auto-stop should settle at exactly 12 battles, got: ${settled}`);
+    ok(`auto-stop settled itself at the bound: ${settled.trim().slice(0, 70)}`);
     await page2.close();
 
     assertNoSilentBreakage();

@@ -934,6 +934,43 @@ button.primary:disabled {
   margin: 0 0 0.15rem;
 }
 
+.live-run-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0.35rem 0 0.5rem;
+}
+
+.live-run-controls progress {
+  width: 180px;
+}
+
+.stop-run {
+  border: 1px solid var(--danger-line);
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-radius: var(--r-s);
+  padding: 0.35rem 0.8rem;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.stop-run:hover {
+  border-color: var(--danger);
+}
+
+.thin-tag {
+  margin-left: 0.5rem;
+  font-size: 0.6rem;
+  font-weight: 400;
+  color: var(--muted-2);
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r-pill);
+  padding: 0.05rem 0.45rem;
+  vertical-align: middle;
+}
+
 .matchup-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
