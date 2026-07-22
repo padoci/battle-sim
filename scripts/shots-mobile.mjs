@@ -130,8 +130,10 @@ async function main() {
       await page.waitForTimeout(120);
     }
     await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
-    await page.waitForSelector('.battle-stage', {timeout: 120_000});
-    await page.waitForSelector('.hp-bar', {timeout: 30_000});
+    // The battle intro renders `.battle-stage` immediately, so the real
+    // stage's signal is the HP bar — give IT the full first-search budget
+    // (same fix as e2e-six-oh.mjs when the intro landed).
+    await page.waitForSelector('.hp-bar', {timeout: 150_000});
     await page.waitForTimeout(1500);
     await page.screenshot({path: `${shotsDir}/mobile-battle.png`, fullPage: true});
     console.log('shot: mobile-battle');
