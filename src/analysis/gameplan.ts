@@ -98,18 +98,18 @@ export function renderGamePlan(facts: GamePlanFacts): GamePlan {
   }
   if (facts.biggestThreat?.kind === 'outspeeds-team') {
     sentences.push(
-      `${facts.biggestThreat.attackerSpecies} outspeeds your whole team — keep it pressured or revenge-kill it early.`
+      `${facts.biggestThreat.attackerSpecies} outspeeds your whole team: keep it pressured or revenge-kill it early.`
     );
   } else if (facts.biggestThreat?.targetSpecies && facts.biggestThreat.moveName) {
     sentences.push(
-      `Watch ${facts.biggestThreat.attackerSpecies}'s ${facts.biggestThreat.moveName} into ${facts.biggestThreat.targetSpecies} — don't let that trade happen for free.`
+      `Watch ${facts.biggestThreat.attackerSpecies}'s ${facts.biggestThreat.moveName} into ${facts.biggestThreat.targetSpecies}: don't let that trade happen for free.`
     );
   }
   if (facts.clock) {
-    sentences.push(`You're on a clock vs their ${facts.clock.label} — don't let the game go long.`);
+    sentences.push(`You're on a clock vs their ${facts.clock.label}: don't let the game go long.`);
   }
   if (!sentences.length) {
-    sentences.push('No single defining threat — play the matchup on tempo and preserve your win condition.');
+    sentences.push('No single defining threat: play the matchup on tempo and preserve your win condition.');
   }
   return {sentences, facts};
 }

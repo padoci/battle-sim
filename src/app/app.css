@@ -182,6 +182,56 @@ h3 {
   color: var(--ink);
 }
 
+.footer-links {
+  margin-top: 0.5rem;
+}
+
+.footer-toggle {
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.footer-toggle:hover {
+  color: var(--ink);
+}
+
+.footer-panel {
+  max-width: 34rem;
+  margin: 0.75rem auto 0;
+  padding: 0.75rem 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  color: var(--muted-2);
+  text-align: left;
+}
+
+.footer-panel + .footer-panel {
+  margin-top: 0.5rem;
+}
+
+.footer-panel p {
+  margin: 0 0 0.6rem;
+}
+
+.footer-panel p:last-child {
+  margin-bottom: 0;
+}
+
+.footer-panel a {
+  color: var(--signal-2);
+  text-decoration: underline;
+}
+
+.footer-panel a:hover {
+  color: var(--signal);
+}
+
 .brand {
   display: inline-flex;
   align-items: center;

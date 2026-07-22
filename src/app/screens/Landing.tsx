@@ -14,7 +14,7 @@ export function Landing() {
         </button>
         <button className="mode-card" onClick={() => navigate('test-import')}>
           <h2>Test your team</h2>
-          <p>Paste a team and see its best and worst matchups — with a game plan for each.</p>
+          <p>Paste a team and see its best and worst matchups, with a game plan for each.</p>
         </button>
       </div>
     </main>

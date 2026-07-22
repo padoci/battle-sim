@@ -18,8 +18,8 @@ describe('renderGamePlan (template spine)', () => {
     expect(plan.sentences).toEqual([
       'Lead Great Tusk to pressure Pelipper.',
       'Preserve Blissey as your check to Darkrai.',
-      'Barraskewda outspeeds your whole team — keep it pressured or revenge-kill it early.',
-      "You're on a clock vs their rain — don't let the game go long.",
+      'Barraskewda outspeeds your whole team: keep it pressured or revenge-kill it early.',
+      "You're on a clock vs their rain: don't let the game go long.",
     ]);
     // The polish seam: sentences stay an array, facts ride along.
     expect(Array.isArray(plan.sentences)).toBe(true);
@@ -37,7 +37,7 @@ describe('renderGamePlan (template spine)', () => {
       },
     });
     expect(plan.sentences).toEqual([
-      "Watch Darkrai's Ice Beam into Gliscor — don't let that trade happen for free.",
+      "Watch Darkrai's Ice Beam into Gliscor: don't let that trade happen for free.",
     ]);
   });
 

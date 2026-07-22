@@ -114,7 +114,7 @@ const pct = (rate: number) => `${Math.round(rate * 100)}%`;
 export function buildExportMarkdown(json: DashboardExportJsonV1): string {
   const lines: string[] = [];
   const date = json.generatedAt.slice(0, 10);
-  lines.push('# Test Your Team — Report');
+  lines.push('# Test Your Team Report');
   lines.push(
     `Generated ${date} · N=${json.run.n} (${json.run.calibrationBattles} calibration included)${json.run.cancelled ? ' · run cancelled early' : ''} · ${json.format}`
   );
@@ -123,7 +123,7 @@ export function buildExportMarkdown(json: DashboardExportJsonV1): string {
   lines.push('');
   lines.push('## Verdict');
   lines.push(
-    `**${json.overall.verdict}** — ${pct(json.overall.winRate)} overall win rate (${json.overall.wins}W-${json.overall.losses}L-${json.overall.draws}D over ${json.overall.battles} battles)`
+    `**${json.overall.verdict}**: ${pct(json.overall.winRate)} overall win rate (${json.overall.wins}W-${json.overall.losses}L-${json.overall.draws}D over ${json.overall.battles} battles)`
   );
   lines.push('');
   lines.push('_Direction, not gospel: these are reads to pressure-test, never verdicts._');
@@ -145,7 +145,7 @@ export function buildExportMarkdown(json: DashboardExportJsonV1): string {
     for (const card of cards) {
       lines.push(
         '',
-        `### vs ${card.label} — ${pct(card.winRate)} (${card.battles} battles, ${card.distinctOpponents} distinct opponent team${card.distinctOpponents === 1 ? '' : 's'})`
+        `### vs ${card.label}: ${pct(card.winRate)} (${card.battles} battles, ${card.distinctOpponents} distinct opponent team${card.distinctOpponents === 1 ? '' : 's'})`
       );
       for (const threat of card.threats) lines.push(`- ${threat.evidence}`);
       if (card.gamePlan?.sentences.length) {

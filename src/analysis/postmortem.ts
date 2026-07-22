@@ -62,9 +62,9 @@ function eliminatedReads(
     const scariest = facts.at(-1);
     const speedFact = facts.find(f => f.kind === 'outspeeds-team');
     const sentence = speedFact
-      ? `${name} ran the game — it outspeeds your whole team and nothing traded back.`
+      ? `${name} ran the game: it outspeeds your whole team and nothing traded back.`
       : scariest?.targetSpecies
-        ? `Nothing on your team switches into ${name} — ${scariest.moveName} into ${scariest.targetSpecies} decided it.`
+        ? `Nothing on your team switches into ${name}: ${scariest.moveName} into ${scariest.targetSpecies} decided it.`
         : `${name} did the heavy lifting for ${opponent.name}.`;
     const evidence = facts.map(f => f.evidence);
     if (matchup.speedRaceWinRate < 0.35) {
@@ -79,7 +79,7 @@ function eliminatedReads(
     const monName = speciesName(gen, faint.speciesId);
     const cause = faint.topCause ? ` to ${speciesName(gen, faint.topCause)}` : '';
     reads.push({
-      sentence: `${monName} went down first (turn ~${Math.round(faint.meanTurn)}${cause}) — the hole opened early.`,
+      sentence: `${monName} went down first (turn ~${Math.round(faint.meanTurn)}${cause}): the hole opened early.`,
       evidence: [
         `${monName}: fainted turn ${Math.round(faint.meanTurn)}${cause}`,
         ...matchup.mostWork.slice(0, 3).map(w => `${speciesName(gen, w.speciesId)} dealt ${Math.round(w.totalDamageFrac * 100)}% total HP`),
@@ -117,7 +117,7 @@ function flawlessReads(gen: Generation, battles: PlayedBattle[]): PostMortemRead
   const reads: PostMortemRead[] = [];
   if (mvp && totalDamage > 0) {
     reads.push({
-      sentence: `${speciesName(gen, mvp[0])} carried the run — ${Math.round((mvp[1] / totalDamage) * 100)}% of all damage dealt.`,
+      sentence: `${speciesName(gen, mvp[0])} carried the run: ${Math.round((mvp[1] / totalDamage) * 100)}% of all damage dealt.`,
       evidence: [...damage.entries()]
         .sort((a, b) => b[1] - a[1])
         .slice(0, 6)
@@ -126,7 +126,7 @@ function flawlessReads(gen: Generation, battles: PlayedBattle[]): PostMortemRead
   }
   if (weakest && weakest[1] >= 2) {
     reads.push({
-      sentence: `${speciesName(gen, weakest[0])} fainted in ${weakest[1]} of 6 games — the next field might punish that.`,
+      sentence: `${speciesName(gen, weakest[0])} fainted in ${weakest[1]} of 6 games: the next field might punish that.`,
       evidence: [...faintCounts.entries()]
         .sort((a, b) => b[1] - a[1])
         .map(([id, count]) => `${speciesName(gen, id)}: fainted in ${count} game${count === 1 ? '' : 's'}`),

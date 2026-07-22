@@ -1,5 +1,6 @@
 import {Suspense, lazy, useReducer} from 'react';
 import {ErrorBoundary} from './ErrorBoundary';
+import {FooterExtras} from './components/FooterExtras';
 import {useRoute} from './router';
 import {AppDispatchContext, AppStateContext, appReducer, initialState} from './state';
 import {
@@ -78,9 +79,10 @@ export function AppShell() {
                 / Pokémon Showdown · sprites from Showdown&rsquo;s CDN.
               </p>
               <p>
-                A fan project — not affiliated with Nintendo, Game Freak, The Pokémon Company, or
+                A fan project, not affiliated with Nintendo, Game Freak, The Pokémon Company, or
                 Smogon.
               </p>
+              <FooterExtras />
             </footer>
           </div>
         </SixOhDispatchContext.Provider>

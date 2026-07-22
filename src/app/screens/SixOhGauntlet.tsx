@@ -398,7 +398,7 @@ export function SixOhGauntlet() {
     return (
       <main className="screen">
         <div className="empty-state">
-          No run in progress — <a href="#/sixoh">draft a team</a> to start the gauntlet.
+          No run in progress, <a href="#/sixoh">draft a team</a> to start the gauntlet.
         </div>
       </main>
     );
@@ -455,7 +455,7 @@ export function SixOhGauntlet() {
           {state.opponents[index]?.avatarKey && (
             <TrainerPortrait avatarKey={state.opponents[index].avatarKey!} className="title-portrait" />
           )}
-          Battle {index + 1} of {state.opponents.length} — vs {state.opponents[index]?.name}
+          Battle {index + 1} of {state.opponents.length} vs {state.opponents[index]?.name}
         </h2>
 
         {/* A prefetched next rung can error while this on-screen rung is

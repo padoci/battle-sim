@@ -100,7 +100,7 @@ export function applyBeat(state: ViewState, beat: Beat): {state: ViewState; fx: 
     switch (event.kind) {
       case 'turn':
         next.turn = event.turn;
-        next.logLines.push(`— Turn ${event.turn} —`);
+        next.logLines.push(`Turn ${event.turn}`);
         break;
       case 'switch': {
         const side = next.sides[event.ref.side];

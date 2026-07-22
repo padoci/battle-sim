@@ -61,7 +61,7 @@ describe('buildPostMortem (flawless)', () => {
     const pm = buildPostMortem(gen, userTeam, opponents, battles, 'flawless');
     expect(pm.headline).toBe('Flawless.');
     expect(pm.record).toBe('6–0');
-    expect(pm.reads[0].sentence).toMatch(/Kingambit carried the run — 75% of all damage dealt/);
+    expect(pm.reads[0].sentence).toMatch(/Kingambit carried the run: 75% of all damage dealt/);
     expect(pm.reads[1].sentence).toMatch(/Glimmora fainted in 4 of 6 games/);
     for (const read of pm.reads) expect(read.evidence.length).toBeGreaterThan(0);
   });

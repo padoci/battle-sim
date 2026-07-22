@@ -115,7 +115,7 @@ export function statSuggestions(card: ArchetypeCard, userTeam: PokemonSet[]): Su
         kind: 'hazard-chip',
         severity: 'high',
         targetSpeciesId: speciesId,
-        sentence: `${name(speciesId)} keeps dying to hazards/residual chip vs ${card.label} (${mon.chipFaints} of ${mon.faintCount} faints) — consider Heavy-Duty Boots or dedicated hazard removal.`,
+        sentence: `${name(speciesId)} keeps dying to hazards/residual chip vs ${card.label} (${mon.chipFaints} of ${mon.faintCount} faints): consider Heavy-Duty Boots or dedicated hazard removal.`,
         evidence: [
           `${name(speciesId)}: ${mon.chipFaints}/${mon.faintCount} faints from chip damage over ${B} battles`,
         ],
@@ -128,7 +128,7 @@ export function statSuggestions(card: ArchetypeCard, userTeam: PokemonSet[]): Su
         kind: 'dead-weight',
         severity: 'high',
         targetSpeciesId: speciesId,
-        sentence: `${name(speciesId)} faints in ${pct(mon.faintCount / B)} of battles vs ${card.label} (mean turn ${meanTurn.toFixed(1)}) while dealing under half a KO of damage — the weakest slot; consider replacing it.`,
+        sentence: `${name(speciesId)} faints in ${pct(mon.faintCount / B)} of battles vs ${card.label} (mean turn ${meanTurn.toFixed(1)}) while dealing under half a KO of damage: the weakest slot; consider replacing it.`,
         evidence: [
           `${name(speciesId)}: ${mon.faintCount} faints in ${B} battles, mean faint turn ${meanTurn.toFixed(1)}`,
           `total damage output ${pct(mon.dealt)} of one mon's HP across the matchup` +
@@ -143,7 +143,7 @@ export function statSuggestions(card: ArchetypeCard, userTeam: PokemonSet[]): Su
     out.push({
       kind: 'speed-losing',
       severity: 'medium',
-      sentence: `You win only ${pct(fasterDecisions / raceDecisions)} of speed interactions vs ${card.label} — consider more Speed investment, a Choice Scarf, or priority moves.`,
+      sentence: `You win only ${pct(fasterDecisions / raceDecisions)} of speed interactions vs ${card.label}: consider more Speed investment, a Choice Scarf, or priority moves.`,
       evidence: [`faster in ${Math.round(fasterDecisions)} of ${raceDecisions} speed comparisons`],
     });
   }
@@ -157,7 +157,7 @@ export function statSuggestions(card: ArchetypeCard, userTeam: PokemonSet[]): Su
         kind: 'overreliance',
         severity: 'medium',
         targetSpeciesId: topId,
-        sentence: `Wins vs ${card.label} lean heavily on ${name(topId)} (${pct(share)} of winning damage) — add a secondary win condition in case it goes down.`,
+        sentence: `Wins vs ${card.label} lean heavily on ${name(topId)} (${pct(share)} of winning damage): add a secondary win condition in case it goes down.`,
         evidence: [...winDamageBy.entries()]
           .sort((a, b) => b[1] - a[1])
           .slice(0, 3)
@@ -177,7 +177,7 @@ export function statSuggestions(card: ArchetypeCard, userTeam: PokemonSet[]): Su
           kind: 'ko-drought',
           severity: 'low',
           targetSpeciesId: id,
-          sentence: `${set.species} has not scored a single KO in ${B} battles vs ${card.label} — it may be too passive; consider a stronger attacking option or more offensive investment.`,
+          sentence: `${set.species} has not scored a single KO in ${B} battles vs ${card.label}: it may be too passive; consider a stronger attacking option or more offensive investment.`,
           evidence: [...kos.entries()]
             .sort((a, b) => b[1] - a[1])
             .map(([kid, count]) => `${name(kid)}: ${count} KO${count === 1 ? '' : 's'}`),
@@ -206,7 +206,7 @@ export function calcSuggestions(ctx: PairingContext, worst: MatchupAggregate): S
       out.push({
         kind: 'no-answer',
         severity: 'high',
-        sentence: `You have no reliable answer to ${name(opp.speciesId)} — your best option (${answer.species}) still loses the one-on-one; add a resist or a dedicated check.`,
+        sentence: `You have no reliable answer to ${name(opp.speciesId)}: your best option (${answer.species}) still loses the one-on-one; add a resist or a dedicated check.`,
         evidence: [
           `${answer.species} deals ~${pct(answer.outgoing)} per turn but takes ~${pct(answer.incoming)} back (best case)`,
         ],
@@ -228,7 +228,7 @@ export function calcSuggestions(ctx: PairingContext, worst: MatchupAggregate): S
       out.push({
         kind: 'unchecked-sweeper',
         severity: 'high',
-        sentence: `${name(opp.speciesId)} 2HKOs at least half your team (${threatened.length}/${myMons.length}) — it needs a dedicated answer (a bulky resist, a Scarf revenge-killer, or priority).`,
+        sentence: `${name(opp.speciesId)} 2HKOs at least half your team (${threatened.length}/${myMons.length}): it needs a dedicated answer (a bulky resist, a Scarf revenge-killer, or priority).`,
         evidence: threatened,
       });
     }
