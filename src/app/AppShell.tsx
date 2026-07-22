@@ -1,5 +1,6 @@
 import {Suspense, lazy, useReducer} from 'react';
 import {ErrorBoundary} from './ErrorBoundary';
+import {FooterExtras} from './components/FooterExtras';
 import {useRoute} from './router';
 import {AppDispatchContext, AppStateContext, appReducer, initialState} from './state';
 import {
@@ -81,6 +82,7 @@ export function AppShell() {
                 A fan project — not affiliated with Nintendo, Game Freak, The Pokémon Company, or
                 Smogon.
               </p>
+              <FooterExtras />
             </footer>
           </div>
         </SixOhDispatchContext.Provider>
