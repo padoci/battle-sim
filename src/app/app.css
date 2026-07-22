@@ -186,16 +186,12 @@ h3 {
   margin-top: 0.5rem;
 }
 
-.footer-toggle,
-.footer-donate {
+.footer-toggle {
   background: none;
   border: 0;
   color: inherit;
   font: inherit;
   padding: 0;
-}
-
-.footer-toggle {
   text-decoration: underline;
   cursor: pointer;
 }
@@ -204,15 +200,7 @@ h3 {
   color: var(--ink);
 }
 
-.footer-donate {
-  cursor: not-allowed;
-}
-
-.footer-donate .soon-badge {
-  margin-left: 0.35rem;
-}
-
-.footer-policy {
+.footer-panel {
   max-width: 34rem;
   margin: 0.75rem auto 0;
   padding: 0.75rem 1rem;
@@ -223,12 +211,25 @@ h3 {
   text-align: left;
 }
 
-.footer-policy p {
+.footer-panel + .footer-panel {
+  margin-top: 0.5rem;
+}
+
+.footer-panel p {
   margin: 0 0 0.6rem;
 }
 
-.footer-policy p:last-child {
+.footer-panel p:last-child {
   margin-bottom: 0;
+}
+
+.footer-panel a {
+  color: var(--signal-2);
+  text-decoration: underline;
+}
+
+.footer-panel a:hover {
+  color: var(--signal);
 }
 
 .brand {

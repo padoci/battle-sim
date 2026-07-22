@@ -10,9 +10,12 @@ const AI_POLICY_PARAGRAPHS = [
   `thank you for reading :)`,
 ];
 
-/** Footer's third row: AI usage disclosure (expandable) + a not-yet-live donate link. */
+const GAZA_APPEAL_URL = 'https://www.unicef.org.uk/donate/children-in-gaza-crisis-appeal/';
+
+/** Footer's third row: AI usage disclosure + donations note, both expandable. */
 export function FooterExtras() {
   const [policyOpen, setPolicyOpen] = useState(false);
+  const [donateOpen, setDonateOpen] = useState(false);
   return (
     <>
       <p className="footer-links">
@@ -24,15 +27,32 @@ export function FooterExtras() {
           {policyOpen ? '▾ hide' : '▸'} AI usage policy
         </button>
         <span aria-hidden="true"> · </span>
-        <button className="footer-donate mono" disabled title="Coming soon">
-          Support this project<span className="soon-badge">soon</span>
+        <button
+          className="footer-toggle mono"
+          onClick={() => setDonateOpen(o => !o)}
+          aria-expanded={donateOpen}
+        >
+          {donateOpen ? '▾ hide' : '▸'} Donations
         </button>
       </p>
       {policyOpen && (
-        <div className="footer-policy mono" role="region" aria-label="AI usage policy">
+        <div className="footer-panel mono" role="region" aria-label="AI usage policy">
           {AI_POLICY_PARAGRAPHS.map((text, i) => (
             <p key={i}>{text}</p>
           ))}
+        </div>
+      )}
+      {donateOpen && (
+        <div className="footer-panel mono" role="region" aria-label="Donations">
+          <p>
+            i&rsquo;m not accepting any donations for this website. if you wish to support it,
+            please donate to those who need it most at{' '}
+            <a href={GAZA_APPEAL_URL} target="_blank" rel="noreferrer">
+              UNICEF&rsquo;s Children in Gaza Crisis Appeal
+            </a>{' '}
+            and let me know that you&rsquo;ve done so — it&rsquo;d bring me a lot of joy to know
+            that my silly little website is helping make the world a better place :)
+          </p>
         </div>
       )}
     </>
