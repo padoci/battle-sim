@@ -23,6 +23,8 @@ import {
 } from '../../analysis';
 import {ReadItem} from '../components/ReadItem';
 import type {GamePlan} from '../../analysis/gameplan';
+import {THIN_SAMPLE_BATTLES, wilsonHalfWidth} from '../../analysis/confidence';
+import {cancelRun} from '../simSession';
 import {navigate} from '../router';
 import {useAppState, type PoolEntryWithMeta} from '../state';
 
@@ -124,10 +126,13 @@ function MatchupCardView({
   return (
     <div className="matchup-card">
       <button className="matchup-head" onClick={onExpand}>
-        <span className="matchup-title">vs {card.label}</span>
+        <span className="matchup-title">
+          vs {card.label}
+          {card.battles < THIN_SAMPLE_BATTLES && <span className="thin-tag mono">thin sample</span>}
+        </span>
         <span className="matchup-rate mono">{pct(card.winRate)}</span>
         <span className="matchup-meta mono">
-          {card.battles} battles · {card.distinctOpponents} team{card.distinctOpponents === 1 ? '' : 's'}
+          {card.battles} battle{card.battles === 1 ? '' : 's'} · {card.distinctOpponents} team{card.distinctOpponents === 1 ? '' : 's'}
         </span>
         <RateBar card={card} />
       </button>
@@ -223,6 +228,17 @@ export function Dashboard() {
   }, [team, pool, run.battles]);
 
   if (!team || !analysis) {
+    // A just-started run has no battles for a few seconds; that's a live
+    // waiting state, not the cold "nothing has ever run" empty state.
+    if (team && run.status === 'running') {
+      return (
+        <main className="screen">
+          <div className="empty-state" role="status" aria-live="polite">
+            Simulating… the first battles land here in a few seconds.
+          </div>
+        </main>
+      );
+    }
     return (
       <main className="screen">
         <div className="empty-state">
@@ -260,9 +276,9 @@ export function Dashboard() {
     const json = buildExportJson({
       teamRaw: team.raw,
       teamWire: team.sets as unknown as TeamMemberWire[],
-      n: run.n,
-      calibrationBattles: Math.min(10, run.battles.length),
-      cancelled: run.status === 'cancelled',
+      n: run.battles.length,
+      calibrationBattles: 0,
+      cancelled: false,
       overall,
       cards: enrichedCards,
       poolMeta: pool.map(p => ({teamId: p.teamId, teamName: p.teamName, weight: p.weight})),
@@ -302,11 +318,22 @@ export function Dashboard() {
       <header className="verdict">
         <h1>{overall.verdict}</h1>
         <p className="mono" role="status" aria-live="polite">
-          {pct(overall.winRate)} win rate · {overall.wins}W-{overall.losses}L-{overall.draws}D over{' '}
-          {overall.battles} battles
-          {run.status === 'cancelled' ? ' · cancelled early (partial)' : ''}
-          {run.status === 'running' || run.status === 'calibrating' ? ' · still running…' : ''}
+          {pct(overall.winRate)} win rate ± {Math.round(wilsonHalfWidth(overall.winRate, overall.battles) * 100)}%
+          {' · '}{overall.wins}W-{overall.losses}L-{overall.draws}D over {overall.battles} battle{overall.battles === 1 ? '' : 's'}
+          {run.status === 'running' && run.emaMsPerBattle > 0
+            ? ` · ~${Math.max(1, Math.round(60_000 / run.emaMsPerBattle))}/min`
+            : ''}
+          {run.status === 'running' ? ' · still running…' : ''}
         </p>
+        {run.status === 'running' && (
+          <div className="live-run-controls">
+            {run.autoStopN && <progress value={overall.battles} max={run.autoStopN} />}
+            {run.autoStopN && <span className="mono hint">auto-stop at {run.autoStopN}</span>}
+            <button className="stop-run" onClick={cancelRun}>
+              Stop (keep everything so far)
+            </button>
+          </div>
+        )}
         <p className="hint">Direction, not gospel: reads to pressure-test, never verdicts.</p>
       </header>
 
@@ -327,8 +354,14 @@ export function Dashboard() {
       <footer className="dashboard-actions">
         <button onClick={() => exportAll('json')}>Export JSON</button>
         <button onClick={() => exportAll('md')}>Export Markdown</button>
-        <button onClick={() => navigate('test-import')}>Tweak team</button>
-        <button onClick={() => navigate('test-configure')}>Re-run</button>
+        {/* Team/pool edits mid-run would race the still-streaming runner
+            (SET_TEAM resets run state under it); Stop first, then tweak. */}
+        {run.status !== 'running' && (
+          <>
+            <button onClick={() => navigate('test-import')}>Tweak team</button>
+            <button onClick={() => navigate('test-configure')}>Re-run</button>
+          </>
+        )}
       </footer>
       {downloaded && (
         <p className="hint mono download-note" role="status">Downloaded {downloaded} ✓</p>

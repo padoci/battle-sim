@@ -116,7 +116,7 @@ export function buildExportMarkdown(json: DashboardExportJsonV1): string {
   const date = json.generatedAt.slice(0, 10);
   lines.push('# Test Your Team Report');
   lines.push(
-    `Generated ${date} · N=${json.run.n} (${json.run.calibrationBattles} calibration included)${json.run.cancelled ? ' · run cancelled early' : ''} · ${json.format}`
+    `Generated ${date} · N=${json.run.n}${json.run.calibrationBattles ? ` (${json.run.calibrationBattles} calibration included)` : ''}${json.run.cancelled ? ' · run cancelled early' : ''} · ${json.format}`
   );
   lines.push('');
   lines.push(`Team: ${json.team.species.join(' / ')}`);

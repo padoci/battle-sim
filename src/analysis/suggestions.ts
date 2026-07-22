@@ -122,8 +122,10 @@ export function statSuggestions(card: ArchetypeCard, userTeam: PokemonSet[]): Su
       });
     }
 
-    // 2. dead-weight: faints early and often while contributing little.
-    if (mon.faintCount >= 0.6 * B && meanTurn <= 6 && mon.dealt < 0.5) {
+    // 2. dead-weight: faints early and often while contributing little. The
+    // faint-count floor (like hazard-chip's) keeps a live run-until-stopped
+    // dashboard from branding a slot "the weakest" off one or two battles.
+    if (mon.faintCount >= 3 && mon.faintCount >= 0.6 * B && meanTurn <= 6 && mon.dealt < 0.5) {
       out.push({
         kind: 'dead-weight',
         severity: 'high',

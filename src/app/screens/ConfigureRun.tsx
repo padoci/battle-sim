@@ -1,13 +1,11 @@
-import {useEffect, useMemo, useState, type CSSProperties} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {Icons} from '@pkmn/img';
 import {DataClient} from '../../data/client';
 import {loadOpponentTeams} from '../../data/sampleTeams';
 import {teamMemberToSet} from '../../data/team';
 import {gen9} from '../../data/gen';
 import {classifyTeam, teamDisplayName} from '../../analysis/archetype';
-import {CALIBRATION_BATTLES, etaMs, formatEta} from '../../run/calibration';
-import {cancelRun, getRunner} from '../simSession';
-import {clampN} from '../clamp';
+import {getRunner} from '../simSession';
 import {navigate} from '../router';
 import {useAppDispatch, useAppState, type PoolEntryWithMeta} from '../state';
 
@@ -80,9 +78,9 @@ export function ConfigureRun() {
   const gen = useMemo(() => gen9(), []);
   const [poolError, setPoolError] = useState<string>();
   const [poolLoadElapsedMs, setPoolLoadElapsedMs] = useState(0);
-  // In-progress text of the battle-count number input; committed (clamped to
-  // the slider's contract) on blur/Enter, then cleared to resync with run.n.
-  const [nDraft, setNDraft] = useState<string>();
+  // In-progress text of the optional auto-stop input; committed on blur/Enter
+  // (blank clears the bound), then reset to resync with run.autoStopN.
+  const [autoStopDraft, setAutoStopDraft] = useState<string>();
 
   // Load + classify the opponent pool once. Guarded by a watchdog + elapsed-
   // time feedback, mirroring SixOhDraft's load effect: without it, a slow (not
@@ -139,12 +137,11 @@ export function ConfigureRun() {
 
   const {run, team, pool} = state;
   const enabledCount = pool.filter(p => p.enabled && p.weight > 0).length;
-  const done = run.battles.length;
-  // A weight/enabled edit only ever reaches the scheduler at the next
-  // calibrate()/extend() call - once a run is in flight (or finished) there's
+  // A weight/enabled edit only ever reaches the scheduler when the next
+  // run() call re-inits it - once a run is in flight (or finished) there's
   // no way to feed an edit back in, so lock the table rather than let it
   // silently do nothing.
-  const poolLocked = run.status !== 'idle' && run.status !== 'calibrated';
+  const poolLocked = run.status !== 'idle';
 
   if (!team) {
     return (
@@ -181,50 +178,34 @@ export function ConfigureRun() {
     );
   }
 
-  const calibrate = async () => {
-    dispatch({type: 'RUN_STATUS', status: 'calibrating'});
-    try {
-      const runner = getRunner(team.sets);
-      const outcome = await runner.calibrate(pool, update => {
-        dispatch({
-          type: 'BATTLE_DONE',
-          battle: {teamId: update.teamId, result: update.result},
-          emaMsPerBattle: update.emaMsPerBattle,
-        });
-      });
-      dispatch({type: 'CALIBRATED', msPerBattleP50: outcome.msPerBattleP50});
-    } catch (error) {
-      dispatch({type: 'RUN_STATUS', status: 'error', error: String(error)});
-    }
-  };
-
-  const runFull = async () => {
+  const startRun = () => {
     dispatch({type: 'RUN_STATUS', status: 'running'});
-    try {
-      const runner = getRunner(team.sets);
-      // Re-init the scheduler from the current pool: weights/enabled flags
-      // may have changed since calibrate() first captured it, and the pool
-      // table stays editable right up until this click (locked afterward).
-      const outcome = await runner.extend(
-        run.n,
-        done,
-        update => {
+    // Land on the live dashboard immediately; the loop below outlives this
+    // screen (dispatch comes from the app-level provider, and the runner
+    // lives in simSession, so navigation never interrupts the run).
+    navigate('test-results');
+    const runner = getRunner(team.sets);
+    runner
+      .run(pool, {
+        autoStopN: run.autoStopN,
+        onUpdate: update => {
           dispatch({
             type: 'BATTLE_DONE',
             battle: {teamId: update.teamId, result: update.result},
             emaMsPerBattle: update.emaMsPerBattle,
           });
         },
-        pool
-      );
-      dispatch({type: 'RUN_STATUS', status: outcome.aborted ? 'cancelled' : 'done'});
-      navigate('test-results');
-    } catch (error) {
-      dispatch({type: 'RUN_STATUS', status: 'error', error: String(error)});
-    }
+      })
+      .then(() => dispatch({type: 'RUN_STATUS', status: 'done'}))
+      .catch(error => dispatch({type: 'RUN_STATUS', status: 'error', error: String(error)}));
   };
 
-  const remainingEta = formatEta(etaMs(run.n, done, run.emaMsPerBattle || run.msPerBattleP50));
+  const commitAutoStop = () => {
+    if (autoStopDraft === undefined) return;
+    const parsed = Math.floor(Number(autoStopDraft));
+    dispatch({type: 'SET_AUTO_STOP', n: Number.isFinite(parsed) && parsed > 0 ? parsed : undefined});
+    setAutoStopDraft(undefined); // resync display to run.autoStopN either way
+  };
 
   return (
     <main className="screen">
@@ -257,90 +238,45 @@ export function ConfigureRun() {
 
       {run.status === 'idle' && (
         <section className="run-controls">
-          <button className="primary" disabled={enabledCount === 0} onClick={calibrate}>
-            Calibrate ({CALIBRATION_BATTLES} quick battles)
-          </button>
-          <p className="hint">
-            We measure this device's speed first, so the battle-count picker shows a real time estimate.
-            Calibration battles count toward your total.
-          </p>
-        </section>
-      )}
-
-      {run.status === 'calibrating' && (
-        <section className="run-controls">
-          <p className="mono" role="status" aria-live="polite">
-            Calibrating… {done}/{Math.min(CALIBRATION_BATTLES, enabledCount * 3)}
-          </p>
-        </section>
-      )}
-
-      {run.status === 'calibrated' && (
-        <section className="run-controls">
-          <label>
-            Battles: <strong className="mono">{run.n}</strong>
-            <input
-              type="range"
-              min={Math.max(10, done)}
-              max={500}
-              step={10}
-              value={run.n}
-              onChange={event => dispatch({type: 'SET_N', n: Number(event.target.value)})}
-              style={{'--_fill': `${((run.n - Math.max(10, done)) / (500 - Math.max(10, done))) * 100}%`} as CSSProperties}
-            />
-          </label>
           <label className="n-input-label mono">
-            or type a count:{' '}
+            auto-stop after{' '}
             <input
               type="number"
               className="n-input mono"
-              min={Math.max(10, done)}
-              max={500}
-              step={10}
-              value={nDraft ?? run.n}
-              aria-label="Number of battles"
-              onChange={event => setNDraft(event.target.value)}
-              onBlur={() => {
-                const clamped = clampN(Number(nDraft), Math.max(10, done));
-                if (!Number.isNaN(clamped)) dispatch({type: 'SET_N', n: clamped});
-                setNDraft(undefined); // resync display to run.n either way
-              }}
+              min={1}
+              placeholder="∞"
+              value={autoStopDraft ?? run.autoStopN ?? ''}
+              aria-label="Auto-stop after this many battles (optional)"
+              onChange={event => setAutoStopDraft(event.target.value)}
+              onBlur={commitAutoStop}
               onKeyDown={event => {
                 if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
               }}
-            />
+            />{' '}
+            battles (optional)
           </label>
-          <p className="mono">
-            {done} done · {remainingEta} for the rest
-          </p>
           <p className="hint">
-            ~10 is a gut-check; a few hundred makes the win rates trustworthy.
+            Leave it blank to run until you hit Stop. The dashboard fills in live either way, and
+            stopping at any point keeps a fair sample of the pool.
           </p>
-          <button className="primary" onClick={runFull}>
-            Run {run.n} battles
+          <button className="primary" disabled={enabledCount === 0} onClick={startRun}>
+            Run
           </button>
         </section>
       )}
 
-      {run.status === 'running' && (
+      {(run.status === 'running' || run.status === 'done') && (
         <section className="run-controls">
-          <progress value={done} max={run.n} />
           <p className="mono" role="status" aria-live="polite">
-            {done}/{run.n} · {remainingEta} remaining
-          </p>
-          <button onClick={cancelRun}>Cancel (keep partial results)</button>
-          <button onClick={() => navigate('test-results')}>Peek at partial results</button>
-        </section>
-      )}
-
-      {(run.status === 'done' || run.status === 'cancelled') && (
-        <section className="run-controls">
-          <p className="mono">
-            {done} battles {run.status === 'cancelled' ? '(cancelled early)' : 'complete'}
+            {run.battles.length} battle{run.battles.length === 1 ? '' : 's'}
+            {run.status === 'running' ? ' and counting…' : ' recorded'}
           </p>
           <button className="primary" onClick={() => navigate('test-results')}>
-            View the dashboard
+            {run.status === 'running' ? 'Back to the live dashboard' : 'View the dashboard'}
           </button>
+          {run.status === 'done' && (
+            <button onClick={() => dispatch({type: 'RESET_RUN'})}>Reset (unlock the pool)</button>
+          )}
         </section>
       )}
 
