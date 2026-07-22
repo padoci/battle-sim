@@ -36,18 +36,15 @@ test('can you 6-0? — draft board', async ({page}) => {
 
 test('Gen 5 battle stage — chrome + sprites', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'battle chrome is captured on desktop only');
-  // Easy mode's rung-0 opponent (heavy early blunder rate + a real, bulkier
-  // meta-team pool) takes ~3x longer to compute than the curated Gym Leader
-  // ladder used elsewhere — measured locally at ~10s for Gym Leader vs ~32s
-  // for Easy, consistently. The suite's already-generous 60s default budget
-  // (chosen for a normal ~15-20s real, unmocked search) has only ~2x headroom
-  // over that 32s, which a loaded CI runner can and did tip over. test.slow()
-  // triples this test's timeout/expect budget rather than inflating every
-  // other test's margin for the one that's inherently the most expensive.
+  // Normal (né Easy) mode's rung-0 opponent takes ~3x longer to compute than
+  // the curated Gym Challenge ladder used elsewhere. Streaming means the
+  // stage now mounts on the first decision chunk rather than the whole
+  // battle, but the full compute still runs behind the replay on a loaded
+  // CI runner — keep the tripled budget.
   test.slow();
 
   await page.goto('/#/sixoh?config=fast&seed=41');
-  await page.locator('.mode-toggle button', {hasText: 'Easy'}).click();
+  await page.locator('.mode-toggle button', {hasText: 'Normal'}).click();
   await page.waitForTimeout(200);
   // Bundle cards show one committed build — drafting is a single click, six times.
   for (let i = 0; i < 6; i++) {
@@ -57,10 +54,11 @@ test('Gen 5 battle stage — chrome + sprites', async ({page}, testInfo) => {
   await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
   await page.waitForSelector('.battle-stage', {timeout: 120_000});
   // Drop to the slowest speed immediately so the replay clock all but stops —
-  // at the default 2x, enough beats (switches, faints, boost stacking) play
-  // out during Playwright's screenshot-stability polling to change on-stage
+  // at speed, enough beats (switches, faints, boost stacking) play out
+  // during Playwright's screenshot-stability polling to change on-stage
   // content between attempts, which no amount of masking can stabilize.
-  await page.getByLabel('Playback speed').fill('0.1');
+  // The slider is position-based (0..1, log-mapped): 0 = the 0.1x floor.
+  await page.getByLabel('Playback speed').fill('0');
   await page.waitForSelector('.hp-bar', {timeout: 30_000});
   // Both mons take one beat each to switch in — give the second one time to
   // land so the screenshot isn't a coin flip on which side has rendered yet.
