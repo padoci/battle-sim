@@ -315,7 +315,7 @@ async function main() {
       page.locator('text=Export Markdown').click(),
     ]);
     const md = require('fs').readFileSync(await mdDownload.path(), 'utf8');
-    for (const section of ['# Test Your Team — Report', '## Verdict', '## Opponent pool']) {
+    for (const section of ['# Test Your Team Report', '## Verdict', '## Opponent pool']) {
       if (!md.includes(section)) fail(`Markdown export missing "${section}"`);
     }
     writeFileSync(`${shotsDir}/e2e-export.md`, md);

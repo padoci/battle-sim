@@ -32,7 +32,7 @@ export function TeamImport() {
     try {
       const sets = Teams.import(raw);
       if (!sets || sets.length === 0) {
-        return {sets: [] as PokemonSet[], problems: ["That doesn't parse as a Showdown team export — check the format."]};
+        return {sets: [] as PokemonSet[], problems: ["That doesn't parse as a Showdown team export: check the format."]};
       }
       const problems = [...(validator.validateTeam(sets as never) ?? [])];
       // The validator only enforces a max of 6 (and a much lower singles min) —
@@ -43,7 +43,7 @@ export function TeamImport() {
       return {sets: sets as unknown as PokemonSet[], problems};
     } catch {
       // @pkmn/sim can throw on sufficiently malformed input — treat as unparseable.
-      return {sets: [] as PokemonSet[], problems: ["Couldn't read that team — check it's a valid Showdown export."]};
+      return {sets: [] as PokemonSet[], problems: ["Couldn't read that team: check it's a valid Showdown export."]};
     }
   }, [raw, validator]);
 
@@ -75,7 +75,7 @@ export function TeamImport() {
         <>
           <p className="import-status">
             <span className="check">✓</span>
-            Legal — {parsed.sets.length} Pokémon registered
+            Legal: {parsed.sets.length} Pokémon registered
           </p>
           <TeamPreviewRow species={parsed.sets.map(s => s.species)} />
         </>

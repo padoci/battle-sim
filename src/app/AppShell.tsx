@@ -79,7 +79,7 @@ export function AppShell() {
                 / Pokémon Showdown · sprites from Showdown&rsquo;s CDN.
               </p>
               <p>
-                A fan project — not affiliated with Nintendo, Game Freak, The Pokémon Company, or
+                A fan project, not affiliated with Nintendo, Game Freak, The Pokémon Company, or
                 Smogon.
               </p>
               <FooterExtras />

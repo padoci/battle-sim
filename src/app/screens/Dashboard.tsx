@@ -225,7 +225,7 @@ export function Dashboard() {
     return (
       <main className="screen">
         <div className="empty-state">
-          No results yet — <a href="#/test/configure">run some battles</a> and the matchup reads
+          No results yet, <a href="#/test/configure">run some battles</a> and the matchup reads
           land here.
         </div>
       </main>
@@ -279,7 +279,7 @@ export function Dashboard() {
   const column = (title: string, list: ArchetypeCard[]) => (
     <section className="matchup-column">
       <h2>{title}</h2>
-      {list.length === 0 && <p className="hint">None in this band yet — run more battles to fill it in.</p>}
+      {list.length === 0 && <p className="hint">None in this band yet, run more battles to fill it in.</p>}
       {list.map(card => (
         <MatchupCardView
           key={card.archetype}
@@ -306,7 +306,7 @@ export function Dashboard() {
           {run.status === 'cancelled' ? ' · cancelled early (partial)' : ''}
           {run.status === 'running' || run.status === 'calibrating' ? ' · still running…' : ''}
         </p>
-        <p className="hint">Direction, not gospel — reads to pressure-test, never verdicts.</p>
+        <p className="hint">Direction, not gospel: reads to pressure-test, never verdicts.</p>
       </header>
 
       {topSuggestions.length > 0 && (

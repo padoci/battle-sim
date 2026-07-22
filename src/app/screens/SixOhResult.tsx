@@ -46,7 +46,7 @@ export function SixOhResult() {
     return (
       <main className="screen">
         <div className="empty-state">
-          No finished run yet — <a href="#/sixoh">draft a team</a> and run the gauntlet.
+          No finished run yet, <a href="#/sixoh">draft a team</a> and run the gauntlet.
         </div>
       </main>
     );
@@ -110,7 +110,7 @@ export function SixOhResult() {
 
         <section className="post-mortem">
           <h3>Post-mortem</h3>
-          {postMortem.reads.length === 0 && <p className="hint">Clean sweep — nothing to autopsy.</p>}
+          {postMortem.reads.length === 0 && <p className="hint">Clean sweep, nothing to autopsy.</p>}
           {postMortem.reads.map((read, i) => (
             <Read key={i} sentence={read.sentence} evidence={read.evidence} />
           ))}

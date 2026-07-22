@@ -97,7 +97,7 @@ export function ConfigureRun() {
     const watchdog = setTimeout(() => {
       if (settled) return;
       settled = true;
-      setPoolError('timed out loading the opponent pool — check your connection and reload');
+      setPoolError('timed out loading the opponent pool, check your connection and reload');
     }, POOL_WATCHDOG_MS);
     const startedAt = Date.now();
     const ticker = setInterval(() => {
@@ -150,7 +150,7 @@ export function ConfigureRun() {
     return (
       <main className="screen">
         <div className="empty-state">
-          No team loaded yet — <a href="#/test/import">paste one to analyze</a> and come back.
+          No team loaded yet, <a href="#/test/import">paste one to analyze</a> and come back.
         </div>
       </main>
     );
@@ -172,7 +172,7 @@ export function ConfigureRun() {
           {poolLoadElapsedMs > 3000 && (
             <p className="load-status mono">
               {poolLoadElapsedMs > 7000
-                ? 'still working — the tier data host is responding slowly right now, hang tight'
+                ? 'still working, the tier data host is responding slowly right now, hang tight'
                 : 'fetching the latest tier data…'}
             </p>
           )}
@@ -252,7 +252,7 @@ export function ConfigureRun() {
         </table>
       </div>
       {poolLocked && (
-        <p className="hint">Pool locks once a run starts — cancel and reset to change it.</p>
+        <p className="hint">Pool locks once a run starts, cancel and reset to change it.</p>
       )}
 
       {run.status === 'idle' && (

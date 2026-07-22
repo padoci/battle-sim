@@ -82,10 +82,10 @@ describe('export builders', () => {
 
   it('Markdown carries the report sections', () => {
     const md = buildExportMarkdown(buildExportJson(inputs()));
-    expect(md).toContain('# Test Your Team — Report');
+    expect(md).toContain('# Test Your Team Report');
     expect(md).toContain('## Verdict');
     expect(md).toContain('## Worst matchups');
-    expect(md).toContain('### vs Rain — 33% (3 battles, 1 distinct opponent team)');
+    expect(md).toContain('### vs Rain: 33% (3 battles, 1 distinct opponent team)');
     expect(md).toContain('- Barraskewda outspeeds all 6 of your team');
     expect(md).toContain('**Game plan:** Lead X to pressure Y.');
     expect(md).toContain('| Rain One | Rain | 2 | 3 | 33% |');

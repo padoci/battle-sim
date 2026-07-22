@@ -141,7 +141,7 @@ export function SixOhDraft() {
     const watchdog = setTimeout(() => {
       if (settled) return;
       settled = true;
-      setError('timed out loading the draft data — check your connection and reload');
+      setError('timed out loading the draft data, check your connection and reload');
     }, LOAD_WATCHDOG_MS);
     // A slow-but-healthy fetch (the third-party data host being slow that
     // moment, or a first visit with nothing cached yet — see cachedJson's
@@ -222,7 +222,7 @@ export function SixOhDraft() {
           {loadElapsedMs > 3000 && (
             <p className="load-status mono">
               {loadElapsedMs > 7000
-                ? 'still working — the tier data host is responding slowly right now, hang tight'
+                ? 'still working, the tier data host is responding slowly right now, hang tight'
                 : 'fetching the latest tier data…'}
             </p>
           )}
@@ -240,7 +240,7 @@ export function SixOhDraft() {
     <main className="screen draft-screen">
       <h1>Can you 6-0?</h1>
       <p className="screen-sub">
-        Draft six pre-made cards. Then the AI pilots them through a six-battle gauntlet — win all
+        Draft six pre-made cards. Then the AI pilots them through a six-battle gauntlet, win all
         six to go flawless.
       </p>
 
@@ -250,21 +250,21 @@ export function SixOhDraft() {
           disabled={!canSwitchMode && draft.mode !== 'gymleader'}
           onClick={() => switchMode('gymleader')}
         >
-          Gym Leader <span className="hint">6 options — real gym leaders, building to a champion finale</span>
+          Gym Leader <span className="hint">6 options: real gym leaders, building to a champion finale</span>
         </button>
         <button
           className={draft.mode === 'easy' ? 'active' : ''}
           disabled={!canSwitchMode && draft.mode !== 'easy'}
           onClick={() => switchMode('easy')}
         >
-          Easy <span className="hint">6 options — opponents start weak and ramp up</span>
+          Easy <span className="hint">6 options: opponents start weak and ramp up</span>
         </button>
         <button
           className={draft.mode === 'hard' ? 'active' : ''}
           disabled={!canSwitchMode && draft.mode !== 'hard'}
           onClick={() => switchMode('hard')}
         >
-          Hard <span className="hint">6 options — full-strength opponents from rung one</span>
+          Hard <span className="hint">6 options: full-strength opponents from rung one</span>
         </button>
       </div>
 
@@ -328,7 +328,7 @@ export function SixOhDraft() {
                     <span className="tray-set mono">{pick.setName}</span>
                   </>
                 ) : (
-                  <span className="tray-empty">—</span>
+                  <span className="tray-empty">–</span>
                 )}
               </div>
             );

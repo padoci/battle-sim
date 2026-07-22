@@ -50,7 +50,7 @@ export function FooterExtras() {
             <a href={GAZA_APPEAL_URL} target="_blank" rel="noreferrer">
               UNICEF&rsquo;s Children in Gaza Crisis Appeal
             </a>{' '}
-            and let me know that you&rsquo;ve done so — it&rsquo;d bring me a lot of joy to know
+            and let me know that you&rsquo;ve done so, it&rsquo;d bring me a lot of joy to know
             that my silly little website is helping make the world a better place :)
           </p>
         </div>
