@@ -241,15 +241,31 @@ async function main() {
     await page.screenshot({path: `${shotsDir}/e2e-sixoh-draft.png`, fullPage: true});
     ok(`drafted 6 distinct mons: ${picked.join(', ')}`);
 
-    // 3. Start the gauntlet.
+    // 3. Start the gauntlet. The battle intro announces the opponent while
+    // this rung's AI search runs behind it (the intro IS the loading state).
     await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
     await page.waitForSelector('.arena', {timeout: 15_000});
-    await page.waitForSelector('.simulating, .battle-stage', {timeout: 15_000});
-    ok('gauntlet started (simulating or stage visible)');
+    await page.waitForFunction(
+      () => /wants to battle!/.test(document.querySelector('.message-box')?.textContent ?? ''),
+      undefined,
+      {timeout: 15_000}
+    );
+    const introText = (await page.locator('.message-box').textContent()) ?? '';
+    if (!/Gym Leader |Champion /.test(introText)) {
+      fail(`gym-leader intro should title the opponent, got: ${introText}`);
+    }
+    if (!(await page.locator('.intro-trainer').count())) {
+      // Sprite host unreachable in a sandboxed run; the caption already
+      // proves the intro itself. CI (real network) renders the trainer.
+      console.log('note: intro trainer sprite absent (sprite CDN unreachable?)');
+    }
+    await page.screenshot({path: `${shotsDir}/e2e-sixoh-intro.png`});
+    ok(`battle intro plays ("${introText.trim().split('\n')[0].slice(0, 50)}")`);
 
-    // 4. First battle replays at 1x on the Gen 5 battle stage: HP meters + growing log.
-    await page.waitForSelector('.battle-stage', {timeout: 120_000});
-    await page.waitForSelector('.hp-bar', {timeout: 30_000});
+    // 4. First battle replays at 1x on the Gen 5 battle stage: HP meters +
+    // growing log. (The intro renders `.battle-stage` too, so the real
+    // stage's signal is the HP bar, which only exists once leads are out.)
+    await page.waitForSelector('.hp-bar', {timeout: 120_000});
     if ((await page.locator('.stage-field .hp-block').count()) < 1) fail('HP meters should render on the field');
     // A weak-enough drafted team can finish a rung in just a few turns, so a
     // single before/after snapshot can straddle a battle transition (log
@@ -358,6 +374,10 @@ async function main() {
     const easyBadges = await page.locator('.ladder-preview .archetype-tag').allTextContents();
     if (easyBadges.some(b => /Champion/.test(b))) fail('Easy mode ladder should not carry a Champion tag');
     ok('Step up threads the mode into the draft (Gym Leader → Easy), pool switches to real teams');
+    // Easy/Hard opponents now carry seeded generic trainer identities.
+    const easyPortraits = await page.locator('.ladder-preview .rung-portrait').count();
+    if (easyPortraits !== 6) fail(`Easy rungs should all have trainer portraits, got ${easyPortraits}`);
+    ok('Easy opponents carry seeded generic trainer portraits');
 
     // 9. ?mode=hard deals 6 bundles with Hard pre-selected (mode from the hash).
     const page2 = await browser.newPage({viewport: {width: 1440, height: 1000}});

@@ -7,10 +7,11 @@ import type {FxItem, MonView, SideView} from '../../replay/view';
 import {navigate} from '../router';
 import {readDevParams} from '../sixoh/devParams';
 import {ensureComputed, resetSixOhSession, retryBattle} from '../sixoh/session';
-import {useSixOhDispatch, useSixOhState} from '../sixoh/state';
+import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/state';
 import {typeColor} from '../sixoh/typeColors';
-import {MAX_SPEED, MIN_SPEED, usePlayback} from '../sixoh/usePlayback';
+import {MAX_SPEED, MIN_SPEED, loadSpeed, usePlayback} from '../sixoh/usePlayback';
 import {TrainerPortrait} from '../components/TrainerPortrait';
+import type {DraftMode} from '../../draft/draft';
 
 /** The 2D-animated set (`gen5ani`) only covers Gen 1-5 Pokémon — most Gen 9
  * mons (Great Tusk, Kingambit, Gholdengo…) fall back to the static `gen5`
@@ -164,6 +165,99 @@ function sceneUrl(file: string): string {
   return `https://play.pokemonshowdown.com/fx/${file}`;
 }
 
+/** How the intro announces the opponent, by mode + rung badge. */
+function introTitle(opponent: GauntletOpponent, mode: DraftMode): string {
+  if (opponent.badge?.includes('Champion')) return `Champion ${opponent.name}`;
+  if (mode === 'gymleader') return `Gym Leader ${opponent.name}`;
+  return opponent.name;
+}
+
+/**
+ * The classic handheld battle intro, played full-length before EVERY rung:
+ * the opponent's trainer slides onto the (still-empty) field with
+ * "X wants to battle!", holds, then slides off into the send-outs. The hold
+ * doubles as this battle's loading mask — the send-out can't start until the
+ * AI search delivers the replay (`ready`), so a still-computing battle simply
+ * holds the entrance (with an honest elapsed readout past a few seconds)
+ * instead of showing a bare spinner. Pacing scales with the persisted
+ * playback speed; reduced-motion users never see this component at all (the
+ * parent falls back to the plain "simulating" panel).
+ */
+function BattleIntro({
+  opponent,
+  mode,
+  sceneIndex,
+  ready,
+  onDone,
+}: {
+  opponent: GauntletOpponent;
+  mode: DraftMode;
+  sceneIndex: number;
+  ready: boolean;
+  onDone: () => void;
+}) {
+  const speed = useMemo(() => loadSpeed(), []);
+  const [step, setStep] = useState<'enter' | 'hold' | 'leave'>('enter');
+  const [elapsed, setElapsed] = useState(0);
+  const [spriteBroken, setSpriteBroken] = useState(false);
+
+  // Entrance holds at least this long even when the battle is prefetched, so
+  // the intro always reads as a beat rather than a flicker.
+  const minEntranceMs = 1600 / speed;
+  const leaveMs = 450 / speed;
+
+  useEffect(() => {
+    const timer = setTimeout(() => setStep(s => (s === 'enter' ? 'hold' : s)), minEntranceMs);
+    return () => clearTimeout(timer);
+  }, [minEntranceMs]);
+
+  useEffect(() => {
+    if (step === 'hold' && ready) setStep('leave');
+  }, [step, ready]);
+
+  useEffect(() => {
+    if (step !== 'leave') return;
+    const timer = setTimeout(onDone, leaveMs);
+    return () => clearTimeout(timer);
+  }, [step, leaveMs, onDone]);
+
+  // Elapsed ticker for the searching readout (only surfaces past 3s).
+  useEffect(() => {
+    const timer = setInterval(() => setElapsed(e => e + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const scene = BATTLE_SCENES[((sceneIndex % 4) + 4) % 4];
+  return (
+    <div className="battle-frame">
+      <div className="battle-stage">
+        <div className="stage-field intro-field" style={{backgroundImage: `url(${sceneUrl(scene.file)})`}}>
+          {opponent.avatarKey && !spriteBroken && (
+            <img
+              className={`intro-trainer ${step}`}
+              src={Sprites.getAvatar(opponent.avatarKey)}
+              width={80}
+              height={80}
+              alt=""
+              aria-hidden="true"
+              onError={() => setSpriteBroken(true)}
+            />
+          )}
+        </div>
+        <div className="message-box" role="status" aria-live="polite">
+          <div>{introTitle(opponent, mode)} wants to battle!</div>
+          {step === 'hold' && !ready && elapsed >= 3 && (
+            <div className="mono intro-searching">both AIs are searching… {elapsed}s</div>
+          )}
+        </div>
+        <div className="playback-controls intro-controls">
+          <button onClick={onDone}>Skip intro ⏭</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BattleStage({
   team,
   opponentSets,
@@ -181,6 +275,18 @@ function BattleStage({
   const teams = useMemo(() => [team, opponentSets] as [PokemonSet[], PokemonSet[]], [team, opponentSets]);
   const playback = usePlayback(teams, beats, onDone);
   const {view, fx, fxKey, caption, speed, setSpeed, skipToEnd} = playback;
+
+  // One-shot send-out window right after the intro hands over: the leads
+  // (and their pokeballs) animate in via CSS classes present only during
+  // this window. Kept out of the replay's beat/fx pipeline on purpose — the
+  // turn-0 lead placement must stay fx-free there so the visual baseline's
+  // at-rest frame is unchanged (see replay/view.ts).
+  const [leadIn, setLeadIn] = useState(true);
+  useEffect(() => {
+    setLeadIn(true);
+    const timer = setTimeout(() => setLeadIn(false), 900);
+    return () => clearTimeout(timer);
+  }, [beats]);
 
   const active = (side: 0 | 1): MonView | undefined => {
     const s = view.sides[side];
@@ -212,12 +318,16 @@ function BattleStage({
       fxFor(side, 'faint') && 'faint-drop',
       fxFor(side, 'tera') && 'tera-flash',
       fxFor(side, 'switch') && 'switch-pop',
+      leadIn && 'lead-in',
       flavor.category,
       flavor.moveType && `fx-move-${flavor.moveType}`,
     ]
       .filter(Boolean)
       .join(' ');
   };
+  /** A ball accompanies every entrance: the send-out window and mid-battle
+   * switch-ins alike. */
+  const showBall = (side: 0 | 1) => leadIn || !!fxFor(side, 'switch');
   const holderStyle = (side: 0 | 1): CSSProperties | undefined => {
     const color = fxFlavor(side).color;
     return color ? ({'--fx-color': color} as CSSProperties) : undefined;
@@ -261,6 +371,7 @@ function BattleStage({
             {theirs && !theirs.fainted && (
               <div key={`t-${fxKey}`} className={holderClasses(1, 'lunge-left')} style={holderStyle(1)}>
                 <SpriteWithFallback species={theirs.species} back={false} />
+                {showBall(1) && <span className="switch-ball" aria-hidden="true" />}
                 {fxFor(1, 'float') && <span className="float-num">{fxFor(1, 'float')!.text}</span>}
               </div>
             )}
@@ -272,6 +383,7 @@ function BattleStage({
             {mine && !mine.fainted && (
               <div key={`m-${fxKey}`} className={holderClasses(0, 'lunge-right')} style={holderStyle(0)}>
                 <SpriteWithFallback species={mine.species} back={true} />
+                {showBall(0) && <span className="switch-ball" aria-hidden="true" />}
                 {fxFor(0, 'float') && <span className="float-num">{fxFor(0, 'float')!.text}</span>}
               </div>
             )}
@@ -340,6 +452,18 @@ export function SixOhGauntlet() {
 
   const index = state.battleIndex;
   const battle = state.battles[index];
+
+  // Reduced-motion users skip the intro entirely (this is exactly the FX
+  // class the app already suppresses) and get the plain simulating panel,
+  // which also keeps the visual-regression flow (reducedMotion: 'reduce')
+  // byte-identical to the pre-intro one.
+  const reducedMotion = useMemo(
+    () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
+    []
+  );
+  const [introDoneFor, setIntroDoneFor] = useState(-1);
+  const introDone = reducedMotion || introDoneFor === index;
+  const handleIntroDone = useCallback(() => setIntroDoneFor(index), [index]);
 
   useEffect(() => {
     ensureComputed(state, dispatch, dev);
@@ -463,6 +587,23 @@ export function SixOhGauntlet() {
             error as blocking THIS rung's display when it's actually the one
             that failed; otherwise it surfaces once the run reaches it. */}
         {(!state.error || state.errorIndex !== index) &&
+          !introDone &&
+          battle &&
+          battle.phase !== 'done' && (
+            <BattleIntro
+              key={index}
+              opponent={state.opponents[index]}
+              mode={state.mode}
+              sceneIndex={index}
+              ready={!!beats}
+              onDone={handleIntroDone}
+            />
+          )}
+
+        {/* Plain simulating panel: reduced-motion users (no intro), or an
+            intro skipped before the search finished. */}
+        {(!state.error || state.errorIndex !== index) &&
+          introDone &&
           (battle?.phase === 'pending' || battle?.phase === 'computing') && (
             <div className="simulating">
               <div className="pulse" />
@@ -474,6 +615,7 @@ export function SixOhGauntlet() {
           )}
 
         {(!state.error || state.errorIndex !== index) &&
+          introDone &&
           (battle?.phase === 'ready' || battle?.phase === 'replaying') &&
           beats && (
             <BattleStage

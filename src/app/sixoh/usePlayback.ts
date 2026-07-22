@@ -13,7 +13,9 @@ export const MAX_SPEED = 10;
 const DEFAULT_SPEED = 2;
 const SPEED_KEY = 'battlesim.playbackSpeed';
 
-function loadSpeed(): PlaybackSpeed {
+/** The persisted playback speed. Exported so the battle intro (which runs
+ * before usePlayback mounts) paces its hold time by the same multiplier. */
+export function loadSpeed(): PlaybackSpeed {
   try {
     const raw = Number(localStorage.getItem(SPEED_KEY));
     return raw >= MIN_SPEED && raw <= MAX_SPEED ? raw : DEFAULT_SPEED;
