@@ -252,11 +252,17 @@ export function Dashboard() {
   const {cards, overall} = analysis;
   const worst = cards.filter(c => c.winRate < 0.5);
   const best = cards.filter(c => c.winRate >= 0.5).slice().reverse();
-  // Aggregate-driven suggestions across every card (no calc — cheap), top 3.
-  const topSuggestions = rankSuggestions(
-    cards.flatMap(card => statSuggestions(card, team.sets)),
-    3
-  );
+  // Aggregate-driven suggestions across every card (no calc — cheap). Held
+  // back entirely below 25 battles (early reads are noise dressed as advice);
+  // a bigger sample earns a deeper list.
+  const INSIGHTS_MIN_BATTLES = 25;
+  const insightsReady = overall.battles >= INSIGHTS_MIN_BATTLES;
+  const topSuggestions = insightsReady
+    ? rankSuggestions(
+        cards.flatMap(card => statSuggestions(card, team.sets)),
+        overall.battles >= 50 ? 5 : 3
+      )
+    : [];
 
   const ensureEnriched = (card: ArchetypeCard): Enrichment | undefined => {
     const existing = enrichments[card.archetype];
@@ -321,7 +327,7 @@ export function Dashboard() {
           {pct(overall.winRate)} win rate ± {Math.round(wilsonHalfWidth(overall.winRate, overall.battles) * 100)}%
           {' · '}{overall.wins}W-{overall.losses}L-{overall.draws}D over {overall.battles} battle{overall.battles === 1 ? '' : 's'}
           {run.status === 'running' && run.emaMsPerBattle > 0
-            ? ` · ~${Math.max(1, Math.round(60_000 / run.emaMsPerBattle))}/min`
+            ? ` · ~${Math.max(1, Math.round(60_000 / run.emaMsPerBattle))} battles/min`
             : ''}
           {run.status === 'running' ? ' · still running…' : ''}
         </p>
@@ -344,6 +350,12 @@ export function Dashboard() {
             <ReadItem key={i} sentence={s.sentence} evidence={s.evidence} />
           ))}
         </section>
+      )}
+      {!insightsReady && (
+        <p className="hint mono insights-pending">
+          "What to change" reads land after {INSIGHTS_MIN_BATTLES} battles
+          {run.status === 'running' ? '; keep it running' : ''}. A bigger sample earns deeper reads.
+        </p>
       )}
 
       <div className="matchup-columns">

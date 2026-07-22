@@ -1,9 +1,11 @@
 import {useEffect, useMemo, useState} from 'react';
 import {Icons} from '@pkmn/img';
+import {Teams, TeamValidator} from '@pkmn/sim';
 import {DataClient} from '../../data/client';
 import {loadOpponentTeams} from '../../data/sampleTeams';
 import {teamMemberToSet} from '../../data/team';
 import {gen9} from '../../data/gen';
+import type {PokemonSet} from '../../data/types';
 import {classifyTeam, teamDisplayName} from '../../analysis/archetype';
 import {getRunner} from '../simSession';
 import {navigate} from '../router';
@@ -81,6 +83,13 @@ export function ConfigureRun() {
   // In-progress text of the optional auto-stop input; committed on blur/Enter
   // (blank clears the bound), then reset to resync with run.autoStopN.
   const [autoStopDraft, setAutoStopDraft] = useState<string>();
+  // The 60+-row pool table is reference material, not the main flow; it
+  // starts collapsed behind a summary row.
+  const [poolOpen, setPoolOpen] = useState(false);
+  // "Add your own team" paste box (validated like TeamImport's).
+  const [addRaw, setAddRaw] = useState('');
+  const [addedNote, setAddedNote] = useState<string>();
+  const validator = useMemo(() => new TeamValidator('gen9ou'), []);
 
   // Load + classify the opponent pool once. Guarded by a watchdog + elapsed-
   // time feedback, mirroring SixOhDraft's load effect: without it, a slow (not
@@ -207,6 +216,43 @@ export function ConfigureRun() {
     setAutoStopDraft(undefined); // resync display to run.autoStopN either way
   };
 
+  // "Add your own team": same parse/validate pipeline as TeamImport, feeding
+  // the pool instead of the analyzed team.
+  const addParsed = (() => {
+    if (!addRaw.trim()) return undefined;
+    try {
+      const sets = Teams.import(addRaw);
+      if (!sets || sets.length === 0) {
+        return {sets: [] as PokemonSet[], problems: ["That doesn't parse as a Showdown team export: check the format."]};
+      }
+      const problems = [...(validator.validateTeam(sets as never) ?? [])];
+      if (sets.length < 6) problems.push(`A standard OU team needs 6 Pokémon (you have ${sets.length}).`);
+      return {sets: sets as unknown as PokemonSet[], problems};
+    } catch {
+      return {sets: [] as PokemonSet[], problems: ["Couldn't read that team: check it's a valid Showdown export."]};
+    }
+  })();
+  const addValid = !!addParsed && addParsed.sets.length > 0 && addParsed.problems.length === 0;
+
+  const addTeam = () => {
+    if (!addValid || !addParsed) return;
+    const customCount = pool.filter(p => p.teamId.startsWith('custom-')).length;
+    dispatch({
+      type: 'ADD_POOL_ENTRY',
+      entry: {
+        teamId: `custom-${customCount + 1}`,
+        teamName: `${teamDisplayName(gen, addParsed.sets)} (yours)`,
+        team: addParsed.sets,
+        weight: 1,
+        enabled: true,
+        archetype: classifyTeam(gen, addParsed.sets),
+      },
+    });
+    setAddRaw('');
+    setAddedNote(`Added: ${teamDisplayName(gen, addParsed.sets)}`);
+    setPoolOpen(true); // show them their row landed
+  };
+
   return (
     <main className="screen">
       <h1>Configure &amp; run</h1>
@@ -214,24 +260,60 @@ export function ConfigureRun() {
         Your team fights a weighted field of real meta teams. Weight a matchup up to pressure-test it.
       </p>
 
-      <div className="table-scroll">
-        <table className="pool-table">
-          <thead>
-            <tr>
-              <th />
-              <th>Team</th>
-              <th>Archetype</th>
-              <th>Roster</th>
-              <th>Weight</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pool.map(entry => (
-              <PoolRow key={entry.teamId} entry={entry} locked={poolLocked} />
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <button className="pool-summary" onClick={() => setPoolOpen(o => !o)} aria-expanded={poolOpen}>
+        <span className="mono">{poolOpen ? '▾' : '▸'}</span> {pool.length} teams in the field ·{' '}
+        {enabledCount} enabled
+        <span className="hint">weights and per-team toggles inside</span>
+      </button>
+      {poolOpen && (
+        <>
+          <div className="table-scroll">
+            <table className="pool-table">
+              <thead>
+                <tr>
+                  <th />
+                  <th>Team</th>
+                  <th>Archetype</th>
+                  <th>Roster</th>
+                  <th>Weight</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pool.map(entry => (
+                  <PoolRow key={entry.teamId} entry={entry} locked={poolLocked} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {!poolLocked && (
+            <section className="add-team">
+              <h3>Add your own team to the field</h3>
+              <textarea
+                className="team-input add-team-input mono"
+                rows={6}
+                value={addRaw}
+                placeholder="Paste a Showdown export to add it as an opponent…"
+                spellCheck={false}
+                onChange={event => {
+                  setAddRaw(event.target.value);
+                  setAddedNote(undefined);
+                }}
+              />
+              {addParsed && addParsed.problems.length > 0 && (
+                <ul className="problems">
+                  {addParsed.problems.map((problem, i) => (
+                    <li key={i}>{problem}</li>
+                  ))}
+                </ul>
+              )}
+              <button disabled={!addValid} onClick={addTeam}>
+                Add to the pool
+              </button>
+              {addedNote && <span className="hint mono add-team-note" role="status">{addedNote} ✓</span>}
+            </section>
+          )}
+        </>
+      )}
       {poolLocked && (
         <p className="hint">Pool locks once a run starts, cancel and reset to change it.</p>
       )}

@@ -157,10 +157,10 @@ async function scenarioSlowPrimaryRecoversViaMirror(browser) {
   await gotoConfigureWithTeam(page);
   let reachedPool = false;
   try {
-    await page.waitForSelector('.pool-table tbody tr', {timeout: 15_000});
+    await page.waitForSelector('.pool-summary', {timeout: 15_000});
     reachedPool = true;
   } catch {
-    fail('[configure-slow-primary] pool never loaded even though the mirror was healthy');
+    fail('[configure-slow-primary] pool summary never appeared even though the mirror was healthy');
   }
   const elapsed = Date.now() - t0;
   if (reachedPool) {
@@ -210,7 +210,7 @@ async function scenarioBothSlowShowsProgress(browser) {
 
   let reachedPool = false;
   try {
-    await page.waitForSelector('.pool-table tbody tr', {timeout: 20_000});
+    await page.waitForSelector('.pool-summary', {timeout: 20_000});
     reachedPool = true;
   } catch {
     fail('[configure-both-slow] pool never loaded even though the mirror was (slowly) healthy');

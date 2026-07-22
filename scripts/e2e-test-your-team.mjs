@@ -206,9 +206,16 @@ async function main() {
     ok('valid team previews 6 mons with type badges');
     await page.locator('button.primary').click();
 
-    // 3. Configure: pool with archetype tags — built-in teams merged with the
-    // vendored sample teams (proves the merge; teams ship statically, no fetch).
-    await page.waitForSelector('.pool-table tbody tr', {timeout: 30_000});
+    // 3. Configure: the pool starts collapsed behind a summary row; expand it,
+    // then assert built-in teams merged with the vendored sample teams
+    // (proves the merge; teams ship statically, no fetch).
+    await page.waitForSelector('.pool-summary', {timeout: 30_000});
+    if (await page.locator('.pool-table tbody tr').count()) {
+      fail('pool table should start collapsed behind the summary row');
+    }
+    await page.locator('.pool-summary').click();
+    await page.waitForSelector('.pool-table tbody tr', {timeout: 10_000});
+    ok('pool starts collapsed; summary row expands it');
     const baseTeams = JSON.parse(require('fs').readFileSync('test/fixtures/gen9ou.teams.full.json', 'utf8')).length;
     const vendored = JSON.parse(require('fs').readFileSync('src/data/vendored-teams.gen9ou.json', 'utf8'));
     const poolRows = await page.locator('.pool-table tbody tr').count();
@@ -247,6 +254,19 @@ async function main() {
     await page.locator('.weight-input').first().fill('3');
     await page.locator('.pool-table tbody tr input[type=checkbox]').nth(1).setChecked(false);
     ok('adjusted weights + disabled a team');
+
+    // Add a custom team to the pool (validated like the import screen).
+    await page.locator('.add-team-input').fill(GOOD_TEAM);
+    await page.locator('.add-team button', {hasText: 'Add to the pool'}).click();
+    await page.waitForSelector('.add-team-note', {timeout: 5_000});
+    const rowsAfterAdd = await page.locator('.pool-table tbody tr').count();
+    if (rowsAfterAdd !== poolRows + 1) {
+      fail(`adding a team should grow the pool: ${poolRows} -> ${rowsAfterAdd}`);
+    }
+    if (!(await page.locator('.pool-table tbody tr', {hasText: '(yours)'}).count())) {
+      fail('the added team should be marked as the user\'s own in the pool');
+    }
+    ok('user-added team lands in the pool, marked "(yours)"');
 
     // 4. Run (open-ended). No calibration step, no battle-count slider: the
     // auto-stop input is optional and left blank here, and clicking Run lands
@@ -346,7 +366,7 @@ async function main() {
     await page2.locator('.team-input').fill(GOOD_TEAM);
     await page2.waitForSelector('.team-preview-row');
     await page2.locator('button.primary').click();
-    await page2.waitForSelector('.pool-table tbody tr', {timeout: 30_000});
+    await page2.waitForSelector('.pool-summary', {timeout: 30_000}); // pool collapsed is fine; Run doesn't need it open
     await page2.locator('input[type=number].n-input').fill('12');
     await page2.locator('input[type=number].n-input').blur();
     await page2.locator('button.primary', {hasText: 'Run'}).click();
