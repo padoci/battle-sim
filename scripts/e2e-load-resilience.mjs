@@ -83,45 +83,80 @@ async function scenarioSlowPrimaryRecoversViaMirror(browser) {
   await routeData(page, {primary: {delayMs: 9000, down: true}, mirror: {}});
   page.on('pageerror', error => fail(`[slow-primary] page error: ${error.message}`));
 
+  // With the staggered race, a healthy mirror wins ~1.5s after the primary
+  // stalls — the user never even sees the slow-load status text. Assert the
+  // FAST path: draft up in a few seconds, nowhere near the old 8s failover.
   const t0 = Date.now();
   await page.goto(`http://localhost:${PORT}/#/sixoh?config=fast&seed=41`);
-  await page.waitForSelector('.empty-state', {timeout: 5000});
-
-  try {
-    await page.waitForFunction(() => document.querySelector('.empty-state')?.textContent?.includes('fetching the latest tier data'), {
-      timeout: 6000,
-    });
-    ok('[slow-primary] showed the 3s progress message during the stall');
-  } catch {
-    fail('[slow-primary] never showed the "fetching the latest tier data..." progress message');
-  }
-
-  try {
-    await page.waitForFunction(() => document.querySelector('.empty-state')?.textContent?.includes('responding slowly'), {
-      timeout: 6000,
-    });
-    ok('[slow-primary] escalated to the 7s "responding slowly" message');
-  } catch {
-    fail('[slow-primary] never escalated to the "responding slowly" message past 7s');
-  }
-
   let reachedDraft = false;
   try {
-    await page.waitForSelector('.offer-card', {timeout: 20_000});
+    await page.waitForSelector('.offer-card', {timeout: 15_000});
     reachedDraft = true;
   } catch {
     fail('[slow-primary] draft never loaded even though the mirror was healthy');
   }
   const elapsed = Date.now() - t0;
   if (reachedDraft) {
-    ok(`[slow-primary] recovered via the mirror and reached the draft (${elapsed}ms)`);
-    // The per-URL timeout is 8s; recovery should land comfortably under the
-    // 25s watchdog, with headroom, not right up against it.
-    if (elapsed > 15_000) {
-      fail(`[slow-primary] recovery took ${elapsed}ms — too close to the 25s watchdog for a single-hop failover`);
+    ok(`[slow-primary] mirror won the staggered race (draft in ${elapsed}ms)`);
+    // Stagger is 1.5s; generous CI headroom, but nowhere near the old 8s hop.
+    if (elapsed > 7_000) {
+      fail(`[slow-primary] recovery took ${elapsed}ms — the mirror should win the race in ~2s`);
     }
   }
   await page.screenshot({path: `${shotsDir}/e2e-load-slow-primary.png`}).catch(() => {});
+  await page.close();
+}
+
+/** Scenario 1b: BOTH hosts crawling (alive, just slow). This is the case
+ *  where the progressive status text still matters — nothing can win the
+ *  race quickly, so the 3s/7s messages must show, and the slower-but-alive
+ *  mirror must still land the draft inside the watchdog. */
+async function scenarioBothSlowShowsProgress(browser) {
+  const page = await browser.newPage({viewport: {width: 1440, height: 1000}});
+  // Mirror delay must sit between the 7s status escalation and the 8s
+  // per-attempt timeout: it joins the race at ~1.5s and answers at ~8.5s.
+  await routeData(page, {primary: {delayMs: 20_000, down: true}, mirror: {delayMs: 7000}});
+  page.on('pageerror', error => fail(`[both-slow] page error: ${error.message}`));
+
+  const t0 = Date.now();
+  await page.goto(`http://localhost:${PORT}/#/sixoh?config=fast&seed=41`);
+  await page.waitForSelector('.empty-state', {timeout: 5000});
+
+  try {
+    await page.waitForFunction(
+      () => document.querySelector('.empty-state')?.textContent?.includes('fetching the latest tier data'),
+      undefined,
+      {timeout: 6000}
+    );
+    ok('[both-slow] showed the 3s progress message during the stall');
+  } catch {
+    fail('[both-slow] never showed the "fetching the latest tier data..." progress message');
+  }
+
+  try {
+    await page.waitForFunction(
+      () => document.querySelector('.empty-state')?.textContent?.includes('responding slowly'),
+      undefined,
+      {timeout: 6000}
+    );
+    ok('[both-slow] escalated to the 7s "responding slowly" message');
+  } catch {
+    fail('[both-slow] never escalated to the "responding slowly" message past 7s');
+  }
+
+  let reachedDraft = false;
+  try {
+    // Mirror joins at 1.5s, answers at ~8.5s; comfortably inside the 25s
+    // watchdog but past both status thresholds.
+    await page.waitForSelector('.offer-card', {timeout: 20_000});
+    reachedDraft = true;
+  } catch {
+    fail('[both-slow] draft never loaded even though the mirror was (slowly) healthy');
+  }
+  if (reachedDraft) {
+    ok(`[both-slow] slow mirror still landed the draft (${Date.now() - t0}ms)`);
+  }
+  await page.screenshot({path: `${shotsDir}/e2e-load-both-slow.png`}).catch(() => {});
   await page.close();
 }
 
@@ -199,6 +234,7 @@ async function main() {
     const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
     try {
       await scenarioSlowPrimaryRecoversViaMirror(browser);
+      await scenarioBothSlowShowsProgress(browser);
       await scenarioBothSourcesDown(browser);
       await scenarioCachedSecondLoadIsInstant(browser);
     } finally {

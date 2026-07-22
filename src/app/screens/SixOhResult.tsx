@@ -6,6 +6,7 @@ import type {PokemonSet} from '../../data/types';
 import type {DraftMode} from '../../draft/draft';
 import {ReadItem as Read} from '../components/ReadItem';
 import {TrainerPortrait} from '../components/TrainerPortrait';
+import {MODE_LABELS} from '../sixoh/modeLabels';
 import {resetSixOhSession} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState} from '../sixoh/state';
 import {typeGradient} from '../sixoh/typeColors';
@@ -120,8 +121,12 @@ export function SixOhResult() {
           <button className="primary" onClick={() => restartAs(state.mode)}>
             Draft again
           </button>
-          {state.mode === 'gymleader' && <button onClick={() => restartAs('easy')}>Step up to Easy</button>}
-          {state.mode === 'easy' && <button onClick={() => restartAs('hard')}>Step up to Hard</button>}
+          {state.mode === 'gymleader' && (
+            <button onClick={() => restartAs('easy')}>Step up to {MODE_LABELS.easy}</button>
+          )}
+          {state.mode === 'easy' && (
+            <button onClick={() => restartAs('hard')}>Step up to {MODE_LABELS.hard}</button>
+          )}
         </div>
       </div>
     </main>

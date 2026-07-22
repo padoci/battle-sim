@@ -13,6 +13,7 @@ import {navigate} from '../router';
 import {typeColor, typeGradient, typeBorderGradient} from '../sixoh/typeColors';
 import {readDevParams} from '../sixoh/devParams';
 import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/state';
+import {MODE_LABELS} from '../sixoh/modeLabels';
 import {resetSixOhSession} from '../sixoh/session';
 import {useTcgArt} from '../sixoh/useTcgArt';
 import {resizedCardArtUrl} from '../../data/tcgArt';
@@ -75,7 +76,8 @@ function buildOpponents(mode: DraftMode, data: DraftData, seed: number, gen: Gen
       return {
         name,
         sets: team.data.map(teamMemberToSet),
-        badge: team.isChampion ? `${team.signatureType} · Champion` : team.signatureType,
+        // The champion transcends type identity: badge is just "Champion".
+        badge: team.isChampion ? 'Champion' : team.signatureType,
         avatarKey: team.name?.toLowerCase(),
       };
     });
@@ -155,6 +157,7 @@ export function SixOhDraft() {
   // "Draft again" can pick the mode; defaults to Gym Leader (the entry tier).
   const initialMode = useMemo<DraftMode>(() => {
     const raw = new URLSearchParams(location.hash.split('?')[1] ?? '').get('mode');
+    if (raw === 'normal') return 'easy'; // display-name alias for the old id
     return raw === 'easy' || raw === 'hard' || raw === 'gymleader' ? raw : 'gymleader';
   }, []);
 
@@ -281,21 +284,22 @@ export function SixOhDraft() {
           disabled={!canSwitchMode && draft.mode !== 'gymleader'}
           onClick={() => switchMode('gymleader')}
         >
-          Gym Leader <span className="hint">6 options: real gym leaders, building to a champion finale</span>
+          {MODE_LABELS.gymleader}{' '}
+          <span className="hint">6 options: real gym leaders, building to a champion finale</span>
         </button>
         <button
           className={draft.mode === 'easy' ? 'active' : ''}
           disabled={!canSwitchMode && draft.mode !== 'easy'}
           onClick={() => switchMode('easy')}
         >
-          Easy <span className="hint">6 options: opponents start weak and ramp up</span>
+          {MODE_LABELS.easy} <span className="hint">6 options: opponents start weak and ramp up</span>
         </button>
         <button
           className={draft.mode === 'hard' ? 'active' : ''}
           disabled={!canSwitchMode && draft.mode !== 'hard'}
           onClick={() => switchMode('hard')}
         >
-          Hard <span className="hint">6 options: full-strength opponents from rung one</span>
+          {MODE_LABELS.hard} <span className="hint">6 options: full-strength opponents from rung one</span>
         </button>
       </div>
 
@@ -322,7 +326,6 @@ export function SixOhDraft() {
                 onClick={() => dispatch({type: 'SET_DRAFT', draft: pickBundle(draft, data.pool, data.sets, index)})}
               >
                 <div className="card-art-window" style={{backgroundImage: typeGradient(types)}}>
-                  <span className="mono usage">{(offer.usageWeighted * 100).toFixed(1)}%</span>
                   <CardArt species={offer.species} />
                 </div>
                 <div className="bundle-head">
@@ -337,6 +340,7 @@ export function SixOhDraft() {
                   {offer.set.item || 'No item'} · {offer.set.nature}
                   {offer.set.teraType ? ` · Tera ${offer.set.teraType}` : ''}
                 </p>
+                <p className="mono set-usage">{(offer.usageWeighted * 100).toFixed(1)}% usage</p>
               </button>
             );
           })}

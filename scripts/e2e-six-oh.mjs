@@ -4,7 +4,7 @@
  * options, Species Clause, ladder with 5 distinct-signature-type leaders +
  * a champion last) -> gauntlet (simulating state, Gen 5 battle stage at 1x,
  * skip to result) -> result (flawless or eliminated) with post-mortem ->
- * "Step up to Easy" -> Draft again. Plus Easy and Hard bundle spot-checks.
+ * "Step up to Normal" -> Draft again. Plus Normal and Hard bundle spot-checks.
  * The Easy/Hard opponent pool is the built-in teams merged with mocked
  * external sample teams (crob.at + pokepaste); Gym Leader's pool is the
  * vendored gym-leader-teams.gen9ou.json, no mocking needed.
@@ -215,8 +215,8 @@ async function main() {
     await page.waitForSelector('.offer-card', {timeout: 60_000});
     const glCount = await page.locator('.offer-card').count();
     if (glCount !== 6) fail(`Gym Leader mode should offer 6 bundles, got ${glCount}`);
-    if (!(await page.locator('.mode-toggle button.active', {hasText: 'Gym Leader'}).count())) {
-      fail('default mode should be Gym Leader');
+    if (!(await page.locator('.mode-toggle button.active', {hasText: 'Gym Challenge'}).count())) {
+      fail('default mode should be Gym Challenge');
     }
     ok('default Gym Leader mode deals 6 pre-made bundles');
 
@@ -363,10 +363,10 @@ async function main() {
     await page.waitForSelector('.result-card', {timeout: 10_000});
 
     // 8. "Step up" actually changes difficulty (this run was Gym Leader → Easy).
-    await page.locator('.result-actions button', {hasText: 'Step up to Easy'}).click();
+    await page.locator('.result-actions button', {hasText: 'Step up to Normal'}).click();
     await page.waitForSelector('.offer-card', {timeout: 60_000});
-    if (!(await page.locator('.mode-toggle button.active', {hasText: 'Easy'}).count())) {
-      fail('Step up to Easy should start the draft in Easy mode');
+    if (!(await page.locator('.mode-toggle button.active', {hasText: 'Normal'}).count())) {
+      fail('Step up to Normal should start the draft in Normal (easy) mode');
     }
     const easyCount = await page.locator('.offer-card').count();
     if (easyCount !== 6) fail(`Easy mode should offer 6 bundles, got ${easyCount}`);

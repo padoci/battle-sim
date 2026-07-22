@@ -36,7 +36,7 @@ describe('cachedJson', () => {
     expect(calls).toEqual(['https://primary/x.json']);
   });
 
-  it('refetches once the TTL expires', async () => {
+  it('serves stale immediately once the TTL expires, revalidating in the background', async () => {
     const store = new MemoryStore();
     let time = 0;
     let version = 1;
@@ -45,9 +45,15 @@ describe('cachedJson', () => {
     await cachedJson('x', URLS, {store, now: () => time, fetchFn: fetch});
     time = DEFAULT_TTL_MS;
     version = 2;
-    const result = await cachedJson('x', URLS, {store, now: () => time, fetchFn: fetch});
-    expect(result).toEqual({data: {v: 2}, fetchedAt: DEFAULT_TTL_MS, fromCache: false});
+    // Stale-while-revalidate: the expired entry is served without waiting...
+    const stale = await cachedJson('x', URLS, {store, now: () => time, fetchFn: fetch});
+    expect(stale.data).toEqual({v: 1});
+    expect(stale.fromCache).toBe(true);
+    // ...and once the background refresh lands, the next call is fresh.
+    await stale.revalidated;
     expect(calls).toHaveLength(2);
+    const next = await cachedJson('x', URLS, {store, now: () => time, fetchFn: fetch});
+    expect(next).toEqual({data: {v: 2}, fetchedAt: DEFAULT_TTL_MS, fromCache: true});
   });
 
   it('falls back to the mirror when the primary fails', async () => {
@@ -95,7 +101,47 @@ describe('cachedJson', () => {
     time = DEFAULT_TTL_MS * 10;
     down = true;
     const result = await cachedJson('x', URLS, {store, now: () => time, fetchFn: fetch});
-    expect(result).toEqual({data: {v: 1}, fetchedAt: 0, fromCache: true});
+    expect(result).toMatchObject({data: {v: 1}, fetchedAt: 0, fromCache: true});
+    await result.revalidated; // background refresh fails silently
+    const again = await cachedJson('x', URLS, {store, now: () => time, fetchFn: fetch});
+    expect(again.data).toEqual({v: 1});
+  });
+
+  it('a healthy primary answers alone; the mirror never fires', async () => {
+    const store = new MemoryStore();
+    const {fetch, calls} = fakeFetch(() => ({v: 1}));
+    await cachedJson('x', URLS, {store, now: () => 0, fetchFn: fetch, mirrorStaggerMs: 1});
+    expect(calls).toEqual(['https://primary/x.json']);
+  });
+
+  it('a slow-but-alive primary loses the race to the staggered mirror', async () => {
+    const store = new MemoryStore();
+    const calls: string[] = [];
+    const impl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      calls.push(url);
+      if (url.startsWith('https://primary')) {
+        // Alive but crawling: resolves only if aborted first (the winner's
+        // cleanup aborts it), never on its own within the test window.
+        return new Promise<Response>((_, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+        });
+      }
+      return new Response(JSON.stringify({from: 'mirror'}), {
+        status: 200,
+        headers: {'content-type': 'application/json'},
+      });
+    }) as typeof fetch;
+
+    const result = await cachedJson('x', URLS, {
+      store,
+      now: () => 0,
+      fetchFn: impl,
+      timeoutMs: 5000,
+      mirrorStaggerMs: 10,
+    });
+    expect(result.data).toEqual({from: 'mirror'});
+    expect(calls).toEqual(URLS);
   });
 
   it('throws when every source fails and nothing is cached', async () => {

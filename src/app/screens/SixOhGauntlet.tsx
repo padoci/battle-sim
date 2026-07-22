@@ -9,7 +9,7 @@ import {readDevParams} from '../sixoh/devParams';
 import {ensureComputed, resetSixOhSession, retryBattle} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/state';
 import {typeColor} from '../sixoh/typeColors';
-import {MAX_SPEED, MIN_SPEED, loadSpeed, usePlayback} from '../sixoh/usePlayback';
+import {loadSpeed, positionToSpeed, speedToPosition, usePlayback} from '../sixoh/usePlayback';
 import {TrainerPortrait} from '../components/TrainerPortrait';
 import type {DraftMode} from '../../draft/draft';
 
@@ -188,15 +188,17 @@ function BattleIntro({
   mode,
   sceneIndex,
   ready,
+  speed,
   onDone,
 }: {
   opponent: GauntletOpponent;
   mode: DraftMode;
   sceneIndex: number;
   ready: boolean;
+  /** Effective pacing multiplier (persisted speed, or the dev override). */
+  speed: number;
   onDone: () => void;
 }) {
-  const speed = useMemo(() => loadSpeed(), []);
   const [step, setStep] = useState<'enter' | 'hold' | 'leave'>('enter');
   const [elapsed, setElapsed] = useState(0);
   const [spriteBroken, setSpriteBroken] = useState(false);
@@ -250,9 +252,6 @@ function BattleIntro({
             <div className="mono intro-searching">both AIs are searching… {elapsed}s</div>
           )}
         </div>
-        <div className="playback-controls intro-controls">
-          <button onClick={onDone}>Skip intro ⏭</button>
-        </div>
       </div>
     </div>
   );
@@ -263,6 +262,7 @@ function BattleStage({
   opponentSets,
   beats,
   sceneIndex,
+  speedOverride,
   onDone,
 }: {
   team: PokemonSet[];
@@ -270,11 +270,19 @@ function BattleStage({
   beats: ReturnType<typeof toBeats>;
   /** Picks the background scene (battle index — varies rung to rung). */
   sceneIndex: number;
+  /** Dev/e2e ?speed= override, applied once on mount. */
+  speedOverride?: number;
   onDone: () => void;
 }) {
   const teams = useMemo(() => [team, opponentSets] as [PokemonSet[], PokemonSet[]], [team, opponentSets]);
   const playback = usePlayback(teams, beats, onDone);
   const {view, fx, fxKey, caption, speed, setSpeed, skipToEnd} = playback;
+
+  // Mount-only: the override seeds the speed, the slider owns it after.
+  const overrideRef = useRef(speedOverride);
+  useEffect(() => {
+    if (overrideRef.current) setSpeed(overrideRef.current);
+  }, [setSpeed]);
 
   // One-shot send-out window right after the intro hands over: the leads
   // (and their pokeballs) animate in via CSS classes present only during
@@ -418,19 +426,21 @@ function BattleStage({
         <div className="playback-controls">
           <span className="playback-label">SPEED</span>
           <div className="playback-speed">
+            {/* Position-based (0..1) with a log mapping, so the 0.5x-3x band
+                most users live in owns the middle of the track. */}
             <input
               type="range"
-              min={MIN_SPEED}
-              max={MAX_SPEED}
-              step={0.1}
-              value={speed}
+              min={0}
+              max={1}
+              step={0.005}
+              value={speedToPosition(speed)}
               aria-label="Playback speed"
-              onChange={event => setSpeed(Number(event.target.value))}
-              style={{'--_fill': `${((speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100}%`} as CSSProperties}
+              onChange={event => setSpeed(positionToSpeed(Number(event.target.value)))}
+              style={{'--_fill': `${speedToPosition(speed) * 100}%`} as CSSProperties}
             />
             <div className="playback-ticks">
-              {[0.1, 1, 2, 5, 10].map(tick => (
-                <span key={tick} style={{left: `${((tick - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)) * 100}%`}}>
+              {[0.1, 0.5, 1, 2, 3, 5].map(tick => (
+                <span key={tick} style={{left: `${speedToPosition(tick) * 100}%`}}>
                   {tick}×
                 </span>
               ))}
@@ -596,6 +606,7 @@ export function SixOhGauntlet() {
               mode={state.mode}
               sceneIndex={index}
               ready={!!beats}
+              speed={dev.speed ?? loadSpeed()}
               onDone={handleIntroDone}
             />
           )}
@@ -623,6 +634,7 @@ export function SixOhGauntlet() {
               opponentSets={state.opponents[index].sets}
               beats={beats}
               sceneIndex={index}
+              speedOverride={dev.speed}
               onDone={handleReplayFinished}
             />
           )}
