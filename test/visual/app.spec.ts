@@ -36,6 +36,15 @@ test('can you 6-0? — draft board', async ({page}) => {
 
 test('Gen 5 battle stage — chrome + sprites', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'battle chrome is captured on desktop only');
+  // Easy mode's rung-0 opponent (heavy early blunder rate + a real, bulkier
+  // meta-team pool) takes ~3x longer to compute than the curated Gym Leader
+  // ladder used elsewhere — measured locally at ~10s for Gym Leader vs ~32s
+  // for Easy, consistently. The suite's already-generous 60s default budget
+  // (chosen for a normal ~15-20s real, unmocked search) has only ~2x headroom
+  // over that 32s, which a loaded CI runner can and did tip over. test.slow()
+  // triples this test's timeout/expect budget rather than inflating every
+  // other test's margin for the one that's inherently the most expensive.
+  test.slow();
 
   await page.goto('/#/sixoh?config=fast&seed=41');
   await page.locator('.mode-toggle button', {hasText: 'Easy'}).click();
