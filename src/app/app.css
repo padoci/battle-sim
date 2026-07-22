@@ -2997,6 +2997,17 @@ button.primary:disabled {
   .team-preview-row {
     grid-template-columns: repeat(3, 1fr);
   }
+  /* Grid items floor at min-content by default, and a cell's side-by-side
+     type-badge pair can't shrink below ~110px — three columns of that
+     (~353px) overflows a 375px viewport by ~10px and drags the whole page
+     into horizontal scroll. Let cells shrink and badges wrap instead. */
+  .team-preview-row .preview-mon {
+    min-width: 0;
+  }
+  .team-preview-row .type-badges {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 /* ---- Reduced motion ---- */
