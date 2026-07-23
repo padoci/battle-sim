@@ -2332,22 +2332,6 @@ button.primary:disabled {
   font-size: 0.75rem;
 }
 
-/* Streaming status chip where "Skip to result" used to sit: the battle is
-   being computed live behind the replay. */
-.live-chip {
-  font-size: 0.7rem;
-  color: var(--danger);
-  border: 1px solid var(--danger-line);
-  border-radius: var(--r-pill);
-  padding: 0.25rem 0.7rem;
-  white-space: nowrap;
-}
-
-.live-chip.thinking {
-  color: var(--muted);
-  border-color: var(--line-2);
-}
-
 .tera-flash {
   animation: teraFlash 0.9s ease-out;
 }
