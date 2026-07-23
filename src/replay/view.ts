@@ -74,6 +74,8 @@ const STATUS_SIGNATURE_TARGETS = new Set([
   'Skill Swap',
   'Parting Shot',
   'Strength Sap',
+  'Glare',
+  'Circle Throw',
 ]);
 
 export function initView(teams: [PokemonSet[], PokemonSet[]]): ViewState {

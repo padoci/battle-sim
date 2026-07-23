@@ -447,6 +447,43 @@ const SIGNATURE_MOVES = new Set([
   // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
   'Parting Shot',
   'Strength Sap',
+  // -- Batch 7: the most recognizable moves left in the tail (usage == 1 in
+  // this dataset, but iconic competitive staples that just happen to fit
+  // only one curated team here) --
+  // Impact-hooked physical moves.
+  'Quick Attack',
+  'Night Slash',
+  'Leaf Blade',
+  'High Jump Kick',
+  'Fake Out',
+  'Cross Chop',
+  'High Horsepower',
+  'Meteor Mash',
+  'Icicle Spear',
+  'Payback',
+  'Horn Leech',
+  'Solar Blade',
+  // Special beam-hooked moves.
+  'Ancient Power',
+  'Discharge',
+  'Muddy Water',
+  'Boomburst',
+  'Expanding Force',
+  'Energy Ball',
+  'Stored Power',
+  // Self lunge-hooked moves.
+  'Trick Room',
+  'Rain Dance',
+  'Belly Drum',
+  'Amnesia',
+  'Endure',
+  'Aurora Veil',
+  'Clangorous Soul',
+  'Lunar Dance',
+  'Lunar Blessing',
+  // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
+  'Glare',
+  'Circle Throw',
 ]);
 
 function signatureSlug(move: string | undefined): string | undefined {
