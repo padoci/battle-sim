@@ -71,6 +71,7 @@ const STATUS_SIGNATURE_TARGETS = new Set([
   'Stun Spore',
   'Leech Seed',
   'Whirlwind',
+  'Skill Swap',
 ]);
 
 export function initView(teams: [PokemonSet[], PokemonSet[]]): ViewState {

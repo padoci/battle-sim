@@ -376,6 +376,42 @@ const SIGNATURE_MOVES = new Set([
   'Wish',
   'Light Screen',
   'Reflect',
+  // -- Batch 5 --
+  // Impact-hooked physical moves.
+  'Flare Blitz',
+  'Foul Play',
+  'Razor Shell',
+  'Body Slam',
+  'Seismic Toss',
+  'Play Rough',
+  'Outrage',
+  'Bitter Blade',
+  'Mortal Spin',
+  'Grassy Glide',
+  'Thunder Punch',
+  'Rock Blast',
+  'Megahorn',
+  'Gunk Shot',
+  'Explosion',
+  'First Impression',
+  // Special beam-hooked moves.
+  'Sludge Wave',
+  'Ruination',
+  'Weather Ball',
+  'Hydro Steam',
+  'Fiery Dance',
+  'Psyshock',
+  // Field-hooked moves.
+  'Toxic Spikes',
+  'Sticky Web',
+  // Self lunge-hooked moves.
+  'Sleep Talk',
+  'Slack Off',
+  'Synthesis',
+  'Destiny Bond',
+  'Soft-Boiled',
+  // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
+  'Skill Swap',
 ]);
 
 function signatureSlug(move: string | undefined): string | undefined {
@@ -503,6 +539,8 @@ function BattleStage({
     fx.some(f => f.type === 'lunge' && f.move === 'Stealth Rock') && 'stealth-rock-fall',
     fx.some(f => f.type === 'lunge' && f.move === 'Spikes') && 'spikes-fall',
     fx.some(f => f.type === 'lunge' && f.move === 'Defog') && 'defog-sweep',
+    fx.some(f => f.type === 'lunge' && f.move === 'Toxic Spikes') && 'toxic-spikes-fall',
+    fx.some(f => f.type === 'lunge' && f.move === 'Sticky Web') && 'sticky-web-spread',
   ]
     .filter(Boolean)
     .join(' ');
