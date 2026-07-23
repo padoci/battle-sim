@@ -7293,6 +7293,512 @@ button.primary:disabled {
   100% { transform: translate(-50%, -50%) scale(1.6) rotate(60deg); opacity: 0; }
 }
 
+/* ---- Batch 11: 30 more moves ---- */
+
+/* -- Impact-hooked physical moves -- */
+
+.fx-signature-aqua-tail.impact::after {
+  width: 90px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #fff 0%, var(--fx-color, #6390f0) 50%, transparent 80%);
+  animation: aquaTailSweep 0.24s ease-out;
+}
+
+@keyframes aquaTailSweep {
+  0% { transform: translate(-50%, -50%) rotate(25deg) scaleX(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(-10deg) scaleX(1.5); opacity: 0; }
+}
+
+.fx-signature-attack-order.impact::after {
+  width: 70px;
+  height: 70px;
+  background-image:
+    radial-gradient(circle, var(--fx-color, #a6b91a) 0 5px, transparent 6px),
+    radial-gradient(circle, #e8f5b0 0 4px, transparent 5px),
+    radial-gradient(circle, var(--fx-color, #a6b91a) 0 4px, transparent 5px);
+  background-position: 25% 25%, 60% 35%, 40% 65%;
+  background-repeat: no-repeat;
+  animation: attackOrderSwarm 0.36s ease-out;
+}
+
+@keyframes attackOrderSwarm {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+}
+
+.fx-signature-dragon-hammer.impact::after {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #6f35fc) 45%, transparent 78%);
+  animation: dragonHammerSmash 0.26s ease-out;
+}
+
+@keyframes dragonHammerSmash {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+
+.fx-signature-fly.lunge-right {
+  animation: flySoar 0.32s cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+.fx-signature-fly.lunge-left {
+  animation: flySoarL 0.32s cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+@keyframes flySoar {
+  40% { transform: translate(20px, -50px); }
+  70% { transform: translate(52px, -20px); }
+}
+
+@keyframes flySoarL {
+  40% { transform: translate(-20px, 50px); }
+  70% { transform: translate(-52px, 20px); }
+}
+
+.fx-signature-fly.impact::after {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #a98ff3) 45%, transparent 78%);
+  animation: flyDiveHit 0.22s ease-out;
+}
+
+@keyframes flyDiveHit {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+.fx-signature-petal-blizzard.impact::after {
+  width: 90px;
+  height: 90px;
+  background-image:
+    radial-gradient(circle, #ffd6e8 0 5px, transparent 6px),
+    radial-gradient(circle, var(--fx-color, #7ac74c) 0 4px, transparent 5px),
+    radial-gradient(circle, #ffd6e8 0 4px, transparent 5px),
+    radial-gradient(circle, var(--fx-color, #7ac74c) 0 5px, transparent 6px);
+  background-position: 20% 20%, 65% 15%, 40% 60%, 78% 55%;
+  background-repeat: no-repeat;
+  animation: petalBlizzardSwirl 0.4s ease-out;
+}
+
+@keyframes petalBlizzardSwirl {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(0deg); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3) rotate(180deg); opacity: 0; }
+}
+
+/* Phantom Force: same vanish-and-strike fade-in as Shadow Force, a
+   smaller/faster variant to distinguish the two. */
+.fx-signature-phantom-force.impact::after {
+  width: 56px;
+  height: 72px;
+  border-radius: 50% 50% 40% 40% / 60% 60% 30% 30%;
+  background: radial-gradient(ellipse at 50% 30%, #4a3868 0%, var(--fx-color, #735797) 55%, transparent 85%);
+  animation: phantomForceAppear 0.24s ease-in;
+}
+
+@keyframes phantomForceAppear {
+  0% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+}
+
+.fx-signature-raging-bull.impact::after {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #a8a77a) 45%, transparent 78%);
+  animation: ragingBullCharge 0.26s ease-out;
+}
+
+@keyframes ragingBullCharge {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+
+.fx-signature-sacred-sword.impact::after {
+  width: 100px;
+  height: 18px;
+  border-radius: 9px;
+  background: linear-gradient(90deg, transparent, #fff, var(--fx-color, #c22e28), transparent);
+  animation: sacredSwordSlash 0.2s ease-out;
+}
+
+@keyframes sacredSwordSlash {
+  0% { transform: translate(-50%, -50%) rotate(-40deg) scaleX(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(-40deg) scaleX(1.6); opacity: 0; }
+}
+
+.fx-signature-take-down.impact::after {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #a8a77a) 48%, transparent 78%);
+  animation: takeDownHit 0.22s ease-out;
+}
+
+@keyframes takeDownHit {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+}
+
+.fx-signature-thunderous-kick.lunge-right {
+  animation: thunderousKickRight 0.2s cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+.fx-signature-thunderous-kick.lunge-left {
+  animation: thunderousKickLeft 0.2s cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+@keyframes thunderousKickRight {
+  40% { transform: translate(32px, -40px); }
+}
+
+@keyframes thunderousKickLeft {
+  40% { transform: translate(-32px, 40px); }
+}
+
+.fx-signature-thunderous-kick.impact::after {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff8c0 0%, var(--fx-color, #c22e28) 45%, transparent 78%);
+  animation: thunderousKickHit 0.2s ease-out;
+}
+
+@keyframes thunderousKickHit {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+.fx-signature-triple-arrows.impact::after {
+  width: 20px;
+  height: 50px;
+  clip-path: polygon(50% 0%, 100% 40%, 70% 40%, 70% 100%, 30% 100%, 30% 40%, 0% 40%);
+  background: var(--fx-color, #c22e28);
+  animation: tripleArrowsPelt 0.4s steps(1, end);
+}
+
+@keyframes tripleArrowsPelt {
+  0%, 10% { transform: translate(-70%, -55%) rotate(-30deg) scale(0.9); opacity: 1; }
+  20% { opacity: 0; }
+  35%, 45% { transform: translate(-40%, -60%) rotate(-30deg) scale(0.9); opacity: 1; }
+  55% { opacity: 0; }
+  70%, 80% { transform: translate(-55%, -40%) rotate(-30deg) scale(1); opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.fx-signature-blaze-kick.lunge-right {
+  animation: blazeKickRight 0.2s cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+.fx-signature-blaze-kick.lunge-left {
+  animation: blazeKickLeft 0.2s cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+@keyframes blazeKickRight {
+  40% { transform: translate(30px, -42px); }
+}
+
+@keyframes blazeKickLeft {
+  40% { transform: translate(-30px, 42px); }
+}
+
+.fx-signature-blaze-kick.impact::after {
+  width: 60px;
+  height: 60px;
+  border-radius: 40% 40% 40% 10%;
+  background: radial-gradient(circle at 40% 40%, #fff3c0 0%, var(--fx-color, #f08030) 55%, transparent 85%);
+  animation: blazeKickFlame 0.2s ease-out;
+}
+
+@keyframes blazeKickFlame {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(-10deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3) rotate(10deg); opacity: 0; }
+}
+
+.fx-signature-bounce.lunge-right {
+  animation: bounceHop 0.36s ease-in-out;
+}
+
+.fx-signature-bounce.lunge-left {
+  animation: bounceHopL 0.36s ease-in-out;
+}
+
+@keyframes bounceHop {
+  30% { transform: translate(10px, -50px); }
+  65% { transform: translate(50px, -10px); }
+}
+
+@keyframes bounceHopL {
+  30% { transform: translate(-10px, 50px); }
+  65% { transform: translate(-50px, 10px); }
+}
+
+.fx-signature-bounce.impact::after {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #a98ff3) 45%, transparent 78%);
+  animation: bounceLand 0.22s ease-out;
+}
+
+@keyframes bounceLand {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+.fx-signature-darkest-lariat.impact::after {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 5px solid var(--fx-color, #705746);
+  background: none;
+  animation: darkestLariatSwing 0.26s ease-out;
+}
+
+@keyframes darkestLariatSwing {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5) rotate(160deg); opacity: 0; }
+}
+
+.fx-signature-psychic-fangs.impact::after {
+  width: 50px;
+  height: 34px;
+  clip-path: polygon(0% 0%, 25% 100%, 50% 0%, 75% 100%, 100% 0%);
+  background: linear-gradient(180deg, #fff, var(--fx-color, #f95587));
+  animation: psychicFangsBite 0.22s ease-out;
+}
+
+@keyframes psychicFangsBite {
+  0% { transform: translate(-50%, -80%) scale(1.2); opacity: 0; }
+  40% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -42%) scale(0.85); opacity: 0; }
+}
+
+/* -- Special beam-hooked moves -- */
+
+.fx-signature-spacial-rend.impact::after {
+  width: 100px;
+  height: 24px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, transparent, #e8d9ff, var(--fx-color, #6f35fc), transparent);
+  animation: spacialRendTear 0.24s ease-out;
+}
+
+@keyframes spacialRendTear {
+  0% { transform: translate(-50%, -50%) rotate(-20deg) scaleX(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(-20deg) scaleX(1.6); opacity: 0; }
+}
+
+.fx-signature-springtide-storm.impact::after {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: conic-gradient(var(--fx-color, #d685ad), transparent 30%, var(--fx-color, #d685ad) 60%, transparent);
+  animation: springtideStormSwirl 0.4s linear;
+}
+
+@keyframes springtideStormSwirl {
+  0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.6) rotate(300deg); opacity: 0; }
+}
+
+.fx-signature-wildbolt-storm.impact::after {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: conic-gradient(var(--fx-color, #f7d02c), transparent 30%, var(--fx-color, #f7d02c) 60%, transparent);
+  animation: wildboltStormSwirl 0.4s linear;
+}
+
+@keyframes wildboltStormSwirl {
+  0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.6) rotate(-300deg); opacity: 0; }
+}
+
+.fx-signature-luster-purge.impact::after {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #f95587) 42%, transparent 78%);
+  animation: lusterPurgeFlash 0.3s ease-out;
+}
+
+@keyframes lusterPurgeFlash {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+}
+
+.fx-signature-mist-ball.lunge-right::after,
+.fx-signature-mist-ball.lunge-left::after {
+  width: 26px;
+  height: 26px;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #f95587) 65%, transparent 90%);
+  box-shadow: 0 0 10px 3px rgba(249, 85, 135, 0.5);
+}
+
+.fx-signature-mist-ball.impact::after {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #f95587) 55%, transparent 82%);
+  animation: mistBallPuff 0.3s ease-out;
+}
+
+@keyframes mistBallPuff {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+.fx-signature-fiery-wrath.impact::after {
+  width: 90px;
+  height: 90px;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  background: radial-gradient(circle, #2a1f3d 0%, var(--fx-color, #f08030) 60%, transparent 85%);
+  animation: fieryWrathBurst 0.3s ease-out;
+}
+
+@keyframes fieryWrathBurst {
+  0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5) rotate(30deg); opacity: 0; }
+}
+
+.fx-signature-freezing-glare.impact::after {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #f95587) 42%, #98d8d8 65%, transparent 85%);
+  animation: freezingGlareZap 0.26s ease-out;
+}
+
+@keyframes freezingGlareZap {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+.fx-signature-pollen-puff.lunge-right::after,
+.fx-signature-pollen-puff.lunge-left::after {
+  width: 24px;
+  height: 24px;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #a6b91a) 60%, transparent 88%);
+}
+
+.fx-signature-pollen-puff.impact::after {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #eaffd0 0%, var(--fx-color, #a6b91a) 50%, transparent 80%);
+  animation: pollenPuffPop 0.28s ease-out;
+}
+
+@keyframes pollenPuffPop {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+.fx-signature-revelation-dance.impact::after {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: conic-gradient(var(--fx-color, #a8a77a), #fff, var(--fx-color, #a8a77a));
+  animation: revelationDanceTwirl 0.36s ease-out;
+}
+
+@keyframes revelationDanceTwirl {
+  0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5) rotate(240deg); opacity: 0; }
+}
+
+.fx-signature-shell-side-arm.impact::after {
+  width: 70px;
+  height: 70px;
+  border-radius: 40% 60% 55% 45%;
+  background: radial-gradient(circle at 40% 35%, #d9a3e0 0%, var(--fx-color, #a33ea1) 55%, transparent 82%);
+  animation: shellSideArmBlast 0.28s ease-out;
+}
+
+@keyframes shellSideArmBlast {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+.fx-signature-sparkling-aria.impact::after {
+  width: 90px;
+  height: 90px;
+  background-image:
+    radial-gradient(circle, #fff 0 4px, transparent 5px),
+    radial-gradient(circle, var(--fx-color, #6390f0) 0 5px, transparent 6px),
+    radial-gradient(circle, #fff 0 3px, transparent 4px);
+  background-position: 25% 25%, 60% 20%, 40% 60%;
+  background-repeat: no-repeat;
+  animation: sparklingAriaBubble 0.4s ease-out;
+}
+
+@keyframes sparklingAriaBubble {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -80%) scale(1.3); opacity: 0; }
+}
+
+.fx-signature-strange-steam.impact::after {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #d685ad) 42%, rgba(255, 220, 240, 0.5) 65%, transparent 85%);
+  animation: strangeSteamPuff 0.34s ease-out;
+}
+
+@keyframes strangeSteamPuff {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -60%) scale(1.5); opacity: 0; }
+}
+
+.fx-signature-uproar.impact::after {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 3px solid var(--fx-color, #a8a77a);
+  background: none;
+  animation: uproarShout 0.34s ease-in-out;
+}
+
+@keyframes uproarShout {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.4); opacity: 0.5; }
+  50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+}
+
+.fx-signature-night-daze.impact::after {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #2a1f3d 0%, var(--fx-color, #705746) 55%, transparent 82%);
+  box-shadow: 0 0 20px 5px rgba(20, 10, 30, 0.5);
+  animation: nightDazeBurst 0.32s ease-out;
+}
+
+@keyframes nightDazeBurst {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+
+.fx-signature-secret-sword.impact::after {
+  width: 100px;
+  height: 18px;
+  border-radius: 9px;
+  background: linear-gradient(90deg, transparent, #fff, var(--fx-color, #f95587), transparent);
+  animation: secretSwordSlash 0.2s ease-out;
+}
+
+@keyframes secretSwordSlash {
+  0% { transform: translate(-50%, -50%) rotate(30deg) scaleX(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(30deg) scaleX(1.6); opacity: 0; }
+}
+
 /* Mid-battle switch-in: a small pop up from the platform. */
 /* Incoming mon: delayed so its ball lands first (backwards-fill keeps it
    hidden through the delay). Shared by mid-battle switch-ins and the
