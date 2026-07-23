@@ -484,6 +484,40 @@ const SIGNATURE_MOVES = new Set([
   // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
   'Glare',
   'Circle Throw',
+  // -- Batch 8: the highest base-power tier from the full Gen 9 movepool
+  // (beyond this app's own team-data sample — see the batch-7 commit note).
+  // Impact-hooked physical moves.
+  'Self-Destruct',
+  'Focus Punch',
+  'Giga Impact',
+  'Rock Wrecker',
+  'Last Resort',
+  'Sky Attack',
+  'Bolt Strike',
+  'Steel Roller',
+  'Axe Kick',
+  'Double Shock',
+  'Dragon Ascent',
+  'Glacial Lance',
+  'Glaive Rush',
+  'Mega Kick',
+  'Power Whip',
+  // Special beam-hooked moves.
+  'Prismatic Laser',
+  'Blast Burn',
+  'Chloroblast',
+  'Dragon Energy',
+  'Eruption',
+  'Frenzy Plant',
+  'Hydro Cannon',
+  'Hyper Beam',
+  'Roar of Time',
+  'Water Spout',
+  'Blood Moon',
+  'Doom Desire',
+  'Ice Burn',
+  'Psycho Boost',
+  'Steel Beam',
 ]);
 
 function signatureSlug(move: string | undefined): string | undefined {
