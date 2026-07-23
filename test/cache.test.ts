@@ -67,7 +67,7 @@ describe('cachedJson', () => {
     expect(calls).toEqual(URLS);
   });
 
-  it('fails over to the mirror when the primary stalls, within the timeout', async () => {
+  it('fails over to the mirror when the primary genuinely stalls (zero bytes, ever)', async () => {
     const store = new MemoryStore();
     const calls: string[] = [];
     const impl = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -75,7 +75,7 @@ describe('cachedJson', () => {
       calls.push(url);
       if (url.startsWith('https://primary')) {
         // Never resolves on its own; only settles if aborted - simulates a
-        // primary that hangs rather than erroring or responding slowly.
+        // dead/hung primary (a TCP connection that never sends anything).
         return new Promise<Response>((_, reject) => {
           init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
         });
@@ -89,6 +89,45 @@ describe('cachedJson', () => {
     const result = await cachedJson('x', URLS, {store, now: () => 0, fetchFn: impl, timeoutMs: 20});
     expect(result.data).toEqual({from: 'mirror'});
     expect(calls).toEqual(URLS);
+  });
+
+  it('REGRESSION: a slow-but-continuously-progressing primary succeeds via itself, never fails over', async () => {
+    // This is the bug the user actually hit in production: a large payload
+    // over a throttled-but-working connection was being killed by a
+    // wall-clock timeout even while bytes kept arriving, then failing
+    // outright once the mirror ALSO couldn't finish in the same window.
+    // Reproduced live with Chrome DevTools network emulation (750kbps/300ms
+    // latency -> AbortError around 27s) before this fix.
+    const store = new MemoryStore();
+    const calls: string[] = [];
+    const encoder = new TextEncoder();
+    const payload = JSON.stringify({v: 1, big: 'x'.repeat(1000)});
+    const bytes = encoder.encode(payload);
+    const impl = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      calls.push(url);
+      // Trickle the body out in small chunks, each arriving just under the
+      // stall timeout apart — never stalling, but taking far longer in
+      // TOTAL than the stall timeout. A wall-clock timeout would kill this;
+      // a stall timeout must not.
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          const chunkSize = 16;
+          for (let i = 0; i < bytes.length; i += chunkSize) {
+            await new Promise(r => setTimeout(r, 6)); // « the 20ms stall timeout below
+            controller.enqueue(bytes.slice(i, i + chunkSize));
+          }
+          controller.close();
+        },
+      });
+      return new Response(stream, {status: 200, headers: {'content-type': 'application/json'}});
+    }) as typeof fetch;
+
+    const result = await cachedJson('x', URLS, {store, now: () => 0, fetchFn: impl, timeoutMs: 20});
+    expect(result.data).toEqual({v: 1, big: 'x'.repeat(1000)});
+    // Only the primary was ever called — it succeeded on its own merits,
+    // slowly, without the mirror ever being needed.
+    expect(calls).toEqual(['https://primary/x.json']);
   });
 
   it('serves a stale entry when every source fails', async () => {
@@ -110,38 +149,8 @@ describe('cachedJson', () => {
   it('a healthy primary answers alone; the mirror never fires', async () => {
     const store = new MemoryStore();
     const {fetch, calls} = fakeFetch(() => ({v: 1}));
-    await cachedJson('x', URLS, {store, now: () => 0, fetchFn: fetch, mirrorStaggerMs: 1});
+    await cachedJson('x', URLS, {store, now: () => 0, fetchFn: fetch});
     expect(calls).toEqual(['https://primary/x.json']);
-  });
-
-  it('a slow-but-alive primary loses the race to the staggered mirror', async () => {
-    const store = new MemoryStore();
-    const calls: string[] = [];
-    const impl = (async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      calls.push(url);
-      if (url.startsWith('https://primary')) {
-        // Alive but crawling: resolves only if aborted first (the winner's
-        // cleanup aborts it), never on its own within the test window.
-        return new Promise<Response>((_, reject) => {
-          init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
-        });
-      }
-      return new Response(JSON.stringify({from: 'mirror'}), {
-        status: 200,
-        headers: {'content-type': 'application/json'},
-      });
-    }) as typeof fetch;
-
-    const result = await cachedJson('x', URLS, {
-      store,
-      now: () => 0,
-      fetchFn: impl,
-      timeoutMs: 5000,
-      mirrorStaggerMs: 10,
-    });
-    expect(result.data).toEqual({from: 'mirror'});
-    expect(calls).toEqual(URLS);
   });
 
   it('throws when every source fails and nothing is cached', async () => {

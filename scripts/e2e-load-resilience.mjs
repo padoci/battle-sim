@@ -8,7 +8,7 @@
  * degrades the way it's supposed to: progressive status text while it's
  * slow, a bounded recovery via the mirror, and a real error panel (not an
  * infinite spinner) when nothing works — all within the documented time
- * budgets (8s per-URL timeout, 25s load watchdog).
+ * budgets (8s stall timeout per URL, 40s load watchdog).
  *
  * Usage:
  *   npm run build
@@ -83,9 +83,14 @@ async function scenarioSlowPrimaryRecoversViaMirror(browser) {
   await routeData(page, {primary: {delayMs: 9000, down: true}, mirror: {}});
   page.on('pageerror', error => fail(`[slow-primary] page error: ${error.message}`));
 
-  // With the staggered race, a healthy mirror wins ~1.5s after the primary
-  // stalls — the user never even sees the slow-load status text. Assert the
-  // FAST path: draft up in a few seconds, nowhere near the old 8s failover.
+  // Sequential failover with a STALL timeout (not a wall-clock one, see
+  // src/data/fetch.ts): the primary produces zero bytes for the full 8s
+  // stall window, gets aborted, and the mirror (healthy) answers right
+  // after. Total recovery is ~8s, not near-instant — that's intentional:
+  // racing primary+mirror concurrently was tried and reverted because it
+  // splits bandwidth on a connection that's ACTUALLY just slow (not dead),
+  // which made the real production bug worse, not better (see the
+  // REGRESSION test in test/cache.test.ts for the full story).
   const t0 = Date.now();
   await page.goto(`http://localhost:${PORT}/#/sixoh?config=fast&seed=41`);
   let reachedDraft = false;
@@ -97,10 +102,10 @@ async function scenarioSlowPrimaryRecoversViaMirror(browser) {
   }
   const elapsed = Date.now() - t0;
   if (reachedDraft) {
-    ok(`[slow-primary] mirror won the staggered race (draft in ${elapsed}ms)`);
-    // Stagger is 1.5s; generous CI headroom, but nowhere near the old 8s hop.
-    if (elapsed > 7_000) {
-      fail(`[slow-primary] recovery took ${elapsed}ms — the mirror should win the race in ~2s`);
+    ok(`[slow-primary] stalled primary failed over to the mirror (draft in ${elapsed}ms)`);
+    // ~8s stall window + mirror's near-instant response; generous CI headroom.
+    if (elapsed > 12_000) {
+      fail(`[slow-primary] recovery took ${elapsed}ms — expected roughly the 8s stall window, not much more`);
     }
   }
   await page.screenshot({path: `${shotsDir}/e2e-load-slow-primary.png`}).catch(() => {});
@@ -108,13 +113,15 @@ async function scenarioSlowPrimaryRecoversViaMirror(browser) {
 }
 
 /** Scenario 1b: BOTH hosts crawling (alive, just slow). This is the case
- *  where the progressive status text still matters — nothing can win the
- *  race quickly, so the 3s/7s messages must show, and the slower-but-alive
- *  mirror must still land the draft inside the watchdog. */
+ *  where the progressive status text still matters: the primary's own 8s
+ *  stall window elapses, THEN the mirror is tried and must land inside the
+ *  watchdog even though it's also slow (just not stalled). */
 async function scenarioBothSlowShowsProgress(browser) {
   const page = await browser.newPage({viewport: {width: 1440, height: 1000}});
-  // Mirror delay must sit between the 7s status escalation and the 8s
-  // per-attempt timeout: it joins the race at ~1.5s and answers at ~8.5s.
+  // Primary produces nothing until its stall timeout aborts it (~8s); mirror
+  // is then tried and takes 7s to answer — under ITS OWN 8s stall window
+  // (measured from when the mirror's request starts), so it succeeds at
+  // roughly 8s + 7s = 15s total, comfortably inside the 40s watchdog.
   await routeData(page, {primary: {delayMs: 20_000, down: true}, mirror: {delayMs: 7000}});
   page.on('pageerror', error => fail(`[both-slow] page error: ${error.message}`));
 
@@ -146,9 +153,9 @@ async function scenarioBothSlowShowsProgress(browser) {
 
   let reachedDraft = false;
   try {
-    // Mirror joins at 1.5s, answers at ~8.5s; comfortably inside the 25s
-    // watchdog but past both status thresholds.
-    await page.waitForSelector('.offer-card', {timeout: 20_000});
+    // ~8s primary stall + 7s mirror response = ~15s total; comfortably
+    // inside the 40s watchdog but past both status thresholds.
+    await page.waitForSelector('.offer-card', {timeout: 22_000});
     reachedDraft = true;
   } catch {
     fail('[both-slow] draft never loaded even though the mirror was (slowly) healthy');
@@ -162,7 +169,7 @@ async function scenarioBothSlowShowsProgress(browser) {
 
 /** Scenario 2: both primary and mirror are down. The load watchdog must
  *  surface the real error panel — not hang forever — within its documented
- *  25s budget, with an actionable message. */
+ *  budget, with an actionable message. */
 async function scenarioBothSourcesDown(browser) {
   const page = await browser.newPage({viewport: {width: 1440, height: 1000}});
   await routeData(page, {primary: {down: true}, mirror: {down: true}});
@@ -183,7 +190,7 @@ async function scenarioBothSourcesDown(browser) {
   if (sawError) {
     ok(`[both-down] surfaced the error panel within budget (${elapsed}ms)`);
     if (elapsed > 26_000) {
-      fail(`[both-down] error panel took ${elapsed}ms — past the 25s watchdog's documented ceiling`);
+      fail(`[both-down] error panel took ${elapsed}ms — past the watchdog's documented ceiling`);
     }
     const errorText = await page.locator('.problems').textContent();
     if (!/check your connection|reload|timed out/i.test(errorText ?? '')) {

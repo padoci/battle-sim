@@ -11,10 +11,10 @@ import {getRunner} from '../simSession';
 import {navigate} from '../router';
 import {useAppDispatch, useAppState, type PoolEntryWithMeta} from '../state';
 
-/** Same budget as SixOhDraft's load watchdog: above the ~10s a slow-but-
- * failing-over data fetch takes (cachedJson's per-URL timeout+mirror), with
- * headroom for a genuinely slow connection, but still a hard ceiling. */
-const POOL_WATCHDOG_MS = 25_000;
+/** Same budget as SixOhDraft's load watchdog — see its comment for why this
+ * needs real headroom now that cachedJson's per-URL timeout is stall-based,
+ * not wall-clock. */
+const POOL_WATCHDOG_MS = 40_000;
 
 function PoolRow({entry, locked}: {entry: PoolEntryWithMeta; locked: boolean}) {
   const dispatch = useAppDispatch();
