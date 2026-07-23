@@ -20,10 +20,16 @@ import {resizedCardArtUrl} from '../../data/tcgArt';
 import {TrainerPortrait} from '../components/TrainerPortrait';
 import type {Generation} from '@pkmn/data';
 
-/** Above the ~10s a slow-but-failing-over data fetch takes (see cachedJson's
- * per-URL timeout) with headroom for a genuinely slow connection, but still a
- * hard ceiling so a stall never spins forever. */
-const LOAD_WATCHDOG_MS = 25_000;
+/** cachedJson's per-URL timeout (fetch.ts) is now a STALL timeout, not a
+ * wall-clock one — a slow-but-progressing download is never killed by it,
+ * however long it legitimately takes. This is the one remaining hard
+ * ceiling, so it needs real headroom for a genuinely poor (not dead)
+ * connection: worst case is one stalled source (~8s) plus the actual
+ * download time for the largest payload on a bad line. Reproduced with
+ * Chrome DevTools throttling at 750kbps/300ms latency: total load ~25s,
+ * i.e. right at the OLD ceiling with no margin at all — this is why it was
+ * previously indistinguishable from an actual hang. */
+const LOAD_WATCHDOG_MS = 40_000;
 
 interface DraftData {
   pool: PoolEntry[];

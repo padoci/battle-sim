@@ -146,8 +146,13 @@ async function gotoConfigureWithTeam(page) {
   await page.locator('button.primary').click();
 }
 
-/** Scenario 1: primary stalls, mirror is healthy. The staggered race means
- *  the mirror wins ~1.5s in — the pool loads fast, no status text needed. */
+/** Scenario 1: primary stalls, mirror is healthy. Sequential failover with a
+ *  STALL timeout (src/data/fetch.ts): the primary gets ~8s of silence before
+ *  it's aborted, then the mirror answers immediately. NOT racing the two
+ *  concurrently on purpose — that was tried and reverted, because it splits
+ *  bandwidth on a connection that's genuinely just slow (not dead), which
+ *  made the real production bug worse (see the REGRESSION test in
+ *  test/cache.test.ts). */
 async function scenarioSlowPrimaryRecoversViaMirror(browser) {
   const page = await browser.newPage({viewport: {width: 1440, height: 1000}});
   await routeData(page, {primary: {delayMs: 9000, down: true}, mirror: {}});
@@ -164,9 +169,10 @@ async function scenarioSlowPrimaryRecoversViaMirror(browser) {
   }
   const elapsed = Date.now() - t0;
   if (reachedPool) {
-    ok(`[configure-slow-primary] mirror won the staggered race (pool in ${elapsed}ms)`);
-    if (elapsed > 7_000) {
-      fail(`[configure-slow-primary] recovery took ${elapsed}ms — the mirror should win the race in ~2s`);
+    ok(`[configure-slow-primary] stalled primary failed over to the mirror (pool in ${elapsed}ms)`);
+    // ~8s stall window + near-instant mirror; generous CI headroom.
+    if (elapsed > 12_000) {
+      fail(`[configure-slow-primary] recovery took ${elapsed}ms — expected roughly the 8s stall window, not much more`);
     }
   }
   await page.screenshot({path: `${shotsDir}/e2e-configure-load-slow-primary.png`}).catch(() => {});
@@ -177,8 +183,9 @@ async function scenarioSlowPrimaryRecoversViaMirror(browser) {
  *  text still matters, and the slower-but-alive mirror must still land. */
 async function scenarioBothSlowShowsProgress(browser) {
   const page = await browser.newPage({viewport: {width: 1440, height: 1000}});
-  // Mirror delay must sit between the 7s status escalation and the 8s
-  // per-attempt timeout: it joins the race at ~1.5s and answers at ~8.5s.
+  // Primary produces nothing until its ~8s stall timeout aborts it; mirror
+  // is then tried and takes 7s to answer — under ITS OWN stall window, so it
+  // succeeds at roughly 8s + 7s = 15s total.
   await routeData(page, {primary: {delayMs: 20_000, down: true}, mirror: {delayMs: 7000}});
   page.on('pageerror', error => fail(`[configure-both-slow] page error: ${error.message}`));
 
@@ -210,7 +217,7 @@ async function scenarioBothSlowShowsProgress(browser) {
 
   let reachedPool = false;
   try {
-    await page.waitForSelector('.pool-summary', {timeout: 20_000});
+    await page.waitForSelector('.pool-summary', {timeout: 22_000});
     reachedPool = true;
   } catch {
     fail('[configure-both-slow] pool never loaded even though the mirror was (slowly) healthy');

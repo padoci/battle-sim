@@ -2,16 +2,19 @@ import type {KVStore} from './cache';
 
 export const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
 
-/** Hard per-URL network timeout: a stalled (not merely erroring) source must
- * still fail in bounded time rather than hang the whole load — see the
- * AbortController pattern this mirrors in sampleTeams.ts. */
-export const DEFAULT_FETCH_TIMEOUT_MS = 8000;
-
-/** Head start the primary gets before the mirror joins the race. Long enough
- * that a healthy primary answers alone (one request, one host), short enough
- * that a crawling primary only costs this much before the mirror's CDN can
- * win the cold load. A failed attempt starts the next URL immediately. */
-export const DEFAULT_MIRROR_STAGGER_MS = 1500;
+/**
+ * STALL timeout, not a wall-clock timeout: a URL is only aborted if no new
+ * bytes arrive for this long, never merely for taking a long time overall.
+ * This was a real bug, not a hypothetical one — the previous wall-clock
+ * timeout aborted the ~3MB stats payload on any connection too slow to
+ * finish it within 8s even while bytes were still actively arriving,
+ * surfacing as "Dealing your first hand…" failing outright around 25-30s
+ * on a throttled connection (reproduced with Chrome DevTools network
+ * emulation: 750kbps/300ms latency -> AbortError at ~27s). A connection
+ * that's merely slow but working now finishes however long it takes; only a
+ * genuinely dead/hung one gets cut off and failed over to the next URL.
+ */
+export const DEFAULT_STALL_TIMEOUT_MS = 8000;
 
 export interface CachedJsonOptions {
   store: KVStore;
@@ -22,10 +25,8 @@ export interface CachedJsonOptions {
   now?: () => number;
   /** Injectable fetch for tests. */
   fetchFn?: typeof fetch;
-  /** Per-URL network timeout. */
+  /** Per-URL stall timeout — see DEFAULT_STALL_TIMEOUT_MS. */
   timeoutMs?: number;
-  /** Delay before each further URL joins the race (tests set it to 0). */
-  mirrorStaggerMs?: number;
 }
 
 export interface CachedJsonResult<T> {
@@ -38,74 +39,68 @@ export interface CachedJsonResult<T> {
 }
 
 /**
- * Race the source URLs with a staggered start: URL 0 fires immediately, each
- * later URL joins after `staggerMs` (or the moment an earlier attempt fails).
- * First success wins and aborts the rest; rejects only when every URL failed.
+ * Fetch and parse one URL as JSON, aborting only on a STALL (no forward
+ * progress for `stallMs`) rather than total elapsed time. Streams the body
+ * so genuine progress — including slow, chunk-by-chunk progress — keeps
+ * pushing the deadline out indefinitely.
  */
-function raceUrls<T>(
-  urls: string[],
-  fetchFn: typeof fetch,
-  timeoutMs: number,
-  staggerMs: number
-): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    let nextIndex = 0;
-    let inFlight = 0;
-    let done = false;
-    const errors: unknown[] = [];
-    const controllers: AbortController[] = [];
-    const timers: Array<ReturnType<typeof setTimeout>> = [];
+async function fetchJsonStreamed<T>(url: string, fetchFn: typeof fetch, stallMs: number): Promise<T> {
+  const controller = new AbortController();
+  let stallTimer: ReturnType<typeof setTimeout> | undefined;
+  const armStall = () => {
+    clearTimeout(stallTimer);
+    stallTimer = setTimeout(() => controller.abort(), stallMs);
+  };
 
-    const cleanup = () => {
-      for (const timer of timers) clearTimeout(timer);
-      for (const controller of controllers) controller.abort();
-    };
+  try {
+    armStall(); // covers a connection that never even opens
+    const response = await fetchFn(url, {signal: controller.signal});
+    armStall(); // headers arrived; body must now show progress within stallMs
+    if (!response.ok) throw new Error(`GET ${url} -> HTTP ${response.status}`);
 
-    const launchNext = () => {
-      if (done || nextIndex >= urls.length) return;
-      const url = urls[nextIndex++];
-      inFlight++;
+    // response.body is unavailable in a few edge environments (defensive
+    // fallback only — no per-chunk progress to reset the stall on, so this
+    // path keeps the old one-shot behavior rather than risking a hang).
+    if (!response.body) return (await response.json()) as T;
 
-      const controller = new AbortController();
-      controllers.push(controller);
-      const timeout = setTimeout(() => controller.abort(), timeoutMs);
-      timers.push(timeout);
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    for (;;) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      armStall(); // real progress: push the deadline back out
+      chunks.push(value);
+      total += value.length;
+    }
+    const buf = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      buf.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return JSON.parse(new TextDecoder().decode(buf)) as T;
+  } finally {
+    clearTimeout(stallTimer);
+  }
+}
 
-      // Give the NEXT url its stagger timer now, so a slow (not failed)
-      // attempt doesn't block the race from widening.
-      if (nextIndex < urls.length) {
-        const stagger = setTimeout(launchNext, staggerMs);
-        timers.push(stagger);
-      }
-
-      (async () => {
-        const response = await fetchFn(url, {signal: controller.signal});
-        if (!response.ok) throw new Error(`GET ${url} -> HTTP ${response.status}`);
-        return (await response.json()) as T;
-      })().then(
-        data => {
-          if (done) return;
-          done = true;
-          cleanup();
-          resolve(data);
-        },
-        error => {
-          clearTimeout(timeout);
-          errors.push(error);
-          inFlight--;
-          if (done) return;
-          launchNext(); // a failure shouldn't wait out the stagger
-          if (inFlight === 0 && nextIndex >= urls.length) {
-            done = true;
-            cleanup();
-            reject(errors[errors.length - 1]);
-          }
-        }
-      );
-    };
-
-    launchNext();
-  });
+/**
+ * Try each URL in order; a URL that errors OR stalls fails over to the
+ * next. Sequential, not concurrent — racing a mirror in parallel with a
+ * live-but-slow primary would only split the already-scarce bandwidth on
+ * the connection that's actually the bottleneck, making both slower.
+ */
+async function fetchFirstSuccess<T>(urls: string[], fetchFn: typeof fetch, stallMs: number): Promise<T> {
+  let lastError: unknown;
+  for (const url of urls) {
+    try {
+      return await fetchJsonStreamed<T>(url, fetchFn, stallMs);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
 }
 
 /**
@@ -114,7 +109,8 @@ function raceUrls<T>(
  * - stale entry -> served IMMEDIATELY, refreshed in the background
  *   (stale-while-revalidate: a returning user never waits, even past the
  *   TTL, and never bricks when offline);
- * - no entry -> staggered race across the URLs, first success cached.
+ * - no entry -> try each URL in turn (stall-timeout failover), first
+ *   success cached.
  */
 export async function cachedJson<T>(
   key: string,
@@ -126,8 +122,7 @@ export async function cachedJson<T>(
     ttlMs = DEFAULT_TTL_MS,
     now = Date.now,
     fetchFn = fetch,
-    timeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
-    mirrorStaggerMs = DEFAULT_MIRROR_STAGGER_MS,
+    timeoutMs = DEFAULT_STALL_TIMEOUT_MS,
   } = options;
 
   const cached = await store.get(key);
@@ -136,7 +131,7 @@ export async function cachedJson<T>(
   }
 
   if (cached) {
-    const revalidated = raceUrls<T>(urls, fetchFn, timeoutMs, mirrorStaggerMs)
+    const revalidated = fetchFirstSuccess<T>(urls, fetchFn, timeoutMs)
       .then(async data => {
         await store.set(key, {fetchedAt: now(), payload: data});
       })
@@ -147,7 +142,7 @@ export async function cachedJson<T>(
   }
 
   try {
-    const data = await raceUrls<T>(urls, fetchFn, timeoutMs, mirrorStaggerMs);
+    const data = await fetchFirstSuccess<T>(urls, fetchFn, timeoutMs);
     const fetchedAt = now();
     await store.set(key, {fetchedAt, payload: data});
     return {data, fetchedAt, fromCache: false};
