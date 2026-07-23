@@ -341,6 +341,41 @@ const SIGNATURE_MOVES = new Set([
   'Trick',
   'Roar',
   'Encore',
+  // -- Batch 4 --
+  // Impact-hooked physical moves.
+  'Fire Punch',
+  'Zen Headbutt',
+  'Wood Hammer',
+  'Shadow Sneak',
+  'Liquidation',
+  'Ice Shard',
+  'Triple Axel',
+  'Waterfall',
+  'Ice Fang',
+  'Aqua Jet',
+  'Rock Slide',
+  'Drain Punch',
+  'Gyro Ball',
+  'Bullet Punch',
+  // Special beam-hooked moves.
+  'Scald',
+  'Flash Cannon',
+  'Hydro Pump',
+  'Solar Beam',
+  'Heat Wave',
+  'Mystical Fire',
+  'Lava Plume',
+  'Hex',
+  // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
+  'Stun Spore',
+  'Leech Seed',
+  'Whirlwind',
+  // Self lunge-hooked moves.
+  'Quiver Dance',
+  'Moonlight',
+  'Wish',
+  'Light Screen',
+  'Reflect',
 ]);
 
 function signatureSlug(move: string | undefined): string | undefined {
