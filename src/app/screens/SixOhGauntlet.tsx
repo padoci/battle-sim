@@ -270,6 +270,41 @@ const SIGNATURE_MOVES = new Set([
   'Close Combat',
   'Shadow Ball',
   'Draco Meteor',
+  // Impact-hooked physical moves.
+  'U-turn',
+  'Rapid Spin',
+  'Ice Spinner',
+  'Body Press',
+  'Iron Head',
+  'Headlong Rush',
+  'Extreme Speed',
+  'Crunch',
+  'Kowtow Cleave',
+  'Low Kick',
+  // Special beam-hooked moves.
+  'Ice Beam',
+  'Earth Power',
+  'Sludge Bomb',
+  'Moonblast',
+  'Thunderbolt',
+  'Make It Rain',
+  'Flamethrower',
+  'Freeze-Dry',
+  // Self lunge-hooked moves (setup/heal/protect — no defender impact).
+  'Swords Dance',
+  'Calm Mind',
+  'Dragon Dance',
+  'Protect',
+  'Roost',
+  'Recover',
+  // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
+  'Toxic',
+  'Will-O-Wisp',
+  'Thunder Wave',
+  'Taunt',
+  // Field-hooked moves.
+  'Spikes',
+  'Defog',
 ]);
 
 function signatureSlug(move: string | undefined): string | undefined {
@@ -395,6 +430,8 @@ function BattleStage({
     fx.some(f => f.type === 'impact' && f.crit) && 'crit-flash',
     fx.some(f => f.type === 'impact' && f.move === 'Earthquake') && 'earthquake-shake',
     fx.some(f => f.type === 'lunge' && f.move === 'Stealth Rock') && 'stealth-rock-fall',
+    fx.some(f => f.type === 'lunge' && f.move === 'Spikes') && 'spikes-fall',
+    fx.some(f => f.type === 'lunge' && f.move === 'Defog') && 'defog-sweep',
   ]
     .filter(Boolean)
     .join(' ');

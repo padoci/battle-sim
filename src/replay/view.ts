@@ -57,6 +57,11 @@ export interface FxItem {
 
 const HAZARDS = new Set(['Stealth Rock', 'Spikes', 'Toxic Spikes', 'Sticky Web', 'G-Max Steelsurge']);
 
+/** Status-category moves that still visibly land on the opponent — see the
+ * 'move' case below. Deliberately small: every other status move keeps the
+ * default self-glow-only treatment. */
+const STATUS_SIGNATURE_TARGETS = new Set(['Toxic', 'Will-O-Wisp', 'Thunder Wave', 'Taunt']);
+
 export function initView(teams: [PokemonSet[], PokemonSet[]]): ViewState {
   const side = (sets: PokemonSet[]): SideView => ({
     mons: sets.map(set => ({
@@ -141,8 +146,15 @@ export function applyBeat(state: ViewState, beat: Beat): {state: ViewState; fx: 
         const moveType = meta?.type;
         const category = (meta?.category ?? undefined) as FxItem['category'];
         fx.push({type: 'lunge', side: event.ref.side, moveType, category, move: event.move});
-        // Status moves act on the user (glow) — no defender impact.
-        if (category !== 'Status' && !event.tags.miss && !event.tags.immune) {
+        // Status moves act on the user (glow) — no defender impact, EXCEPT a
+        // small curated set of status moves that visibly debilitate the
+        // opponent (Toxic, Will-O-Wisp, Thunder Wave, Taunt): those get their
+        // signature landing FX too (see STATUS_SIGNATURE_TARGETS + the
+        // fx-signature-<slug> overrides in app.css), so a status effect
+        // actually lands on the target instead of vanishing into the user's
+        // own glow.
+        const targetsOpponent = category !== 'Status' || STATUS_SIGNATURE_TARGETS.has(event.move);
+        if (targetsOpponent && !event.tags.miss && !event.tags.immune) {
           fx.push({
             type: 'impact',
             side: (1 - event.ref.side) as 0 | 1,
