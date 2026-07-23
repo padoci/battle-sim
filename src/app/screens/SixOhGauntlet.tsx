@@ -283,7 +283,7 @@ function BattleStage({
 }) {
   const teams = useMemo(() => [team, opponentSets] as [PokemonSet[], PokemonSet[]], [team, opponentSets]);
   const playback = usePlayback(teams, beats, onDone, {streamDone, battleKey, speedOverride});
-  const {view, fx, fxKey, caption, speed, setSpeed, waiting} = playback;
+  const {view, fx, fxKey, caption, speed, setSpeed} = playback;
 
   // One-shot send-out window right after the intro hands over: the leads
   // (and their pokeballs) animate in via CSS classes present only during
@@ -449,11 +449,6 @@ function BattleStage({
             </div>
           </div>
           <span className="playback-value mono">{speed.toFixed(1)}×</span>
-          {!streamDone && (
-            <span className={waiting ? 'live-chip mono thinking' : 'live-chip mono'}>
-              {waiting ? 'AI is thinking…' : '● LIVE'}
-            </span>
-          )}
         </div>
       </div>
     </>
