@@ -12,6 +12,15 @@ export const MAX_SPEED = 5;
 const DEFAULT_SPEED = 1;
 const SPEED_KEY = 'battlesim.playbackSpeed';
 
+/** Fixed (not speed-scaled) settle pause before the very first beat plays —
+ * just enough for the stage to mount, not a paced beat. */
+const KICKOFF_MS = 80;
+/** Fixed (not speed-scaled) gap between beats still inside the pre-turn-1
+ * preamble (the two turn-0 lead switch-ins): short and constant regardless
+ * of playback speed, so both leads land close together instead of the
+ * second one lagging the paced `PACE.switch` wait behind the first. */
+const LEAD_IN_GAP_MS = 150;
+
 /** Slider position (0..1) <-> speed, log-mapped so the 0.5x-3x band most
  * users live in owns the middle of the track and 1x sits near center. */
 export function speedToPosition(speed: PlaybackSpeed): number {
@@ -161,7 +170,11 @@ export function usePlayback(
     setFx(applied.fx);
     setFxKey(k => k + 1);
     setCaption(applied.state.logLines.slice(spokenBefore));
-    timerRef.current = setTimeout(step, beat.durationMs / speedRef.current);
+    // Still in the pre-turn-1 preamble (typically the two turn-0 lead
+    // switch-ins): a short fixed gap instead of the full paced beat duration,
+    // so both leads land close together at any speed.
+    const delay = applied.state.turn === 0 ? LEAD_IN_GAP_MS : beat.durationMs / speedRef.current;
+    timerRef.current = setTimeout(step, delay);
   }, [finish]);
 
   // (Re)start ONLY on a new battle (teams/battleKey), never on beats
@@ -179,7 +192,7 @@ export function usePlayback(
     setView(viewRef.current);
     setFx([]);
     setCaption([]);
-    timerRef.current = setTimeout(step, 300);
+    timerRef.current = setTimeout(step, KICKOFF_MS);
     return () => clearTimeout(timerRef.current);
   }, [teams, opts.battleKey, step]);
 
@@ -213,7 +226,10 @@ export function usePlayback(
     const pendingBeat = beatsRef.current?.[indexRef.current - 1];
     if (!pendingBeat) return;
     clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(step, pendingBeat.durationMs / speed);
+    // Still in the turn-0 preamble: its gap is fixed, not speed-scaled (see
+    // step()) — leave it alone rather than re-arming at the paced duration.
+    const delay = viewRef.current?.turn === 0 ? LEAD_IN_GAP_MS : pendingBeat.durationMs / speed;
+    timerRef.current = setTimeout(step, delay);
   }, [speed, step]);
 
   const setSpeed = useCallback((next: PlaybackSpeed) => {

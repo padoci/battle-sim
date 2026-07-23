@@ -257,6 +257,26 @@ function BattleIntro({
   );
 }
 
+/** The highest-frequency/most iconic moves (by real usage across the app's
+ * own team data — see app.css's "Signature moves" section) get a fully
+ * bespoke fx-signature-<slug> override instead of the generic type/category
+ * treatment. Deliberately small and curated, not exhaustive — every other
+ * move still reads fine via the type/category layers alone. */
+const SIGNATURE_MOVES = new Set([
+  'Knock Off',
+  'Earthquake',
+  'Stealth Rock',
+  'Sucker Punch',
+  'Close Combat',
+  'Shadow Ball',
+  'Draco Meteor',
+]);
+
+function signatureSlug(move: string | undefined): string | undefined {
+  if (!move || !SIGNATURE_MOVES.has(move)) return undefined;
+  return move.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+}
+
 function BattleStage({
   team,
   opponentSets,
@@ -285,37 +305,55 @@ function BattleStage({
   const playback = usePlayback(teams, beats, onDone, {streamDone, battleKey, speedOverride});
   const {view, fx, fxKey, caption, speed, setSpeed} = playback;
 
-  // One-shot send-out window right after the intro hands over: the leads
-  // (and their pokeballs) animate in via CSS classes present only during
-  // this window (mount-only: the stage remounts per rung because the intro
-  // interposes; keying on `beats` would retrigger it on every streamed
-  // chunk). Kept out of the replay's beat/fx pipeline on purpose — the
-  // turn-0 lead placement must stay fx-free there so the visual baseline's
-  // at-rest frame is unchanged (see replay/view.ts).
-  const [leadIn, setLeadIn] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setLeadIn(false), 900);
-    return () => clearTimeout(timer);
-  }, []);
-
   const active = (side: 0 | 1): MonView | undefined => {
     const s = view.sides[side];
     return s.activeIndex !== undefined ? s.mons[s.activeIndex] : undefined;
   };
   const mine = active(0);
   const theirs = active(1);
+
+  // Send-out pop-in, per side: each side's own mon (and its pokeball) animates
+  // in via a CSS class present only for a short window right after that side's
+  // sprite first appears — anchored to the mon's own arrival, not to a shared
+  // mount-relative timer, so it can never expire before a late-landing second
+  // lead gets its entrance (see usePlayback's turn-0 pacing, which now lands
+  // both leads close together, but this stays correct even if that drifts).
+  // Kept out of the replay's beat/fx pipeline on purpose — the turn-0 lead
+  // placement must stay fx-free there so the visual baseline's at-rest frame
+  // is unchanged (see replay/view.ts).
+  const [mineJustIn, setMineJustIn] = useState(false);
+  const [theirsJustIn, setTheirsJustIn] = useState(false);
+  useEffect(() => {
+    if (!mine) return;
+    setMineJustIn(true);
+    const timer = setTimeout(() => setMineJustIn(false), 450);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `mine` is a new
+    // object every beat (immutable-clone pattern); only its presence matters.
+  }, [!!mine]);
+  useEffect(() => {
+    if (!theirs) return;
+    setTheirsJustIn(true);
+    const timer = setTimeout(() => setTheirsJustIn(false), 450);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!theirs]);
+
   const fxFor = (side: 0 | 1, type: FxItem['type']) => fx.find(f => f.side === side && f.type === type);
   const outgoingFor = (side: 0 | 1) => fxFor(side, 'switch')?.outgoingSpecies;
 
   // Category + move-type flavor for a side's FX this beat: the category picks
   // the animation style (contact spark / beam / self-glow), the type colors it
-  // via --fx-color. Falls back to the untyped default when absent.
+  // via --fx-color. Falls back to the untyped default when absent. `signature`
+  // layers a fully bespoke override on top for a small curated set of
+  // high-frequency moves (see SIGNATURE_MOVES).
   const fxFlavor = (side: 0 | 1) => {
     const item = fx.find(f => f.side === side && (f.type === 'lunge' || f.type === 'impact'));
     return {
       category: item?.category ? `fx-${item.category.toLowerCase()}` : undefined,
       color: item?.moveType ? typeColor(item.moveType) : undefined,
       moveType: item?.moveType?.toLowerCase(),
+      signature: signatureSlug(item?.move),
     };
   };
   const holderClasses = (side: 0 | 1, lungeClass: string) => {
@@ -325,19 +363,21 @@ function BattleStage({
       side === 1 ? 'theirs' : 'mine',
       fxFor(side, 'lunge') && lungeClass,
       fxFor(side, 'impact') && 'impact',
+      fxFor(side, 'impact')?.crit && 'fx-crit',
       fxFor(side, 'faint') && 'faint-drop',
       fxFor(side, 'tera') && 'tera-flash',
       fxFor(side, 'switch') && 'switch-pop',
-      leadIn && 'lead-in',
+      (side === 0 ? mineJustIn : theirsJustIn) && 'lead-in',
       flavor.category,
       flavor.moveType && `fx-move-${flavor.moveType}`,
+      flavor.signature && `fx-signature-${flavor.signature}`,
     ]
       .filter(Boolean)
       .join(' ');
   };
   /** A ball accompanies every entrance: the send-out window and mid-battle
    * switch-ins alike. */
-  const showBall = (side: 0 | 1) => leadIn || !!fxFor(side, 'switch');
+  const showBall = (side: 0 | 1) => (side === 0 ? mineJustIn : theirsJustIn) || !!fxFor(side, 'switch');
   const holderStyle = (side: 0 | 1): CSSProperties | undefined => {
     const color = fxFlavor(side).color;
     return color ? ({'--fx-color': color} as CSSProperties) : undefined;
@@ -352,6 +392,9 @@ function BattleStage({
     view.weather && `wx-${view.weather.toLowerCase().replace(/[^a-z]/g, '')}`,
     terrain && `terrain-${terrain.toLowerCase().replace(/ ?terrain/, '').replace(/[^a-z]/g, '')}`,
     fx.some(f => f.type === 'faint') && 'stage-shake',
+    fx.some(f => f.type === 'impact' && f.crit) && 'crit-flash',
+    fx.some(f => f.type === 'impact' && f.move === 'Earthquake') && 'earthquake-shake',
+    fx.some(f => f.type === 'lunge' && f.move === 'Stealth Rock') && 'stealth-rock-fall',
   ]
     .filter(Boolean)
     .join(' ');

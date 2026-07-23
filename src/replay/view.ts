@@ -43,6 +43,11 @@ export interface FxItem {
   moveType?: string;
   /** Physical → contact spark, Special → beam, Status → self glow. */
   category?: 'Physical' | 'Special' | 'Status';
+  /** The move's exact name ("Knock Off") — drives the small curated set of
+   *  signature per-move overrides (SIGNATURE_MOVES in SixOhGauntlet.tsx). */
+  move?: string;
+  /** `impact` only: a critical hit — drives the extra screen-flash treatment. */
+  crit?: boolean;
   /** `switch` only: the species leaving the field this beat, if any (undefined
    *  at the turn-0 lead placement, or when the outgoing mon already fainted
    *  and played its own exit) — lets the stage render a switch-out alongside
@@ -135,10 +140,17 @@ export function applyBeat(state: ViewState, beat: Beat): {state: ViewState; fx: 
         const meta = gen9().moves.get(event.move);
         const moveType = meta?.type;
         const category = (meta?.category ?? undefined) as FxItem['category'];
-        fx.push({type: 'lunge', side: event.ref.side, moveType, category});
+        fx.push({type: 'lunge', side: event.ref.side, moveType, category, move: event.move});
         // Status moves act on the user (glow) — no defender impact.
         if (category !== 'Status' && !event.tags.miss && !event.tags.immune) {
-          fx.push({type: 'impact', side: (1 - event.ref.side) as 0 | 1, moveType, category});
+          fx.push({
+            type: 'impact',
+            side: (1 - event.ref.side) as 0 | 1,
+            moveType,
+            category,
+            move: event.move,
+            crit: event.tags.crit,
+          });
         }
         break;
       }

@@ -1996,6 +1996,25 @@ button.primary:disabled {
   90% { transform: translate(-1px, 0); }
 }
 
+/* Critical hit: a brief whole-field white flash, on top of the struck
+   sprite's own (punchier) fx-crit spark. */
+.crit-flash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: critFlash 0.28s ease-out;
+}
+
+@keyframes critFlash {
+  0% { opacity: 0; }
+  18% { opacity: 0.75; }
+  100% { opacity: 0; }
+}
+
 /* Entry-hazard glyphs: one character per layer, sat on each side's field
    corner (their side top-left, ours bottom-right — clear of cards). */
 .hazard-corner {
@@ -2117,6 +2136,31 @@ button.primary:disabled {
   100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
 }
 
+/* Critical hit: an extra bright ring layered via ::before, on top of
+   whatever ::after shape (generic/type/signature) is already showing —
+   composes instead of competing with them for the cascade. */
+.fx-crit.impact::before {
+  content: '';
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  transform: translate(-50%, -50%) scale(0.1);
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 18px 4px rgba(255, 255, 255, 0.6);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: critRing 0.4s ease-out;
+}
+
+@keyframes critRing {
+  0% { transform: translate(-50%, -50%) scale(0.1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
 /* Special moves: a type-colored beam streak instead of the contact spark,
    plus a colored glow folded into the impact. Attacker keeps a shorter lunge
    (a caster step, not a body slam). */
@@ -2148,6 +2192,90 @@ button.primary:disabled {
 
 @keyframes lungeLeftSoft {
   35% { transform: translate(-18px, 7px); }
+}
+
+/* Special moves: a small colored bolt launches from the caster toward the
+   opposite corner, landing right as the (type/signature-shaped) impact burst
+   blooms on the defender — reads as "beam travels, then hits" rather than a
+   shape that just appears at the target. Same fixed-offset-arc technique as
+   the pokeball-toss entrance, just attacker->defender instead of corner->lead. */
+.fx-special.lunge-right::after,
+.fx-special.lunge-left::after {
+  content: '';
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #ffd94a) 55%, transparent 80%);
+  box-shadow: 0 0 10px 2px var(--fx-color, rgba(255, 217, 74, 0.6));
+  opacity: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.fx-special.lunge-right::after {
+  animation: beamShotToTheirs 0.34s ease-in;
+}
+
+.fx-special.lunge-left::after {
+  animation: beamShotToMine 0.34s ease-in;
+}
+
+@keyframes beamShotToTheirs {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate(160px, -90px) scale(0.6); opacity: 0; }
+}
+
+@keyframes beamShotToMine {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate(-160px, 90px) scale(0.6); opacity: 0; }
+}
+
+/* Physical/contact moves: a short type-colored speed-streak trailing the
+   dash, so contact hits carry visible color through the motion, not just at
+   the moment of the hit-spark. */
+.fx-physical.lunge-right::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  width: 34px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, transparent, var(--fx-color, #ffb347));
+  transform: translateY(-50%) scaleX(0.2);
+  transform-origin: right center;
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
+  animation: trailStreak 0.3s ease-out;
+}
+
+.fx-physical.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  width: 34px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(270deg, transparent, var(--fx-color, #ffb347));
+  transform: translateY(-50%) scaleX(0.2);
+  transform-origin: left center;
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
+  animation: trailStreak 0.3s ease-out;
+}
+
+@keyframes trailStreak {
+  0% { transform: translateY(-50%) scaleX(0.2); opacity: 0; }
+  35% { opacity: 0.8; }
+  100% { transform: translateY(-50%) scaleX(1); opacity: 0; }
 }
 
 /* Status moves: the user glows in the move's type color; no defender impact. */
@@ -2228,6 +2356,389 @@ button.primary:disabled {
 @keyframes leafCut {
   0% { transform: translate(-90%, -20%) rotate(-25deg) scale(0.5); opacity: 1; }
   100% { transform: translate(-10%, -80%) rotate(20deg) scale(1.15); opacity: 0; }
+}
+
+.fx-move-fighting.impact::after {
+  width: 60px;
+  height: 60px;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  background: var(--fx-color, #c22e28);
+  animation: powBurst 0.3s ease-out;
+}
+
+@keyframes powBurst {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(-10deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3) rotate(10deg); opacity: 0; }
+}
+
+.fx-move-poison.impact::after {
+  width: 50px;
+  height: 50px;
+  border-radius: 60% 40% 55% 45% / 45% 55% 40% 60%;
+  background: radial-gradient(circle at 35% 30%, #eabaf0 0%, var(--fx-color, #a33ea1) 55%, transparent 85%);
+  animation: poisonBubble 0.4s ease-out;
+}
+
+@keyframes poisonBubble {
+  0% { transform: translate(-50%, -40%) scale(0.3); opacity: 1; }
+  60% { transform: translate(-50%, -55%) scale(1.05); opacity: 0.9; }
+  100% { transform: translate(-50%, -70%) scale(0.8); opacity: 0; }
+}
+
+.fx-move-ground.impact::after {
+  width: 90px;
+  height: 26px;
+  clip-path: polygon(0 50%, 20% 40%, 30% 60%, 45% 35%, 55% 65%, 70% 40%, 80% 60%, 100% 50%, 80% 65%, 70% 45%, 55% 70%, 45% 40%, 30% 65%, 20% 45%);
+  background: var(--fx-color, #e2bf65);
+  animation: fissureBurst 0.32s ease-out;
+}
+
+@keyframes fissureBurst {
+  0% { transform: translate(-50%, -50%) scaleX(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scaleX(1.3); opacity: 0; }
+}
+
+.fx-move-flying.impact::after {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 6px solid transparent;
+  border-top-color: var(--fx-color, #a98ff3);
+  border-right-color: var(--fx-color, #a98ff3);
+  animation: windArc 0.32s ease-out;
+}
+
+@keyframes windArc {
+  0% { transform: translate(-50%, -50%) rotate(-30deg) scale(0.4); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(120deg) scale(1.1); opacity: 0; }
+}
+
+.fx-move-psychic.impact::after {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 3px solid var(--fx-color, #f95587);
+  background: radial-gradient(circle, transparent 55%, var(--fx-color, #f95587) 58%, transparent 65%);
+  animation: psychicPulse 0.4s ease-out;
+}
+
+@keyframes psychicPulse {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+.fx-move-bug.impact::after {
+  width: 70px;
+  height: 70px;
+  background:
+    linear-gradient(45deg, transparent 46%, var(--fx-color, #a6b91a) 48%, var(--fx-color, #a6b91a) 52%, transparent 54%),
+    linear-gradient(-45deg, transparent 46%, var(--fx-color, #a6b91a) 48%, var(--fx-color, #a6b91a) 52%, transparent 54%);
+  animation: bugCross 0.3s ease-out;
+}
+
+@keyframes bugCross {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+}
+
+.fx-move-rock.impact::after {
+  width: 54px;
+  height: 54px;
+  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+  background: linear-gradient(135deg, #ded9c4 0%, var(--fx-color, #b6a136) 60%, transparent 90%);
+  animation: rockShard 0.34s ease-out;
+}
+
+@keyframes rockShard {
+  0% { transform: translate(-50%, -50%) rotate(0deg) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(50deg) scale(1.2); opacity: 0; }
+}
+
+.fx-move-ghost.impact::after {
+  width: 60px;
+  height: 76px;
+  border-radius: 50% 50% 40% 40% / 60% 60% 30% 30%;
+  background: radial-gradient(ellipse at 50% 30%, rgba(230, 210, 255, 0.85) 0%, var(--fx-color, #735797) 55%, transparent 85%);
+  animation: ghostSwirl 0.42s ease-out;
+}
+
+@keyframes ghostSwirl {
+  0% { transform: translate(-50%, -30%) scale(0.4) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -75%) scale(1.15) rotate(15deg); opacity: 0; }
+}
+
+.fx-move-dragon.impact::after {
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: conic-gradient(var(--fx-color, #6f35fc), transparent 40%, var(--fx-color, #6f35fc) 80%, transparent);
+  animation: dragonSpiral 0.4s ease-out;
+}
+
+@keyframes dragonSpiral {
+  0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3) rotate(200deg); opacity: 0; }
+}
+
+.fx-move-dark.impact::after {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 40%, var(--fx-color, #705746) 70%, transparent 100%);
+  animation: darkPulse 0.3s ease-out;
+}
+
+@keyframes darkPulse {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
+}
+
+.fx-move-steel.impact::after {
+  width: 70px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #fff, var(--fx-color, #b7b7ce), #fff, transparent);
+  animation: steelGlint 0.28s ease-out;
+}
+
+@keyframes steelGlint {
+  0% { transform: translate(-50%, -50%) rotate(-20deg) scaleX(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(-20deg) scaleX(1.4); opacity: 0; }
+}
+
+.fx-move-fairy.impact::after {
+  width: 80px;
+  height: 80px;
+  background-image:
+    radial-gradient(circle, #fff 0 2px, transparent 3px),
+    radial-gradient(circle, var(--fx-color, #d685ad) 0 3px, transparent 4px),
+    radial-gradient(circle, #fff 0 2px, transparent 3px),
+    radial-gradient(circle, var(--fx-color, #d685ad) 0 3px, transparent 4px);
+  background-position: 10% 20%, 70% 15%, 30% 75%, 80% 70%;
+  background-repeat: no-repeat;
+  animation: fairySparkle 0.4s ease-out;
+}
+
+@keyframes fairySparkle {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
+}
+
+.fx-move-normal.impact::after {
+  width: 60px;
+  height: 60px;
+  clip-path: polygon(50% 0%, 61% 38%, 98% 38%, 68% 60%, 79% 96%, 50% 75%, 21% 96%, 32% 60%, 2% 38%, 39% 38%);
+  background: var(--fx-color, #a8a77a);
+  animation: normalBurst 0.3s ease-out;
+}
+
+@keyframes normalBurst {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+}
+
+.fx-move-stellar.impact::after {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #ff6b6b, #ffd93d, #6bff8e, #6bd4ff, #b46bff, #ff6bcf, #ff6b6b);
+  animation: stellarBurst 0.4s ease-out;
+}
+
+@keyframes stellarBurst {
+  0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4) rotate(90deg); opacity: 0; }
+}
+
+/* ---- Signature moves (SIGNATURE_MOVES in SixOhGauntlet.tsx) ----
+   A small curated set of the highest-frequency/most iconic moves (by real
+   usage in the app's own team data) get a fully bespoke override instead of
+   the generic type/category treatment above. Each `.fx-signature-<slug>`
+   selector below has the same specificity as the `.fx-move-<type>` rules it
+   sits below (one class + pseudo-element) — later wins the cascade tie, so
+   simply appearing after the type-generic block is enough to override it,
+   no !important needed. */
+
+/* Knock Off: a dark X-slash, plus the knocked-off item flung away spinning. */
+.fx-signature-knock-off.impact::after {
+  width: 80px;
+  height: 80px;
+  background:
+    linear-gradient(45deg, transparent 44%, #2a1f3d 47%, #2a1f3d 53%, transparent 56%),
+    linear-gradient(-45deg, transparent 44%, #2a1f3d 47%, #2a1f3d 53%, transparent 56%);
+  animation: knockOffSlash 0.3s ease-out;
+}
+
+@keyframes knockOffSlash {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(-8deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3) rotate(8deg); opacity: 0; }
+}
+
+.fx-signature-knock-off.impact::before {
+  content: '';
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: #d685ad;
+  border: 1.5px solid #241a3a;
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: knockOffItem 0.5s ease-in;
+}
+
+@keyframes knockOffItem {
+  0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translate(60px, -70px) rotate(260deg) scale(0.6); opacity: 0; }
+}
+
+/* Earthquake: whole-field radiating shockwave rings, on top of the normal
+   ground fissure at the target. */
+.earthquake-shake::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 80%,
+    transparent 0%, transparent 24%,
+    rgba(226, 191, 101, 0.35) 26%, transparent 28%,
+    transparent 50%,
+    rgba(226, 191, 101, 0.25) 52%, transparent 54%
+  );
+  animation: earthquakeRings 0.5s ease-out;
+}
+
+@keyframes earthquakeRings {
+  0% { transform: scale(0.3); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Stealth Rock: a one-time "rocks fall and land" flourish in the beat it's
+   set — it otherwise has zero animation moment beyond the persistent
+   HazardCorner glyph. */
+.stealth-rock-fall::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, #8a7a5c 0 5px, transparent 6px),
+    radial-gradient(circle, #6b5d45 0 4px, transparent 5px),
+    radial-gradient(circle, #8a7a5c 0 4px, transparent 5px);
+  background-position: 30% 20%, 55% 15%, 45% 25%;
+  background-repeat: no-repeat;
+  animation: rockFall 0.6s ease-in;
+}
+
+@keyframes rockFall {
+  0% { transform: translateY(-60px); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+
+/* Sucker Punch: near-instant, no wind-up — a much shorter/faster lunge and
+   a single sharp dark flash instead of the standard dash + spark. */
+.fx-signature-sucker-punch.lunge-right {
+  animation: suckerPunchRight 0.14s cubic-bezier(0.34, 0, 0.2, 1);
+}
+
+.fx-signature-sucker-punch.lunge-left {
+  animation: suckerPunchLeft 0.14s cubic-bezier(0.34, 0, 0.2, 1);
+}
+
+@keyframes suckerPunchRight {
+  50% { transform: translate(50px, -18px); }
+}
+
+@keyframes suckerPunchLeft {
+  50% { transform: translate(-50px, 18px); }
+}
+
+.fx-signature-sucker-punch.impact::after {
+  width: 40px;
+  height: 40px;
+  border-radius: 0;
+  background: var(--fx-color, #705746);
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  animation: suckerPunchFlash 0.18s ease-out;
+}
+
+@keyframes suckerPunchFlash {
+  0% { transform: translate(-50%, -50%) scale(0.4) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.1) rotate(15deg); opacity: 0; }
+}
+
+/* Close Combat: 2-3 rapid sequential flashes at slightly different spots,
+   reading as a flurry instead of one clean hit. */
+.fx-signature-close-combat.impact::after {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #c22e28) 45%, transparent 75%);
+  animation: closeCombatFlurry 0.42s steps(1, end);
+}
+
+@keyframes closeCombatFlurry {
+  0%, 8% { transform: translate(-70%, -60%) scale(1); opacity: 1; }
+  16% { opacity: 0; }
+  25%, 33% { transform: translate(-30%, -40%) scale(1); opacity: 1; }
+  41% { opacity: 0; }
+  50%, 58% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Shadow Ball: a genuine round dark-purple traveling orb — reskins A2's
+   generic beam-shot (bigger, ghost-colored) rather than redefining travel. */
+.fx-signature-shadow-ball.lunge-right::after,
+.fx-signature-shadow-ball.lunge-left::after {
+  width: 34px;
+  height: 34px;
+  background: radial-gradient(circle, #d9c6f0 0%, #4a3868 55%, #1b1436 80%);
+  box-shadow: 0 0 14px 4px rgba(115, 87, 151, 0.7);
+}
+
+.fx-signature-shadow-ball.impact::after {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #e6d2ff 0%, #4a3868 55%, transparent 85%);
+  animation: shadowBallBurst 0.36s ease-out;
+}
+
+@keyframes shadowBallBurst {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+/* Draco Meteor: breaks the shared side-travel pattern on purpose — the
+   move's real identity is top-down, not attacker->defender. Suppresses A2's
+   generic beam-shot on the caster and drops a meteor onto the target instead. */
+.fx-signature-draco-meteor.lunge-right::after,
+.fx-signature-draco-meteor.lunge-left::after {
+  animation: none;
+  opacity: 0;
+}
+
+.fx-signature-draco-meteor.impact::after {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #e8d9ff 0%, var(--fx-color, #6f35fc) 50%, transparent 80%);
+  animation: dracoMeteorFall 0.4s ease-in;
+}
+
+@keyframes dracoMeteorFall {
+  0% { transform: translate(-50%, -220%) scale(0.4); opacity: 0.9; }
+  75% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
 }
 
 /* Mid-battle switch-in: a small pop up from the platform. */
@@ -3024,20 +3535,38 @@ button.primary:disabled {
   .fx-status.lunge-left,
   .fx-special.lunge-right,
   .fx-special.lunge-left,
+  [class*='fx-signature-'].lunge-right,
+  [class*='fx-signature-'].lunge-left,
   .stage-shake,
+  .crit-flash,
+  .earthquake-shake,
+  .stealth-rock-fall,
   .simulating .pulse {
     animation: none;
   }
   .switch-ball {
     display: none;
   }
+  /* Wildcards cover every current and future per-type/signature shape
+     without a manually-maintained per-class list (see A1/A4 in app.css's
+     move-FX section) — plus the handful of specific pseudo-elements (beam
+     travel, contact trail, crit ring, field flourishes) those wildcards
+     don't reach because they key off ::before or a lunge (not impact)
+     pseudo-element. */
   .impact::after,
-  .fx-special.impact::after,
-  .fx-move-fire.impact::after,
-  .fx-move-water.impact::after,
-  .fx-move-electric.impact::after,
-  .fx-move-ice.impact::after,
-  .fx-move-grass.impact::after {
+  .impact::before,
+  [class*='fx-move-'].impact::after,
+  [class*='fx-signature-'].impact::after,
+  [class*='fx-signature-'].impact::before,
+  .fx-special.lunge-right::after,
+  .fx-special.lunge-left::after,
+  [class*='fx-signature-'].lunge-right::after,
+  [class*='fx-signature-'].lunge-left::after,
+  .fx-physical.lunge-right::before,
+  .fx-physical.lunge-left::before,
+  .crit-flash::before,
+  .earthquake-shake::before,
+  .stealth-rock-fall::before {
     display: none;
   }
   .hp-fill,
