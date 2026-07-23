@@ -257,6 +257,373 @@ function BattleIntro({
   );
 }
 
+/** The highest-frequency/most iconic moves (by real usage across the app's
+ * own team data — see app.css's "Signature moves" section) get a fully
+ * bespoke fx-signature-<slug> override instead of the generic type/category
+ * treatment. Deliberately small and curated, not exhaustive — every other
+ * move still reads fine via the type/category layers alone. */
+const SIGNATURE_MOVES = new Set([
+  'Knock Off',
+  'Earthquake',
+  'Stealth Rock',
+  'Sucker Punch',
+  'Close Combat',
+  'Shadow Ball',
+  'Draco Meteor',
+  // Impact-hooked physical moves.
+  'U-turn',
+  'Rapid Spin',
+  'Ice Spinner',
+  'Body Press',
+  'Iron Head',
+  'Headlong Rush',
+  'Extreme Speed',
+  'Crunch',
+  'Kowtow Cleave',
+  'Low Kick',
+  // Special beam-hooked moves.
+  'Ice Beam',
+  'Earth Power',
+  'Sludge Bomb',
+  'Moonblast',
+  'Thunderbolt',
+  'Make It Rain',
+  'Flamethrower',
+  'Freeze-Dry',
+  // Self lunge-hooked moves (setup/heal/protect — no defender impact).
+  'Swords Dance',
+  'Calm Mind',
+  'Dragon Dance',
+  'Protect',
+  'Roost',
+  'Recover',
+  // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
+  'Toxic',
+  'Will-O-Wisp',
+  'Thunder Wave',
+  'Taunt',
+  // Field-hooked moves.
+  'Spikes',
+  'Defog',
+  // -- Batch 3 --
+  // Impact-hooked physical moves.
+  'Flip Turn',
+  'Ice Punch',
+  'Brave Bird',
+  'Ivy Cudgel',
+  'Stone Edge',
+  'Poison Jab',
+  'Superpower',
+  'Heavy Slam',
+  'Dragon Tail',
+  'Facade',
+  'Nuzzle',
+  'Thunderclap',
+  // Special beam-hooked moves.
+  'Psychic',
+  'Focus Blast',
+  'Hurricane',
+  'Dragon Pulse',
+  'Dark Pulse',
+  'Fire Blast',
+  'Dazzling Gleam',
+  'Surf',
+  // Special drain moves (beam-hooked, plus a heal-tinted arrival).
+  'Giga Drain',
+  'Draining Kiss',
+  // Self lunge-hooked moves.
+  'Iron Defense',
+  'Nasty Plot',
+  'Bulk Up',
+  'Substitute',
+  'Rest',
+  // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
+  'Trick',
+  'Roar',
+  'Encore',
+  // -- Batch 4 --
+  // Impact-hooked physical moves.
+  'Fire Punch',
+  'Zen Headbutt',
+  'Wood Hammer',
+  'Shadow Sneak',
+  'Liquidation',
+  'Ice Shard',
+  'Triple Axel',
+  'Waterfall',
+  'Ice Fang',
+  'Aqua Jet',
+  'Rock Slide',
+  'Drain Punch',
+  'Gyro Ball',
+  'Bullet Punch',
+  // Special beam-hooked moves.
+  'Scald',
+  'Flash Cannon',
+  'Hydro Pump',
+  'Solar Beam',
+  'Heat Wave',
+  'Mystical Fire',
+  'Lava Plume',
+  'Hex',
+  // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
+  'Stun Spore',
+  'Leech Seed',
+  'Whirlwind',
+  // Self lunge-hooked moves.
+  'Quiver Dance',
+  'Moonlight',
+  'Wish',
+  'Light Screen',
+  'Reflect',
+  // -- Batch 5 --
+  // Impact-hooked physical moves.
+  'Flare Blitz',
+  'Foul Play',
+  'Razor Shell',
+  'Body Slam',
+  'Seismic Toss',
+  'Play Rough',
+  'Outrage',
+  'Bitter Blade',
+  'Mortal Spin',
+  'Grassy Glide',
+  'Thunder Punch',
+  'Rock Blast',
+  'Megahorn',
+  'Gunk Shot',
+  'Explosion',
+  'First Impression',
+  // Special beam-hooked moves.
+  'Sludge Wave',
+  'Ruination',
+  'Weather Ball',
+  'Hydro Steam',
+  'Fiery Dance',
+  'Psyshock',
+  // Field-hooked moves.
+  'Toxic Spikes',
+  'Sticky Web',
+  // Self lunge-hooked moves.
+  'Sleep Talk',
+  'Slack Off',
+  'Synthesis',
+  'Destiny Bond',
+  'Soft-Boiled',
+  // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
+  'Skill Swap',
+  // -- Batch 6 (covers everything with usage >= 2 in the app's team data) --
+  // Impact-hooked physical moves.
+  'Head Smash',
+  'Double-Edge',
+  'Bullet Seed',
+  'Shadow Claw',
+  'Wild Charge',
+  'Leech Life',
+  'Gigaton Hammer',
+  'Icicle Crash',
+  'Mach Punch',
+  'Wave Crash',
+  'Salt Cure',
+  // Special beam-hooked moves.
+  'Blizzard',
+  'Thunder',
+  'Bleakwind Storm',
+  'Hyper Voice',
+  'Air Slash',
+  'Bug Buzz',
+  'Grass Knot',
+  'Torch Song',
+  'Power Gem',
+  'Magma Storm',
+  'Tachyon Cutter',
+  // Self lunge-hooked moves.
+  'Coil',
+  'Growth',
+  'Morning Sun',
+  'Heal Bell',
+  'Perish Song',
+  'Teleport',
+  // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
+  'Parting Shot',
+  'Strength Sap',
+  // -- Batch 7: the most recognizable moves left in the tail (usage == 1 in
+  // this dataset, but iconic competitive staples that just happen to fit
+  // only one curated team here) --
+  // Impact-hooked physical moves.
+  'Quick Attack',
+  'Night Slash',
+  'Leaf Blade',
+  'High Jump Kick',
+  'Fake Out',
+  'Cross Chop',
+  'High Horsepower',
+  'Meteor Mash',
+  'Icicle Spear',
+  'Payback',
+  'Horn Leech',
+  'Solar Blade',
+  // Special beam-hooked moves.
+  'Ancient Power',
+  'Discharge',
+  'Muddy Water',
+  'Boomburst',
+  'Expanding Force',
+  'Energy Ball',
+  'Stored Power',
+  // Self lunge-hooked moves.
+  'Trick Room',
+  'Rain Dance',
+  'Belly Drum',
+  'Amnesia',
+  'Endure',
+  'Aurora Veil',
+  'Clangorous Soul',
+  'Lunar Dance',
+  'Lunar Blessing',
+  // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
+  'Glare',
+  'Circle Throw',
+  // -- Batch 8: the highest base-power tier from the full Gen 9 movepool
+  // (beyond this app's own team-data sample — see the batch-7 commit note).
+  // Impact-hooked physical moves.
+  'Self-Destruct',
+  'Focus Punch',
+  'Giga Impact',
+  'Rock Wrecker',
+  'Last Resort',
+  'Sky Attack',
+  'Bolt Strike',
+  'Steel Roller',
+  'Axe Kick',
+  'Double Shock',
+  'Dragon Ascent',
+  'Glacial Lance',
+  'Glaive Rush',
+  'Mega Kick',
+  'Power Whip',
+  // Special beam-hooked moves.
+  'Prismatic Laser',
+  'Blast Burn',
+  'Chloroblast',
+  'Dragon Energy',
+  'Eruption',
+  'Frenzy Plant',
+  'Hydro Cannon',
+  'Hyper Beam',
+  'Roar of Time',
+  'Water Spout',
+  'Blood Moon',
+  'Doom Desire',
+  'Ice Burn',
+  'Psycho Boost',
+  'Steel Beam',
+  // -- Batch 9: more legendary/signature moves from the full movepool --
+  // Impact-hooked physical moves.
+  'Freeze Shock',
+  'Precipice Blades',
+  'Pyro Ball',
+  'Raging Fury',
+  'Shadow Force',
+  'Thrash',
+  'Volt Tackle',
+  'Aura Wheel',
+  'Poltergeist',
+  'Beak Blast',
+  'Behemoth Bash',
+  'Behemoth Blade',
+  'Collision Course',
+  'Crabhammer',
+  'Diamond Storm',
+  // Special beam-hooked moves.
+  'Blue Flare',
+  'Electro Shot',
+  'Fleur Cannon',
+  'Leaf Storm',
+  'Overheat',
+  'Armor Cannon',
+  'Astral Barrage',
+  'Belch',
+  'Future Sight',
+  'Meteor Beam',
+  'Petal Dance',
+  'Seed Flare',
+  'Zap Cannon',
+  'Origin Pulse',
+  'Aeroblast',
+  // -- Batch 10: more from the full movepool's mid-power tier --
+  // Impact-hooked physical moves.
+  'Dragon Rush',
+  'Dynamic Punch',
+  'Flying Press',
+  'Fusion Bolt',
+  'Hammer Arm',
+  'Hyper Drill',
+  'Hyperspace Fury',
+  'Ice Hammer',
+  'Iron Tail',
+  'Mountain Gale',
+  'Sacred Fire',
+  'Spin Out',
+  'Sunsteel Strike',
+  'Supercell Slam',
+  'Mighty Cleave',
+  // Special beam-hooked moves.
+  'Tera Starstorm',
+  'Clanging Scales',
+  'Steam Eruption',
+  'Dream Eater',
+  'Dynamax Cannon',
+  'Electro Drift',
+  'Fusion Flare',
+  'Inferno',
+  'Judgment',
+  'Malignant Chain',
+  'Misty Explosion',
+  'Moongeist Beam',
+  'Photon Geyser',
+  'Psystrike',
+  'Sandsear Storm',
+  // -- Batch 11 --
+  // Impact-hooked physical moves.
+  'Aqua Tail',
+  'Attack Order',
+  'Dragon Hammer',
+  'Fly',
+  'Petal Blizzard',
+  'Phantom Force',
+  'Raging Bull',
+  'Sacred Sword',
+  'Take Down',
+  'Thunderous Kick',
+  'Triple Arrows',
+  'Blaze Kick',
+  'Bounce',
+  'Darkest Lariat',
+  'Psychic Fangs',
+  // Special beam-hooked moves.
+  'Spacial Rend',
+  'Springtide Storm',
+  'Wildbolt Storm',
+  'Luster Purge',
+  'Mist Ball',
+  'Fiery Wrath',
+  'Freezing Glare',
+  'Pollen Puff',
+  'Revelation Dance',
+  'Shell Side Arm',
+  'Sparkling Aria',
+  'Strange Steam',
+  'Uproar',
+  'Night Daze',
+  'Secret Sword',
+]);
+
+function signatureSlug(move: string | undefined): string | undefined {
+  if (!move || !SIGNATURE_MOVES.has(move)) return undefined;
+  return move.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+}
+
 function BattleStage({
   team,
   opponentSets,
@@ -285,37 +652,55 @@ function BattleStage({
   const playback = usePlayback(teams, beats, onDone, {streamDone, battleKey, speedOverride});
   const {view, fx, fxKey, caption, speed, setSpeed} = playback;
 
-  // One-shot send-out window right after the intro hands over: the leads
-  // (and their pokeballs) animate in via CSS classes present only during
-  // this window (mount-only: the stage remounts per rung because the intro
-  // interposes; keying on `beats` would retrigger it on every streamed
-  // chunk). Kept out of the replay's beat/fx pipeline on purpose — the
-  // turn-0 lead placement must stay fx-free there so the visual baseline's
-  // at-rest frame is unchanged (see replay/view.ts).
-  const [leadIn, setLeadIn] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setLeadIn(false), 900);
-    return () => clearTimeout(timer);
-  }, []);
-
   const active = (side: 0 | 1): MonView | undefined => {
     const s = view.sides[side];
     return s.activeIndex !== undefined ? s.mons[s.activeIndex] : undefined;
   };
   const mine = active(0);
   const theirs = active(1);
+
+  // Send-out pop-in, per side: each side's own mon (and its pokeball) animates
+  // in via a CSS class present only for a short window right after that side's
+  // sprite first appears — anchored to the mon's own arrival, not to a shared
+  // mount-relative timer, so it can never expire before a late-landing second
+  // lead gets its entrance (see usePlayback's turn-0 pacing, which now lands
+  // both leads close together, but this stays correct even if that drifts).
+  // Kept out of the replay's beat/fx pipeline on purpose — the turn-0 lead
+  // placement must stay fx-free there so the visual baseline's at-rest frame
+  // is unchanged (see replay/view.ts).
+  const [mineJustIn, setMineJustIn] = useState(false);
+  const [theirsJustIn, setTheirsJustIn] = useState(false);
+  useEffect(() => {
+    if (!mine) return;
+    setMineJustIn(true);
+    const timer = setTimeout(() => setMineJustIn(false), 450);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `mine` is a new
+    // object every beat (immutable-clone pattern); only its presence matters.
+  }, [!!mine]);
+  useEffect(() => {
+    if (!theirs) return;
+    setTheirsJustIn(true);
+    const timer = setTimeout(() => setTheirsJustIn(false), 450);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!theirs]);
+
   const fxFor = (side: 0 | 1, type: FxItem['type']) => fx.find(f => f.side === side && f.type === type);
   const outgoingFor = (side: 0 | 1) => fxFor(side, 'switch')?.outgoingSpecies;
 
   // Category + move-type flavor for a side's FX this beat: the category picks
   // the animation style (contact spark / beam / self-glow), the type colors it
-  // via --fx-color. Falls back to the untyped default when absent.
+  // via --fx-color. Falls back to the untyped default when absent. `signature`
+  // layers a fully bespoke override on top for a small curated set of
+  // high-frequency moves (see SIGNATURE_MOVES).
   const fxFlavor = (side: 0 | 1) => {
     const item = fx.find(f => f.side === side && (f.type === 'lunge' || f.type === 'impact'));
     return {
       category: item?.category ? `fx-${item.category.toLowerCase()}` : undefined,
       color: item?.moveType ? typeColor(item.moveType) : undefined,
       moveType: item?.moveType?.toLowerCase(),
+      signature: signatureSlug(item?.move),
     };
   };
   const holderClasses = (side: 0 | 1, lungeClass: string) => {
@@ -325,19 +710,21 @@ function BattleStage({
       side === 1 ? 'theirs' : 'mine',
       fxFor(side, 'lunge') && lungeClass,
       fxFor(side, 'impact') && 'impact',
+      fxFor(side, 'impact')?.crit && 'fx-crit',
       fxFor(side, 'faint') && 'faint-drop',
       fxFor(side, 'tera') && 'tera-flash',
       fxFor(side, 'switch') && 'switch-pop',
-      leadIn && 'lead-in',
+      (side === 0 ? mineJustIn : theirsJustIn) && 'lead-in',
       flavor.category,
       flavor.moveType && `fx-move-${flavor.moveType}`,
+      flavor.signature && `fx-signature-${flavor.signature}`,
     ]
       .filter(Boolean)
       .join(' ');
   };
   /** A ball accompanies every entrance: the send-out window and mid-battle
    * switch-ins alike. */
-  const showBall = (side: 0 | 1) => leadIn || !!fxFor(side, 'switch');
+  const showBall = (side: 0 | 1) => (side === 0 ? mineJustIn : theirsJustIn) || !!fxFor(side, 'switch');
   const holderStyle = (side: 0 | 1): CSSProperties | undefined => {
     const color = fxFlavor(side).color;
     return color ? ({'--fx-color': color} as CSSProperties) : undefined;
@@ -352,6 +739,13 @@ function BattleStage({
     view.weather && `wx-${view.weather.toLowerCase().replace(/[^a-z]/g, '')}`,
     terrain && `terrain-${terrain.toLowerCase().replace(/ ?terrain/, '').replace(/[^a-z]/g, '')}`,
     fx.some(f => f.type === 'faint') && 'stage-shake',
+    fx.some(f => f.type === 'impact' && f.crit) && 'crit-flash',
+    fx.some(f => f.type === 'impact' && f.move === 'Earthquake') && 'earthquake-shake',
+    fx.some(f => f.type === 'lunge' && f.move === 'Stealth Rock') && 'stealth-rock-fall',
+    fx.some(f => f.type === 'lunge' && f.move === 'Spikes') && 'spikes-fall',
+    fx.some(f => f.type === 'lunge' && f.move === 'Defog') && 'defog-sweep',
+    fx.some(f => f.type === 'lunge' && f.move === 'Toxic Spikes') && 'toxic-spikes-fall',
+    fx.some(f => f.type === 'lunge' && f.move === 'Sticky Web') && 'sticky-web-spread',
   ]
     .filter(Boolean)
     .join(' ');

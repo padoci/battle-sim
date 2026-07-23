@@ -70,7 +70,7 @@ describe('usePlayback', () => {
     expect(renderCount).toBe(1);
 
     act(() => {
-      vi.advanceTimersByTime(300); // usePlayback's initial kickoff delay
+      vi.advanceTimersByTime(80); // usePlayback's initial kickoff delay
       vi.advanceTimersByTime(100 * 3); // step through a few beats
     });
     const turnBeforeRerender = latest!.view.turn;
@@ -96,7 +96,7 @@ describe('usePlayback', () => {
     // or the reset effect firing), this would either wipe progress every
     // beat or silently miss the final onDone; both are asserted below.
     act(() => {
-      vi.advanceTimersByTime(300);
+      vi.advanceTimersByTime(80);
     });
     for (let i = 0; i < BEATS.length; i++) {
       act(() => {
@@ -120,7 +120,7 @@ describe('usePlayback', () => {
     const {rerender} = render(createElement(Parent, {beats: first, opts: {streamDone: false, battleKey: 0}}));
 
     act(() => {
-      vi.advanceTimersByTime(300 + 100 * 2); // play 2 of the 3 known beats
+      vi.advanceTimersByTime(80 + 100 * 2); // play 2 of the 3 known beats
     });
     const midTurn = latest!.view.turn;
     expect(midTurn).toBeGreaterThan(0);
@@ -141,7 +141,7 @@ describe('usePlayback', () => {
     const {rerender} = render(createElement(Parent, {beats: first, opts: {streamDone: false, battleKey: 0}}));
 
     act(() => {
-      vi.advanceTimersByTime(300 + 100 * 2 + 1); // play both known beats
+      vi.advanceTimersByTime(80 + 100 * 2 + 1); // play both known beats
     });
     expect(latest!.view.turn).toBe(2);
     expect(latest!.waiting).toBe(true); // caught up: parked, not done
@@ -171,7 +171,7 @@ describe('usePlayback', () => {
   it('restarts on a battleKey change, not on beats identity alone', () => {
     const {rerender} = render(createElement(Parent, {beats: BEATS, opts: {streamDone: true, battleKey: 0}}));
     act(() => {
-      vi.advanceTimersByTime(300 + 100 * 4);
+      vi.advanceTimersByTime(80 + 100 * 4);
     });
     expect(latest!.view.turn).toBeGreaterThanOrEqual(4);
 
