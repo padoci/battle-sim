@@ -412,6 +412,41 @@ const SIGNATURE_MOVES = new Set([
   'Soft-Boiled',
   // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
   'Skill Swap',
+  // -- Batch 6 (covers everything with usage >= 2 in the app's team data) --
+  // Impact-hooked physical moves.
+  'Head Smash',
+  'Double-Edge',
+  'Bullet Seed',
+  'Shadow Claw',
+  'Wild Charge',
+  'Leech Life',
+  'Gigaton Hammer',
+  'Icicle Crash',
+  'Mach Punch',
+  'Wave Crash',
+  'Salt Cure',
+  // Special beam-hooked moves.
+  'Blizzard',
+  'Thunder',
+  'Bleakwind Storm',
+  'Hyper Voice',
+  'Air Slash',
+  'Bug Buzz',
+  'Grass Knot',
+  'Torch Song',
+  'Power Gem',
+  'Magma Storm',
+  'Tachyon Cutter',
+  // Self lunge-hooked moves.
+  'Coil',
+  'Growth',
+  'Morning Sun',
+  'Heal Bell',
+  'Perish Song',
+  'Teleport',
+  // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
+  'Parting Shot',
+  'Strength Sap',
 ]);
 
 function signatureSlug(move: string | undefined): string | undefined {
