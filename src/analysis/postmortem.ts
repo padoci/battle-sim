@@ -3,26 +3,24 @@ import type {PokemonSet} from '../data/types';
 import {buildCalcTable} from '../engine/calc/table';
 import type {BattleResult} from '../search/runner';
 import {classifyTeam} from './archetype';
+import {findBiggestHit, type BattleHighlight} from './highlights';
 import {aggregateMatchup} from './stats';
-import {calcSuggestions} from './suggestions';
 import {buildPairingContext, threatFacts} from './threats';
 
 /**
- * Run post-mortem for "Can you 6-0?" (ui-spec §6a): one or two crisp reads
- * on what ended (or defined) the run, with expandable calc evidence. Reuses
- * the analysis FACT layer (threatFacts / aggregateMatchup), not the
- * forward-looking game-plan renderer.
+ * Run recap for "Can you 6-0?" (the fun cinematic gauntlet, not the Lab):
+ * a few punchy, always-visible lines built from real battle facts (mined
+ * damage/faint aggregates plus an actual biggest-hit/finishing-blow pulled
+ * from the battle's own protocol log via highlights.ts). No expandable
+ * "show the calc" evidence here on purpose — that tone belongs to Test
+ * your team's analytical dashboard (suggestions.ts / ReadItem), not this
+ * screen. Reuses the analysis FACT layer (threatFacts / aggregateMatchup),
+ * not the forward-looking game-plan renderer.
  */
-export interface PostMortemRead {
-  sentence: string;
-  /** Mono evidence lines ("show the working"). */
-  evidence: string[];
-}
-
 export interface PostMortem {
   headline: string;
   record: string;
-  reads: PostMortemRead[];
+  lines: string[];
 }
 
 export interface PlayedBattle {
@@ -34,13 +32,29 @@ function speciesName(gen: Generation, id: string): string {
   return gen.species.get(id)?.name ?? id;
 }
 
-function eliminatedReads(
+/** Parenthetical flourish shared by both hit sentences below. */
+function hitFlourish(hit: BattleHighlight): string {
+  const bits: string[] = [];
+  if (hit.crit) bits.push('a critical hit');
+  if (hit.superEffective) bits.push('super effective');
+  return bits.length ? ` (${bits.join(', ')})` : '';
+}
+
+function finishingBlowSentence(hit: BattleHighlight): string {
+  return `${hit.attackerSpecies}'s ${hit.move} sealed it${hitFlourish(hit)}: ${hit.pct}% and your last mon went down.`;
+}
+
+function biggestHitOfRunSentence(hit: BattleHighlight): string {
+  return `The biggest hit of the run: ${hit.attackerSpecies}'s ${hit.move} took ${hit.pct}% off ${hit.defenderSpecies} in one shot${hitFlourish(hit)}.`;
+}
+
+function eliminatedRecap(
   gen: Generation,
   userTeam: PokemonSet[],
   opponent: {name: string; sets: PokemonSet[]},
   losingBattle: PlayedBattle
-): PostMortemRead[] {
-  const reads: PostMortemRead[] = [];
+): string[] {
+  const lines: string[] = [];
   const matchup = aggregateMatchup(
     `gauntlet-${losingBattle.opponentIndex}`,
     opponent.name,
@@ -48,10 +62,16 @@ function eliminatedReads(
     [{teamId: 'g', result: losingBattle.result}]
   );
 
+  // Line 1: the finishing blow, mined straight from this battle's own log.
+  if (losingBattle.result.protocolLog) {
+    const hit = findBiggestHit(losingBattle.result.protocolLog);
+    if (hit) lines.push(finishingBlowSentence(hit));
+  }
+
+  // Line 2: the opposing workhorse that did the damage (kept — genuine
+  // analysis, not filler — just reworded with some actual personality).
   const table = buildCalcTable(gen, [userTeam, opponent.sets]);
   const ctx = buildPairingContext(gen, userTeam, opponent.sets, table);
-
-  // Read 1: the opposing workhorse that did the damage.
   const workhorseId = matchup.mostWork[0]?.speciesId;
   const workhorse = workhorseId
     ? ctx.state.sides[1].mons.find(m => m.speciesId === workhorseId)
@@ -61,42 +81,29 @@ function eliminatedReads(
     const name = speciesName(gen, workhorse.speciesId);
     const scariest = facts.at(-1);
     const speedFact = facts.find(f => f.kind === 'outspeeds-team');
-    const sentence = speedFact
-      ? `${name} ran the game: it outspeeds your whole team and nothing traded back.`
+    let sentence = speedFact
+      ? `${name} was just too fast: it outran your whole team and never looked back.`
       : scariest?.targetSpecies
-        ? `Nothing on your team switches into ${name}: ${scariest.moveName} into ${scariest.targetSpecies} decided it.`
+        ? `Nothing on your team wanted to see ${name}'s ${scariest.moveName}: it walked through ${scariest.targetSpecies} and decided the game.`
         : `${name} did the heavy lifting for ${opponent.name}.`;
-    const evidence = facts.map(f => f.evidence);
     if (matchup.speedRaceWinRate < 0.35) {
-      evidence.push(`you won the speed race only ${Math.round(matchup.speedRaceWinRate * 100)}% of turns`);
+      sentence += ` You only won the speed race ${Math.round(matchup.speedRaceWinRate * 100)}% of the time.`;
     }
-    reads.push({sentence, evidence});
+    lines.push(sentence);
   }
 
-  // Read 2: your earliest faint.
+  // Line 3: your earliest faint.
   const faint = matchup.earliestFaints[0];
   if (faint) {
     const monName = speciesName(gen, faint.speciesId);
     const cause = faint.topCause ? ` to ${speciesName(gen, faint.topCause)}` : '';
-    reads.push({
-      sentence: `${monName} went down first (turn ~${Math.round(faint.meanTurn)}${cause}): the hole opened early.`,
-      evidence: [
-        `${monName}: fainted turn ${Math.round(faint.meanTurn)}${cause}`,
-        ...matchup.mostWork.slice(0, 3).map(w => `${speciesName(gen, w.speciesId)} dealt ${Math.round(w.totalDamageFrac * 100)}% total HP`),
-      ],
-    });
+    lines.push(`${monName} was first to go down (turn ~${Math.round(faint.meanTurn)}${cause}): that's when things started slipping.`);
   }
 
-  // Prescriptive follow-ups: calc-backed "what to change" reads against the
-  // team that ended the run (sample-size-free — pure pairing math).
-  const prescriptive = calcSuggestions(ctx, matchup)
-    .slice(0, 2)
-    .map(s => ({sentence: s.sentence, evidence: s.evidence}));
-
-  return [...reads.slice(0, 2), ...prescriptive];
+  return lines.slice(0, 3);
 }
 
-function flawlessReads(gen: Generation, battles: PlayedBattle[]): PostMortemRead[] {
+function flawlessRecap(gen: Generation, battles: PlayedBattle[]): string[] {
   // Fold damage + faints across all six wins (stats-only, no calc needed).
   const damage = new Map<string, number>();
   const faintCounts = new Map<string, number>();
@@ -114,25 +121,25 @@ function flawlessReads(gen: Generation, battles: PlayedBattle[]): PostMortemRead
   const mvp = [...damage.entries()].sort((a, b) => b[1] - a[1])[0];
   const weakest = [...faintCounts.entries()].sort((a, b) => b[1] - a[1])[0];
 
-  const reads: PostMortemRead[] = [];
+  const lines: string[] = [];
   if (mvp && totalDamage > 0) {
-    reads.push({
-      sentence: `${speciesName(gen, mvp[0])} carried the run: ${Math.round((mvp[1] / totalDamage) * 100)}% of all damage dealt.`,
-      evidence: [...damage.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 6)
-        .map(([id, frac]) => `${speciesName(gen, id)}: ${Math.round(frac * 100)}% total HP dealt across 6 games`),
-    });
+    lines.push(`${speciesName(gen, mvp[0])} was the real MVP: ${Math.round((mvp[1] / totalDamage) * 100)}% of the damage across all six wins.`);
   }
+
+  // The single biggest hit across the whole run, mined from every battle's
+  // own log (not just the folded aggregate — a real moment, not a stat).
+  let bestHit: BattleHighlight | undefined;
+  for (const battle of battles) {
+    if (!battle.result.protocolLog) continue;
+    const hit = findBiggestHit(battle.result.protocolLog);
+    if (hit && (!bestHit || hit.pct > bestHit.pct)) bestHit = hit;
+  }
+  if (bestHit) lines.push(biggestHitOfRunSentence(bestHit));
+
   if (weakest && weakest[1] >= 2) {
-    reads.push({
-      sentence: `${speciesName(gen, weakest[0])} fainted in ${weakest[1]} of 6 games: the next field might punish that.`,
-      evidence: [...faintCounts.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .map(([id, count]) => `${speciesName(gen, id)}: fainted in ${count} game${count === 1 ? '' : 's'}`),
-    });
+    lines.push(`${speciesName(gen, weakest[0])} took the L in ${weakest[1]} of 6 games: the one shaky link in an otherwise flawless run.`);
   }
-  return reads.slice(0, 2);
+  return lines.slice(0, 3);
 }
 
 export function buildPostMortem(
@@ -147,7 +154,7 @@ export function buildPostMortem(
   const record = `${wins}–${losses}`;
 
   if (outcome === 'flawless') {
-    return {headline: 'Flawless.', record: '6–0', reads: flawlessReads(gen, battles)};
+    return {headline: 'Flawless.', record: '6–0', lines: flawlessRecap(gen, battles)};
   }
 
   const last = battles[battles.length - 1];
@@ -158,6 +165,6 @@ export function buildPostMortem(
       ? `Stalled out in game ${battles.length} vs ${opponent.name}.`
       : `Eliminated in game ${battles.length} by ${opponent.name}.`,
     record,
-    reads: eliminatedReads(gen, userTeam, opponent, last),
+    lines: eliminatedRecap(gen, userTeam, opponent, last),
   };
 }

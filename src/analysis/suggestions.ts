@@ -5,9 +5,11 @@ import type {ArchetypeCard, MatchupAggregate} from './stats';
 
 /**
  * Prescriptive "what to change" reads, mined from the same aggregates and calc
- * primitives the descriptive dashboard already trusts. Each suggestion mirrors
- * PostMortemRead's {sentence, evidence[]} shape so the existing expandable
- * Read UI renders it unchanged.
+ * primitives the descriptive dashboard already trusts. Each suggestion is
+ * shaped {sentence, evidence[]} so the existing expandable ReadItem UI
+ * renders it unchanged — Test your team's Dashboard only; the "Can you 6-0?"
+ * gauntlet's run recap (postmortem.ts) intentionally does NOT use these
+ * (that screen wants fun, always-visible prose, not "show the calc").
  *
  * Every heuristic is thresholded with a minimum sample size so a 10-battle
  * gut-check doesn't fire confident advice. Tera-timing suggestions are future

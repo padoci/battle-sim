@@ -2843,6 +2843,16 @@ button.primary:disabled {
   margin: 0 0 0.35rem;
 }
 
+/* Run recap lines: flowing hype-recap prose, not a structured evidence
+   checklist (that's the Lab's job — see .pm-read/.pm-toggle/.pm-evidence,
+   still used by Dashboard.tsx's "What to change" and untouched here). */
+.recap-line {
+  margin: 0.55rem 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
 .result-actions {
   margin-top: 1.5rem;
   display: flex;

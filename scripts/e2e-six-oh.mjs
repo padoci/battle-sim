@@ -3,7 +3,7 @@
  * Leader, Easy, Hard): landing -> Gym Leader bundle draft (6 pre-made
  * options, Species Clause, ladder with 5 distinct-signature-type leaders +
  * a champion last) -> gauntlet (battle intro, Gen 5 battle stage streaming
- * live from the search; ?speed=30 fast-forward) -> result with post-mortem ->
+ * live from the search; ?speed=30 fast-forward) -> result with a fun run recap ->
  * "Step up to Normal" -> Draft again. Plus Normal and Hard bundle spot-checks.
  * The Easy/Hard opponent pool is the built-in teams merged with mocked
  * external sample teams (crob.at + pokepaste); Gym Leader's pool is the
@@ -314,7 +314,7 @@ async function main() {
     if (!page.url().includes('/sixoh/result')) fail('run never reached the result screen (timed out)');
     ok('gauntlet streamed + replayed to completion with no skip control');
 
-    // 6. Result + post-mortem.
+    // 6. Result + run recap.
     await page.waitForSelector('.result-card', {timeout: 30_000});
     const record = await page.locator('.result-record').textContent();
     if (!/^\d–\d$/.test(record.trim())) fail(`record should render like 4–2, got: ${record}`);
@@ -333,16 +333,15 @@ async function main() {
     const recapIcons = await page.locator('.team-recap .team-icon').count();
     if (recapIcons !== 6) fail(`team recap should show 6 drafted mons, got ${recapIcons}`);
     ok('drafted-team recap shows all six');
-    const reads = await page.locator('.pm-read').count();
-    if (reads < 1) fail('post-mortem should have at least one read');
-    const toggle = page.locator('.pm-toggle').first();
-    if (await toggle.count()) {
-      await toggle.click();
-      const evidence = await page.locator('.pm-evidence li').count();
-      if (evidence < 1) fail('expandable evidence should have mono lines');
+    // The run recap is fun, always-visible prose now — no "show the calc"
+    // toggle (that stays exclusive to Test your team's Dashboard).
+    const recapLines = await page.locator('.recap-line').count();
+    if (recapLines < 1) fail('run recap should have at least one line');
+    if (await page.locator('.pm-toggle, .pm-evidence').count()) {
+      fail('the 6-0 recap should never show a "show the calc" toggle');
     }
     await page.screenshot({path: `${shotsDir}/e2e-sixoh-result.png`, fullPage: true});
-    ok(`result: "${headline.trim()}" (${record.trim()}) with ${reads} post-mortem read(s)`);
+    ok(`result: "${headline.trim()}" (${record.trim()}) with ${recapLines} recap line(s)`);
 
     // 7. Back from the result must NOT loop straight back to it (bug fix).
     await page.goBack();

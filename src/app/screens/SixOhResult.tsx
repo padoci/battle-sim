@@ -4,7 +4,6 @@ import {gen9} from '../../data/gen';
 import {buildPostMortem} from '../../analysis/postmortem';
 import type {PokemonSet} from '../../data/types';
 import type {DraftMode} from '../../draft/draft';
-import {ReadItem as Read} from '../components/ReadItem';
 import {TrainerPortrait} from '../components/TrainerPortrait';
 import {MODE_LABELS} from '../sixoh/modeLabels';
 import {resetSixOhSession} from '../sixoh/session';
@@ -110,10 +109,10 @@ export function SixOhResult() {
         )}
 
         <section className="post-mortem">
-          <h3>Post-mortem</h3>
-          {postMortem.reads.length === 0 && <p className="hint">Clean sweep, nothing to autopsy.</p>}
-          {postMortem.reads.map((read, i) => (
-            <Read key={i} sentence={read.sentence} evidence={read.evidence} />
+          <h3>The Recap</h3>
+          {postMortem.lines.length === 0 && <p className="hint">Clean sweep: no real story to tell, you just won.</p>}
+          {postMortem.lines.map((line, i) => (
+            <p key={i} className="recap-line">{line}</p>
           ))}
         </section>
 
