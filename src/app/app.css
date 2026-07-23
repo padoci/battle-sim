@@ -3308,6 +3308,533 @@ button.primary:disabled {
   100% { transform: translateX(120%); opacity: 0; }
 }
 
+/* ---- Batch 3: 30 more signature moves ---- */
+
+/* -- Impact-hooked physical moves -- */
+
+.fx-signature-flip-turn.lunge-right {
+  animation: flipTurnRight 0.34s ease-in-out;
+}
+
+.fx-signature-flip-turn.lunge-left {
+  animation: flipTurnLeft 0.34s ease-in-out;
+}
+
+@keyframes flipTurnRight {
+  40%, 70% { transform: translate(46px, -16px); }
+}
+
+@keyframes flipTurnLeft {
+  40%, 70% { transform: translate(-46px, 16px); }
+}
+
+.fx-signature-flip-turn.impact::after {
+  width: 80px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #fff 0%, var(--fx-color, #6890f0) 55%, transparent 80%);
+  animation: flipTurnSplash 0.26s ease-out;
+}
+
+@keyframes flipTurnSplash {
+  0% { transform: translate(-50%, -50%) scale(0.3, 0.6); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4, 1); opacity: 0; }
+}
+
+.fx-signature-ice-punch.impact::after {
+  width: 50px;
+  height: 50px;
+  border-radius: 40% 40% 40% 10%;
+  background: linear-gradient(135deg, #fff 0%, var(--fx-color, #98d8d8) 55%, transparent 85%);
+  animation: icePunchCrack 0.24s ease-out;
+}
+
+@keyframes icePunchCrack {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(-10deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3) rotate(5deg); opacity: 0; }
+}
+
+.fx-signature-brave-bird.lunge-right {
+  animation: braveBirdDive 0.3s cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+.fx-signature-brave-bird.lunge-left {
+  animation: braveBirdDiveL 0.3s cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+@keyframes braveBirdDive {
+  40% { transform: translate(52px, -30px) rotate(15deg); }
+}
+
+@keyframes braveBirdDiveL {
+  40% { transform: translate(-52px, 30px) rotate(-15deg); }
+}
+
+.fx-signature-brave-bird.impact::after {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #a98ff3) 40%, transparent 70%);
+  animation: braveBirdFlash 0.24s ease-out;
+}
+
+@keyframes braveBirdFlash {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+.fx-signature-ivy-cudgel.impact::after {
+  width: 60px;
+  height: 90px;
+  border-radius: 30% 30% 50% 50%;
+  background: linear-gradient(180deg, #8a6a3a 0%, var(--fx-color, #7ac74c) 45%, transparent 85%);
+  animation: ivyCudgelSwing 0.28s ease-out;
+}
+
+@keyframes ivyCudgelSwing {
+  0% { transform: translate(-90%, -80%) rotate(-60deg) scale(0.6); opacity: 1; }
+  100% { transform: translate(-10%, -20%) rotate(30deg) scale(1.1); opacity: 0; }
+}
+
+.fx-signature-stone-edge.impact::after {
+  width: 90px;
+  height: 90px;
+  clip-path: polygon(20% 100%, 30% 30%, 40% 100%, 50% 10%, 60% 100%, 70% 30%, 80% 100%);
+  background: var(--fx-color, #b6a136);
+  animation: stoneEdgeJut 0.3s ease-out;
+}
+
+@keyframes stoneEdgeJut {
+  0% { transform: translate(-50%, -10%) scaleY(0.2); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -45%) scaleY(1.1); opacity: 0; }
+}
+
+.fx-signature-poison-jab.impact::after {
+  width: 60px;
+  height: 20px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, transparent, #eabaf0, var(--fx-color, #a33ea1));
+  animation: poisonJabStrike 0.2s ease-out;
+}
+
+@keyframes poisonJabStrike {
+  0% { transform: translate(-50%, -50%) scaleX(0.2) rotate(-25deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scaleX(1.5) rotate(-25deg); opacity: 0; }
+}
+
+.fx-signature-superpower.impact::after {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #c22e28) 45%, transparent 75%);
+  animation: superpowerCrush 0.3s ease-out;
+}
+
+@keyframes superpowerCrush {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+
+.fx-signature-heavy-slam.impact::after {
+  top: 85%;
+  width: 100px;
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, var(--fx-color, #b7b7ce) 0%, transparent 70%);
+  animation: heavySlamShock 0.3s ease-out;
+}
+
+@keyframes heavySlamShock {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+}
+
+.fx-signature-dragon-tail.impact::after {
+  width: 100px;
+  height: 18px;
+  border-radius: 9px;
+  background: linear-gradient(90deg, transparent, var(--fx-color, #6f35fc), transparent);
+  animation: dragonTailWhip 0.26s ease-out;
+}
+
+@keyframes dragonTailWhip {
+  0% { transform: translate(-50%, -50%) rotate(20deg) scaleX(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(-20deg) scaleX(1.5); opacity: 0; }
+}
+
+.fx-signature-facade.impact::after {
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #a8a77a) 50%, transparent 78%);
+  animation: facadeFlash 0.22s ease-out;
+}
+
+@keyframes facadeFlash {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+}
+
+.fx-signature-nuzzle.impact::after {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff8c0 0%, var(--fx-color, #f7d02c) 55%, transparent 80%);
+  animation: nuzzleSpark 0.36s ease-in-out;
+}
+
+@keyframes nuzzleSpark {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.8; }
+  50% { transform: translate(-40%, -55%) scale(0.7); opacity: 1; }
+}
+
+.fx-signature-thunderclap.lunge-right {
+  animation: thunderclapRight 0.1s linear;
+}
+
+.fx-signature-thunderclap.lunge-left {
+  animation: thunderclapLeft 0.1s linear;
+}
+
+@keyframes thunderclapRight {
+  50% { transform: translate(48px, -18px); }
+}
+
+@keyframes thunderclapLeft {
+  50% { transform: translate(-48px, 18px); }
+}
+
+.fx-signature-thunderclap.impact::after {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff8c0 0%, var(--fx-color, #f7d02c) 45%, transparent 75%);
+  animation: thunderclapFlash 0.14s ease-out;
+}
+
+@keyframes thunderclapFlash {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+/* -- Special beam-hooked moves -- */
+
+.fx-signature-psychic.impact::after {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: repeating-radial-gradient(circle, var(--fx-color, #f95587) 0 4px, transparent 4px 10px);
+  animation: psychicWarp 0.36s ease-out;
+}
+
+@keyframes psychicWarp {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+.fx-signature-focus-blast.lunge-right::after,
+.fx-signature-focus-blast.lunge-left::after {
+  width: 24px;
+  height: 24px;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #c22e28) 60%, #6b1712 90%);
+}
+
+.fx-signature-focus-blast.impact::after {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #c22e28) 40%, transparent 72%);
+  animation: focusBlastBurst 0.34s ease-out;
+}
+
+@keyframes focusBlastBurst {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+
+.fx-signature-hurricane.impact::after {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: conic-gradient(transparent, var(--fx-color, #a98ff3), transparent 40%, var(--fx-color, #a98ff3) 60%, transparent);
+  animation: hurricaneSpin 0.42s linear;
+}
+
+@keyframes hurricaneSpin {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4) rotate(300deg); opacity: 0; }
+}
+
+.fx-signature-dragon-pulse.impact::after {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 4px solid var(--fx-color, #6f35fc);
+  background: radial-gradient(circle, rgba(111, 53, 252, 0.3), transparent 70%);
+  animation: dragonPulseRing 0.4s ease-out;
+}
+
+@keyframes dragonPulseRing {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+.fx-signature-dark-pulse.impact::after {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: repeating-radial-gradient(circle, var(--fx-color, #705746) 0 3px, transparent 3px 9px);
+  animation: darkPulseRings 0.38s ease-out;
+}
+
+@keyframes darkPulseRings {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+.fx-signature-fire-blast.impact::after {
+  width: 90px;
+  height: 90px;
+  background:
+    linear-gradient(45deg, transparent 44%, #fff3c0 47%, var(--fx-color, #f08030) 50%, transparent 54%),
+    linear-gradient(-45deg, transparent 44%, #fff3c0 47%, var(--fx-color, #f08030) 50%, transparent 54%),
+    linear-gradient(0deg, transparent 44%, #fff3c0 47%, var(--fx-color, #f08030) 50%, transparent 54%);
+  animation: fireBlastX 0.34s ease-out;
+}
+
+@keyframes fireBlastX {
+  0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4) rotate(20deg); opacity: 0; }
+}
+
+.fx-signature-dazzling-gleam.impact::after {
+  width: 90px;
+  height: 90px;
+  background-image:
+    radial-gradient(circle, #fff 0 3px, transparent 4px),
+    radial-gradient(circle, var(--fx-color, #d685ad) 0 4px, transparent 5px),
+    radial-gradient(circle, #fff 0 3px, transparent 4px),
+    radial-gradient(circle, var(--fx-color, #d685ad) 0 4px, transparent 5px),
+    radial-gradient(circle, #fff 0 2px, transparent 3px);
+  background-position: 15% 20%, 75% 15%, 30% 75%, 80% 65%, 50% 45%;
+  background-repeat: no-repeat;
+  animation: dazzlingSparkle 0.42s ease-out;
+}
+
+@keyframes dazzlingSparkle {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+}
+
+.fx-signature-surf.impact::after {
+  width: 120px;
+  height: 50px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #fff 0%, var(--fx-color, #6390f0) 50%, transparent 80%);
+  animation: surfCrash 0.36s ease-out;
+}
+
+@keyframes surfCrash {
+  0% { transform: translate(-50%, -50%) scale(0.3, 0.6); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5, 1.1); opacity: 0; }
+}
+
+/* -- Special drain moves: shrink INWARD (opposite of every other burst)
+   instead of expanding outward — reads as energy being pulled away rather
+   than released. -- */
+
+.fx-signature-giga-drain.impact::after {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #d0ffb0 0%, var(--fx-color, #7ac74c) 55%, transparent 80%);
+  animation: gigaDrainPull 0.4s ease-in;
+}
+
+@keyframes gigaDrainPull {
+  0% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+}
+
+.fx-signature-draining-kiss.impact::after {
+  width: 50px;
+  height: 44px;
+  clip-path: polygon(50% 100%, 10% 55%, 10% 25%, 30% 5%, 50% 25%, 70% 5%, 90% 25%, 90% 55%);
+  background: radial-gradient(circle, #ffd6e8 0%, var(--fx-color, #d685ad) 60%, transparent 85%);
+  animation: drainingKissShrink 0.4s ease-in;
+}
+
+@keyframes drainingKissShrink {
+  0% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+}
+
+/* -- Self lunge-hooked moves -- */
+
+.fx-signature-iron-defense.lunge-right::before,
+.fx-signature-iron-defense.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  width: 70px;
+  height: 70px;
+  border-radius: 20%;
+  border: 3px solid #d8d8e0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), transparent);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: ironDefenseForm 0.5s ease-out;
+}
+
+@keyframes ironDefenseForm {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(-10deg); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.1) rotate(0deg); opacity: 0; }
+}
+
+.fx-signature-nasty-plot.lunge-right::before,
+.fx-signature-nasty-plot.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #705746 0%, transparent 70%);
+  box-shadow: 0 0 12px 4px rgba(112, 87, 70, 0.6);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: nastyPlotGleam 0.55s ease-out;
+}
+
+@keyframes nastyPlotGleam {
+  0% { transform: translate(-50%, -50%) scale(0.2) rotate(0deg); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3) rotate(120deg); opacity: 0; }
+}
+
+.fx-signature-bulk-up.lunge-right::before,
+.fx-signature-bulk-up.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(194, 46, 40, 0.5), transparent 70%);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: bulkUpFlex 0.45s ease-out;
+}
+
+@keyframes bulkUpFlex {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+.fx-signature-substitute.lunge-right::before,
+.fx-signature-substitute.lunge-left::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 30px;
+  height: 40px;
+  border-radius: 40% 40% 10% 10%;
+  background: linear-gradient(#e8d4a0, #c9a865);
+  border: 2px solid #8a6a3a;
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: substituteDoll 0.4s ease-out;
+}
+
+@keyframes substituteDoll {
+  0% { transform: translate(-50%, 20px) scale(0.5); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: translate(-50%, 0) scale(1); opacity: 0.9; }
+}
+
+/* Rest: a literal "z" glyph rather than a shape — a distinct enough motif
+   that a shape would just be a duplicate of some other move's blob. */
+.fx-signature-rest.lunge-right::before,
+.fx-signature-rest.lunge-left::before {
+  content: 'z';
+  position: absolute;
+  top: 15%;
+  left: 60%;
+  color: #7ecbff;
+  font: 700 20px var(--font-mono, monospace);
+  text-shadow: 0 0 6px rgba(126, 203, 255, 0.8);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: restZzz 0.7s ease-out;
+}
+
+@keyframes restZzz {
+  0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -30px) scale(1.4); opacity: 0; }
+}
+
+/* -- Target-status moves: STATUS_SIGNATURE_TARGETS in replay/view.ts. -- */
+
+.fx-signature-trick.impact::after {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #fff, var(--fx-color, #f95587));
+  animation: trickSwap 0.4s ease-in-out;
+}
+
+@keyframes trickSwap {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(0deg); opacity: 0; }
+  50% { transform: translate(-50%, -50%) scale(1.1) rotate(180deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.8) rotate(360deg); opacity: 0; }
+}
+
+.fx-signature-roar.impact::after {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 4px solid rgba(168, 167, 122, 0.8);
+  background: radial-gradient(circle, rgba(168, 167, 122, 0.3), transparent 70%);
+  animation: roarShockwave 0.4s ease-out;
+}
+
+@keyframes roarShockwave {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+}
+
+/* Encore: a literal repeat glyph, same idiom as Rest's "z". */
+.fx-signature-encore.impact::after {
+  content: '\21bb';
+  width: auto;
+  height: auto;
+  background: none;
+  color: var(--fx-color, #a8a77a);
+  font-size: 28px;
+  font-weight: 700;
+  animation: encoreSpin 0.5s ease-out;
+}
+
+@keyframes encoreSpin {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(0deg); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3) rotate(200deg); opacity: 0; }
+}
+
 /* Mid-battle switch-in: a small pop up from the platform. */
 /* Incoming mon: delayed so its ball lands first (backwards-fill keeps it
    hidden through the delay). Shared by mid-battle switch-ins and the

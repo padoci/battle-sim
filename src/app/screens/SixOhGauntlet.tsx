@@ -305,6 +305,42 @@ const SIGNATURE_MOVES = new Set([
   // Field-hooked moves.
   'Spikes',
   'Defog',
+  // -- Batch 3 --
+  // Impact-hooked physical moves.
+  'Flip Turn',
+  'Ice Punch',
+  'Brave Bird',
+  'Ivy Cudgel',
+  'Stone Edge',
+  'Poison Jab',
+  'Superpower',
+  'Heavy Slam',
+  'Dragon Tail',
+  'Facade',
+  'Nuzzle',
+  'Thunderclap',
+  // Special beam-hooked moves.
+  'Psychic',
+  'Focus Blast',
+  'Hurricane',
+  'Dragon Pulse',
+  'Dark Pulse',
+  'Fire Blast',
+  'Dazzling Gleam',
+  'Surf',
+  // Special drain moves (beam-hooked, plus a heal-tinted arrival).
+  'Giga Drain',
+  'Draining Kiss',
+  // Self lunge-hooked moves.
+  'Iron Defense',
+  'Nasty Plot',
+  'Bulk Up',
+  'Substitute',
+  'Rest',
+  // Target-status moves (see STATUS_SIGNATURE_TARGETS in replay/view.ts).
+  'Trick',
+  'Roar',
+  'Encore',
 ]);
 
 function signatureSlug(move: string | undefined): string | undefined {

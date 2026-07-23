@@ -60,7 +60,15 @@ const HAZARDS = new Set(['Stealth Rock', 'Spikes', 'Toxic Spikes', 'Sticky Web',
 /** Status-category moves that still visibly land on the opponent — see the
  * 'move' case below. Deliberately small: every other status move keeps the
  * default self-glow-only treatment. */
-const STATUS_SIGNATURE_TARGETS = new Set(['Toxic', 'Will-O-Wisp', 'Thunder Wave', 'Taunt']);
+const STATUS_SIGNATURE_TARGETS = new Set([
+  'Toxic',
+  'Will-O-Wisp',
+  'Thunder Wave',
+  'Taunt',
+  'Trick',
+  'Roar',
+  'Encore',
+]);
 
 export function initView(teams: [PokemonSet[], PokemonSet[]]): ViewState {
   const side = (sets: PokemonSet[]): SideView => ({
