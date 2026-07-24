@@ -12,6 +12,7 @@ import {sampleGymLeaders, sampleOpponents} from '../../draft/opponents';
 import {navigate} from '../router';
 import {typeColor, typeGradient, typeBorderGradient} from '../sixoh/typeColors';
 import {readDevParams} from '../sixoh/devParams';
+import {preloadScenes} from '../sixoh/scenes';
 import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/state';
 import {MODE_LABELS} from '../sixoh/modeLabels';
 import {resetSixOhSession} from '../sixoh/session';
@@ -165,6 +166,14 @@ export function SixOhDraft() {
     const raw = new URLSearchParams(location.hash.split('?')[1] ?? '').get('mode');
     if (raw === 'normal') return 'easy'; // display-name alias for the old id
     return raw === 'easy' || raw === 'hard' || raw === 'gymleader' ? raw : 'gymleader';
+  }, []);
+
+  // Warm the battle backgrounds while the player drafts, so the first battle's
+  // intro doesn't play over the stage's flat fallback colour. Every route into
+  // a gauntlet comes through here, and drafting takes far longer than the
+  // ~32KB this fetches.
+  useEffect(() => {
+    preloadScenes();
   }, []);
 
   // Load pool + sets + both opponent pools, then deal the first hand. Guarded

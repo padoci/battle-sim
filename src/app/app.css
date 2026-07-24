@@ -1919,7 +1919,10 @@ button.primary:disabled {
 .stage-field {
   position: relative;
   height: 300px;
-  background: #7fb4d6 center/cover;
+  /* Fallback shown until the scene PNG lands (preloaded during the draft, so
+     rarely, but a cold cache on a slow line still hits it). Roughly the mean
+     of the four scenes — all of which are green or tan, none blue. */
+  background: #a1b88d center/cover;
   overflow: hidden;
 }
 
