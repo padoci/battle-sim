@@ -8,6 +8,7 @@ import {navigate} from '../router';
 import {readDevParams} from '../sixoh/devParams';
 import {signatureSlug} from '../sixoh/fx';
 import {BATTLE_SCENES, sceneUrl} from '../sixoh/scenes';
+import {FIELD_CLASSES, useFxRestart} from '../sixoh/useFxRestart';
 import {ensureComputed, resetSixOhSession, retryBattle} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/state';
 import {typeColor} from '../sixoh/typeColors';
@@ -379,38 +380,65 @@ function BattleStage({
   const sceneNum = ((sceneIndex % 4) + 4) % 4;
   const scene = BATTLE_SCENES[sceneNum];
 
+  // The holders persist across beats now (keyed on species, so only a real
+  // switch rebuilds them); these restart the FX in place instead. Animations
+  // are also compressed at high speed so an effect keeps occupying the same
+  // fraction of a beat rather than being cut off by the next one.
+  const fxRate = Math.max(1, speed);
+  const theirsRef = useFxRestart<HTMLDivElement>(fxKey, fxRate);
+  const mineRef = useFxRestart<HTMLDivElement>(fxKey, fxRate);
+  const fieldRef = useFxRestart<HTMLDivElement>(fxKey, fxRate, FIELD_CLASSES);
+
   return (
     <>
       <div className="battle-frame">
         <div className="battle-stage">
-          <div className={fieldClasses} style={{backgroundImage: `url(${sceneUrl(scene.file)})`}}>
+          <div ref={fieldRef} className={fieldClasses} style={{backgroundImage: `url(${sceneUrl(scene.file)})`}}>
             <HazardCorner side={1} hazards={view.sides[1].hazards} />
             <HazardCorner side={0} hazards={view.sides[0].hazards} />
             <span className="ground-shadow theirs" />
             <span className="ground-shadow mine" />
 
             {outgoingFor(1) && (
-              <div key={`t-out-${fxKey}`} className="sprite-holder theirs switch-out">
+              <div key={`t-out-${outgoingFor(1)}`} className="sprite-holder theirs switch-out">
                 <SpriteWithFallback species={outgoingFor(1)!} back={false} />
               </div>
             )}
             {theirs && !theirs.fainted && (
-              <div key={`t-${fxKey}`} className={holderClasses(1, 'lunge-left')} style={holderStyle(1)}>
+              <div
+                key={`t-${theirs.species}`}
+                ref={theirsRef}
+                className={holderClasses(1, 'lunge-left')}
+                style={holderStyle(1)}
+              >
                 <SpriteWithFallback species={theirs.species} back={false} />
                 {showBall(1) && <span className="switch-ball" aria-hidden="true" />}
-                {fxFor(1, 'float') && <span className="float-num">{fxFor(1, 'float')!.text}</span>}
+                {fxFor(1, 'float') && (
+                  <span key={fxKey} className="float-num">
+                    {fxFor(1, 'float')!.text}
+                  </span>
+                )}
               </div>
             )}
             {outgoingFor(0) && (
-              <div key={`m-out-${fxKey}`} className="sprite-holder mine switch-out">
+              <div key={`m-out-${outgoingFor(0)}`} className="sprite-holder mine switch-out">
                 <SpriteWithFallback species={outgoingFor(0)!} back={true} />
               </div>
             )}
             {mine && !mine.fainted && (
-              <div key={`m-${fxKey}`} className={holderClasses(0, 'lunge-right')} style={holderStyle(0)}>
+              <div
+                key={`m-${mine.species}`}
+                ref={mineRef}
+                className={holderClasses(0, 'lunge-right')}
+                style={holderStyle(0)}
+              >
                 <SpriteWithFallback species={mine.species} back={true} />
                 {showBall(0) && <span className="switch-ball" aria-hidden="true" />}
-                {fxFor(0, 'float') && <span className="float-num">{fxFor(0, 'float')!.text}</span>}
+                {fxFor(0, 'float') && (
+                  <span key={fxKey} className="float-num">
+                    {fxFor(0, 'float')!.text}
+                  </span>
+                )}
               </div>
             )}
 

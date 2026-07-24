@@ -197,6 +197,45 @@ test('reduced motion still suppresses the relocated flash', async ({page}, testI
   expect(status.spriteAnim).toBe('none');
 });
 
+test('the sprite element survives the replay instead of remounting each beat', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'replay behaviour is viewport-independent');
+  test.slow();
+
+  await page.goto('/#/sixoh?config=fast&seed=41');
+  await page.waitForSelector('.offer-card', {timeout: 120_000});
+  for (let i = 0; i < 6; i++) {
+    await page.locator('.offer-card').first().click();
+    await page.waitForTimeout(120);
+  }
+  await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
+  await page.waitForSelector('.hp-bar', {timeout: 120_000});
+  await page.waitForTimeout(1_000);
+
+  // Tag the live <img> and the mon it belongs to. The holder is keyed on
+  // species, so a switch legitimately rebuilds it; anything else must not.
+  // Beats used to bump a counter used as the React key, which destroyed and
+  // rebuilt this element ~2.3x/second and left it unpainted for 13-16% of
+  // frames.
+  const before = await page.evaluate(() => {
+    const img = document.querySelector('.sprite-holder.mine img.stage-sprite') as (HTMLImageElement & {__tag?: string}) | null;
+    if (img) img.__tag = 'original';
+    return {tagged: !!img, species: img?.getAttribute('alt') ?? null};
+  });
+  expect(before.tagged, 'expected a player sprite on the field to tag').toBe(true);
+
+  // Several beats at the shipped default pace (a move beat is 1200ms).
+  await page.waitForTimeout(5_000);
+
+  const after = await page.evaluate(() => {
+    const img = document.querySelector('.sprite-holder.mine img.stage-sprite') as (HTMLImageElement & {__tag?: string}) | null;
+    return {tag: img?.__tag ?? null, species: img?.getAttribute('alt') ?? null};
+  });
+
+  // Only assert when the same mon is still out; a switch is allowed to remount.
+  test.skip(after.species !== before.species, `player switched (${before.species} -> ${after.species})`);
+  expect(after.tag, 'the sprite <img> was rebuilt mid-replay without a switch').toBe('original');
+});
+
 test('the battle stage never forces horizontal page scroll', async ({page}, testInfo) => {
   test.skip(!testInfo.project.name.includes('mobile'), 'overflow only bites on a narrow viewport');
   test.slow();
