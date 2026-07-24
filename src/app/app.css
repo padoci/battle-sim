@@ -1781,12 +1781,21 @@ button.primary:disabled {
 
 .arena {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  /* minmax(0, …) not 1fr: a grid track's default `auto` floor is min-content,
+     so one wide child (the team-icon rows) can drag the viewport into
+     horizontal scroll. Same guard as `main.screen`'s min-width above. */
+  grid-template-columns: 220px minmax(0, 1fr);
   gap: 1.4rem;
   width: 100%;
   max-width: 1180px;
   margin: 0 auto;
   padding: 1.5rem;
+}
+
+/* Grid items default to `min-width: auto`, so this column would refuse to
+   shrink below its widest child and push the page sideways. */
+.gauntlet-main {
+  min-width: 0;
 }
 
 .gauntlet-rail .record {
@@ -8084,8 +8093,14 @@ button.primary:disabled {
   font-weight: 600;
 }
 
+/* Two 6-icon team rows sit at an INLINE 40px each (from @pkmn/img's
+   spritesheet CSS, so overriding `width` would crop rather than scale). That
+   made this row's min-content ~533px, which propagated out through the grid
+   track and forced the whole page into horizontal scroll on a phone — the
+   stage itself has no width rule at all. Wrapping drops it to one team row. */
 .stage-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   margin: 0.75rem 0.15rem 0;
@@ -8455,7 +8470,7 @@ button.primary:disabled {
 /* ---- Responsive ---- */
 @media (max-width: 900px) {
   .arena {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -8553,6 +8568,12 @@ button.primary:disabled {
   }
   .hp-bar {
     min-width: 70px;
+  }
+  /* Wrapped (see .stage-meta): centre the rows and give the wrapped line a
+     little breathing room instead of leaving them pinned to the edges. */
+  .stage-meta {
+    justify-content: center;
+    gap: 0.35rem 0.5rem;
   }
   .shell-header {
     padding: 0.6rem 1rem;
