@@ -2103,18 +2103,42 @@ button.primary:disabled {
   35% { transform: translate(-42px, 16px); }
 }
 
-/* Getting hit: recoil + white flash + a shake, so a hit actually lands. */
+/* Getting hit: recoil + white flash + a shake, so a hit actually lands.
+
+   The recoil and the flash are two animations on two elements on purpose.
+   `filter` on the holder also filters its ::before/::after — which is where
+   every per-type and signature burst is drawn — so a single combined
+   keyframe multiplied those bursts by brightness(2.8→1.3) for the first
+   ~190ms. That is exactly the 80-150ms window where a burst is most legible
+   (it has grown but not yet faded), so Fire orange, Ghost purple and Grass
+   green all flattened to the same pale cream and --fx-color did nothing.
+   Keeping the flash on the sprite leaves the burst its own colour. */
 .impact {
-  animation: impact 0.42s ease-out;
+  animation: impactShake 0.42s ease-out;
 }
 
-@keyframes impact {
-  0% { transform: translateX(0) scale(1); filter: none; }
-  14% { transform: translateX(7px) scale(0.9); filter: brightness(2.8) contrast(1.2); }
-  30% { transform: translateX(-6px) scale(0.95); filter: brightness(1.9); }
-  46% { transform: translateX(5px); filter: brightness(1.3); }
+@keyframes impactShake {
+  0% { transform: translateX(0) scale(1); }
+  14% { transform: translateX(7px) scale(0.9); }
+  30% { transform: translateX(-6px) scale(0.95); }
+  46% { transform: translateX(5px); }
   62% { transform: translateX(-3px); }
-  100% { transform: translateX(0) scale(1); filter: none; }
+  100% { transform: translateX(0) scale(1); }
+}
+
+/* Filter only — never a transform. `.sprite-fallback` carries its own
+   `scale(1.7)`, which an animated transform here would stomp for 0.42s. */
+.impact .stage-sprite,
+.impact .sprite-fallback {
+  animation: impactFlash 0.42s ease-out;
+}
+
+@keyframes impactFlash {
+  0% { filter: none; }
+  14% { filter: brightness(2.8) contrast(1.2); }
+  30% { filter: brightness(1.9); }
+  46% { filter: brightness(1.3); }
+  100% { filter: none; }
 }
 
 /* Hit spark: a burst over the struck sprite (no extra DOM — pseudo-element).
@@ -2288,8 +2312,21 @@ button.primary:disabled {
 }
 
 /* Status moves: the user glows in the move's type color; no defender impact. */
+/* A status move is cast, not thrown: suppress the base lunge dash. (This
+   used to fall out of statusGlow overriding `animation` on the holder; now
+   that the glow rides the sprite, the holder needs saying explicitly or
+   Thunder Wave starts body-slamming.) */
 .fx-status.lunge-right,
 .fx-status.lunge-left {
+  animation: none;
+}
+
+/* Same split as .impact above: the glow rides the sprite, not the holder, so
+   it doesn't wash out the signature shapes drawn on the holder's pseudos. */
+.fx-status.lunge-right .stage-sprite,
+.fx-status.lunge-right .sprite-fallback,
+.fx-status.lunge-left .stage-sprite,
+.fx-status.lunge-left .sprite-fallback {
   animation: statusGlow 0.5s ease-out;
 }
 
@@ -8602,6 +8639,15 @@ button.primary:disabled {
   .lunge-right,
   .lunge-left,
   .impact,
+  /* The hit flash and the status glow live on the sprite, not the holder
+     (see .impact / .fx-status above), so suppressing the holder alone would
+     leave reduced-motion users with a brightness(2.8) strobe on every hit. */
+  .impact .stage-sprite,
+  .impact .sprite-fallback,
+  .fx-status.lunge-right .stage-sprite,
+  .fx-status.lunge-right .sprite-fallback,
+  .fx-status.lunge-left .stage-sprite,
+  .fx-status.lunge-left .sprite-fallback,
   .tera-flash,
   .faint-drop,
   .float-num,

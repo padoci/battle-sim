@@ -135,6 +135,68 @@ test('the impact burst is never suppressed outside reduced motion', async ({page
   expect(silent, `no ::after animation resolves for: ${silent.join(', ')}`).toEqual([]);
 });
 
+/** Build a holder containing a sprite and report where each animation landed. */
+async function splitProbe(page: import('@playwright/test').Page, holderClass: string) {
+  return page.evaluate(cls => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    const holder = document.createElement('div');
+    holder.className = cls;
+    const img = document.createElement('img');
+    img.className = 'stage-sprite';
+    holder.appendChild(img);
+    field.appendChild(holder);
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const out = {
+      holderAnim: getComputedStyle(holder).animationName,
+      spriteAnim: getComputedStyle(img).animationName,
+      // What the burst is multiplied by. `none` means it keeps its own colour.
+      holderFilter: getComputedStyle(holder).filter,
+    };
+    host.remove();
+    return out;
+  }, holderClass);
+}
+
+test('the hit flash rides the sprite, not the holder', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  // `filter` on the holder also filters ::before/::after, where every burst is
+  // drawn. Splitting recoil (holder) from flash (sprite) is what lets a
+  // signature shape keep its type colour through the hit.
+  const impact = await splitProbe(page, 'sprite-holder theirs impact fx-special');
+  expect(impact.holderAnim).toBe('impactShake');
+  expect(impact.spriteAnim).toBe('impactFlash');
+  expect(impact.holderFilter).toBe('none');
+
+  // Status moves are cast, not thrown: the holder must not inherit the dash.
+  const status = await splitProbe(page, 'sprite-holder mine lunge-right fx-status');
+  expect(status.holderAnim).toBe('none');
+  expect(status.spriteAnim).toBe('statusGlow');
+});
+
+test('reduced motion still suppresses the relocated flash', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  // Moving the flash off the holder moved it out from under the existing
+  // reduced-motion suppression; without the matching selectors these users
+  // would newly get a brightness(2.8) strobe on every hit.
+  const impact = await splitProbe(page, 'sprite-holder theirs impact fx-special');
+  expect(impact.holderAnim).toBe('none');
+  expect(impact.spriteAnim).toBe('none');
+
+  const status = await splitProbe(page, 'sprite-holder mine lunge-right fx-status');
+  expect(status.spriteAnim).toBe('none');
+});
+
 test('the battle stage never forces horizontal page scroll', async ({page}, testInfo) => {
   test.skip(!testInfo.project.name.includes('mobile'), 'overflow only bites on a narrow viewport');
   test.slow();
