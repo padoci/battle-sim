@@ -12,7 +12,12 @@ import {SIGNATURE_MOVES, signatureSlug} from '../../src/app/sixoh/fx';
  *
  * These tests are that check, in both directions.
  */
-const css = readFileSync(new URL('../../src/app/app.css', import.meta.url), 'utf8');
+/** Comments stripped: they discuss selectors (".fx-signature-x.impact::after")
+ * without declaring them, which would otherwise read as a rule named `x`. */
+const css = readFileSync(new URL('../../src/app/app.css', import.meta.url), 'utf8').replace(
+  /\/\*[\s\S]*?\*\//g,
+  ''
+);
 
 /**
  * Six moves are in SIGNATURE_MOVES but deliberately have no

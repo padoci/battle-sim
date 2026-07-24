@@ -6,7 +6,7 @@ import {toBeats} from '../../replay/pace';
 import type {FxItem, MonView, SideView} from '../../replay/view';
 import {navigate} from '../router';
 import {readDevParams} from '../sixoh/devParams';
-import {signatureSlug} from '../sixoh/fx';
+import {HIT_DELAY, signatureSlug} from '../sixoh/fx';
 import {BATTLE_SCENES, sceneUrl} from '../sixoh/scenes';
 import {FIELD_CLASSES, useFxRestart} from '../sixoh/useFxRestart';
 import {ensureComputed, resetSixOhSession, retryBattle} from '../sixoh/session';
@@ -56,10 +56,10 @@ function hpColor(frac: number): string {
   return '#e83c2e';
 }
 
-function HpBar({mon, side}: {mon: MonView; side: 'theirs' | 'mine'}) {
+function HpBar({mon, side, hitDelay}: {mon: MonView; side: 'theirs' | 'mine'; hitDelay?: string}) {
   const frac = mon.maxhp > 0 ? mon.hp / mon.maxhp : 0;
   return (
-    <div className={`hp-block ${side}`}>
+    <div className={`hp-block ${side}`} style={hitDelay ? ({'--fx-hit-delay': hitDelay} as CSSProperties) : undefined}>
       <div className="hp-head">
         <span className="hp-name">{mon.species}</span>
         <span className="mono hp-level">Lv100</span>
@@ -352,6 +352,15 @@ function BattleStage({
     const color = fxFlavor(side).color;
     return color ? ({'--fx-color': color} as CSSProperties) : undefined;
   };
+  /** How long this side's HP drain should wait, so it reads as caused by the
+   * hit rather than by the beat. Only when the side is actually being hit. */
+  const hitDelay = (side: 0 | 1): string | undefined => {
+    if (!fxFor(side, 'impact')) return undefined;
+    const category = fxFlavor(side).category;
+    if (category === 'fx-special') return HIT_DELAY.special;
+    if (category === 'fx-physical') return HIT_DELAY.physical;
+    return undefined;
+  };
 
   // Background flavor: a per-rung scene, tinted by live weather/terrain.
   // Class names are normalized protocol strings ("RainDance" -> wx-raindance,
@@ -442,8 +451,8 @@ function BattleStage({
               </div>
             )}
 
-            {theirs && <HpBar mon={theirs} side="theirs" />}
-            {mine && <HpBar mon={mine} side="mine" />}
+            {theirs && <HpBar mon={theirs} side="theirs" hitDelay={hitDelay(1)} />}
+            {mine && <HpBar mon={mine} side="mine" hitDelay={hitDelay(0)} />}
           </div>
 
           <div className="message-box" role="status" aria-live="polite">

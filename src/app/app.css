@@ -2141,6 +2141,48 @@ button.primary:disabled {
   100% { filter: none; }
 }
 
+/* ---- When the hit lands ----
+
+   Everything in a beat used to start on the same frame: the attacker's lunge,
+   the burst on the defender, the damage number and the HP drain. For special
+   moves that reads backwards — the projectile (`beamShotToTheirs`, 0.34s)
+   arrives at 340ms, but the burst it is supposed to cause had already bloomed
+   and faded by then.
+
+   These selectors carry the full `.battle-stage .stage-field` ancestor chain
+   for specificity (0,3,1), which outranks every `.fx-signature-x.impact::after`
+   rule at (0,2,1). That matters: all 264 signature rules declare the
+   `animation` SHORTHAND, which resets `animation-delay` to 0, so a lower- or
+   equal-specificity rule here would simply be discarded. Winning on
+   specificity rather than source order also means a future batch appended
+   anywhere in this file cannot silently re-zero the delay.
+
+   The delay is NOT divided by playback speed here: useFxRestart sets
+   `playbackRate` on the restarted animations, which compresses delay and
+   duration together. Doing both would scale it twice. */
+.fx-physical.impact {
+  --fx-hit-delay: 0.14s; /* lungeRight peaks at 35% of 0.32s */
+}
+
+.fx-special.impact {
+  --fx-hit-delay: 0.28s; /* beamShotToTheirs lands at 0.34s */
+}
+
+/* `:not()` guards are load-bearing: .lead-in and .switch-pop set their own
+   delay inside an `animation` shorthand, and a holder can be both entering
+   and getting hit in the same beat. Without these, the entrance would snap
+   to 0s. */
+.battle-stage .stage-field .impact:not(.lead-in):not(.switch-pop),
+.battle-stage .stage-field .impact::after,
+.battle-stage .stage-field .impact::before,
+/* The flash lives on the sprite now (see impactFlash), so it needs the delay
+   too — otherwise the defender lights up before the attack reaches it. */
+.battle-stage .stage-field .impact .stage-sprite,
+.battle-stage .stage-field .impact .sprite-fallback,
+.battle-stage .stage-field .float-num {
+  animation-delay: var(--fx-hit-delay, 0s);
+}
+
 /* Hit spark: a burst over the struck sprite (no extra DOM — pseudo-element).
    Colored by the incoming move's type via --fx-color (yellow-white default). */
 .impact::after {
@@ -7978,7 +8020,21 @@ button.primary:disabled {
   pointer-events: none;
 }
 
+/* The damage number waits for the hit (see --fx-hit-delay), and nothing fills
+   an animation's *before* phase, so without this it would sit on screen at
+   full opacity through the delay and only then start floating.
+
+   Scoped to no-preference on purpose: reduced motion sets `animation: none`
+   below, and a bare `opacity: 0` base would leave those users with no damage
+   numbers at all. */
+@media (prefers-reduced-motion: no-preference) {
+  .float-num {
+    opacity: 0;
+  }
+}
+
 @keyframes floatUp {
+  from { transform: translateX(-50%); opacity: 1; }
   to { transform: translate(-50%, -26px); opacity: 0; }
 }
 
@@ -8061,7 +8117,11 @@ button.primary:disabled {
 .hp-fill {
   height: 100%;
   border-radius: 4px;
+  /* Drains when the hit lands, not when the beat starts. The HP block is a
+     sibling of the sprite holder, so it can't inherit --fx-hit-delay from
+     there — BattleStage sets it inline per side. */
   transition: width 0.4s ease;
+  transition-delay: var(--fx-hit-delay, 0s);
 }
 
 /* Opponent shows only the bar (no exact number, per the real games); the

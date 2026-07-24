@@ -1,5 +1,5 @@
 import {expect, test} from '@playwright/test';
-import {SIGNATURE_MOVES, signatureSlug} from '../../src/app/sixoh/fx';
+import {HIT_DELAY, SIGNATURE_MOVES, signatureSlug} from '../../src/app/sixoh/fx';
 import {routeData} from './_helpers';
 
 /**
@@ -195,6 +195,127 @@ test('reduced motion still suppresses the relocated flash', async ({page}, testI
 
   const status = await splitProbe(page, 'sprite-holder mine lunge-right fx-status');
   expect(status.spriteAnim).toBe('none');
+});
+
+test('the hit is delayed until the attack arrives', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const delays = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const read = (cls: string, pseudo?: string) => {
+      const el = document.createElement('div');
+      el.className = cls;
+      const float = document.createElement('span');
+      float.className = 'float-num';
+      el.appendChild(float);
+      field.appendChild(el);
+      const v = pseudo
+        ? getComputedStyle(el, pseudo).animationDelay
+        : getComputedStyle(el).animationDelay;
+      const floatDelay = getComputedStyle(float).animationDelay;
+      el.remove();
+      return {v, floatDelay};
+    };
+    /** The hit flash rides the sprite, so it needs the delay too. */
+    const readSprite = (cls: string) => {
+      const el = document.createElement('div');
+      el.className = cls;
+      const img = document.createElement('img');
+      img.className = 'stage-sprite';
+      el.appendChild(img);
+      field.appendChild(el);
+      const v = getComputedStyle(img).animationDelay;
+      el.remove();
+      return v;
+    };
+    const out = {
+      physical: read('sprite-holder theirs impact fx-physical', '::after').v,
+      special: read('sprite-holder theirs impact fx-special', '::after').v,
+      // A signature rule must not re-zero it: all 264 use the `animation`
+      // shorthand, which resets animation-delay.
+      signature: read('sprite-holder theirs impact fx-special fx-signature-ice-beam', '::after').v,
+      critRing: read('sprite-holder theirs impact fx-crit fx-physical', '::before').v,
+      element: read('sprite-holder theirs impact fx-special').v,
+      sprite: readSprite('sprite-holder theirs impact fx-special'),
+      floatNum: read('sprite-holder theirs impact fx-special').floatDelay,
+      // ...but an entrance keeps its own delay: .lead-in sets one inside an
+      // `animation` shorthand and a holder can be entering and hit at once.
+      leadIn: read('sprite-holder mine impact fx-physical lead-in').v,
+      noCategory: read('sprite-holder theirs impact', '::after').v,
+    };
+    host.remove();
+    return out;
+  });
+
+  expect(delays.physical).toBe('0.14s');
+  expect(delays.special).toBe('0.28s');
+  expect(delays.signature, 'a signature rule re-zeroed the hit delay').toBe('0.28s');
+  expect(delays.critRing).toBe('0.14s');
+  expect(delays.element).toBe('0.28s');
+  expect(delays.sprite, 'the defender lit up before the attack reached it').toBe('0.28s');
+  expect(delays.floatNum, 'the damage number should wait for the hit too').toBe('0.28s');
+  expect(delays.leadIn, 'the entrance animation kept its own delay').toBe('0.3s');
+  expect(delays.noCategory, 'an uncategorised hit falls back to no delay').toBe('0s');
+
+  // The HP block is a sibling of the holder, so BattleStage sets the variable
+  // inline on it; .hp-fill then inherits. Check that path end to end.
+  const hpDelay = await page.evaluate(() => {
+    const block = document.createElement('div');
+    block.className = 'hp-block theirs';
+    block.style.setProperty('--fx-hit-delay', '0.28s');
+    const bar = document.createElement('div');
+    bar.className = 'hp-bar';
+    const fill = document.createElement('div');
+    fill.className = 'hp-fill';
+    bar.appendChild(fill);
+    block.appendChild(bar);
+    document.body.appendChild(block);
+    const v = getComputedStyle(fill).transitionDelay;
+    block.remove();
+    return v;
+  });
+  expect(hpDelay, 'HP should drain when the hit lands, not when the beat starts').toBe('0.28s');
+});
+
+test('the TypeScript hit delays match the CSS', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+  // The HP block is a sibling of the sprite holder, so it can't inherit
+  // --fx-hit-delay and BattleStage passes it inline from HIT_DELAY. That
+  // duplication is only safe if the two stay equal.
+  const fromCss = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const read = (cat: string) => {
+      const el = document.createElement('div');
+      el.className = `sprite-holder theirs impact ${cat}`;
+      field.appendChild(el);
+      const v = getComputedStyle(el).getPropertyValue('--fx-hit-delay').trim();
+      el.remove();
+      return v;
+    };
+    const out = {physical: read('fx-physical'), special: read('fx-special')};
+    host.remove();
+    return out;
+  });
+  // Compare seconds, not strings: a custom property comes back exactly as
+  // authored in the served stylesheet, and the production minifier rewrites
+  // `0.14s` to `.14s`.
+  const seconds = (v: string) => parseFloat(v);
+  expect(seconds(fromCss.physical)).toBeCloseTo(seconds(HIT_DELAY.physical), 5);
+  expect(seconds(fromCss.special)).toBeCloseTo(seconds(HIT_DELAY.special), 5);
 });
 
 test('the sprite element survives the replay instead of remounting each beat', async ({page}, testInfo) => {

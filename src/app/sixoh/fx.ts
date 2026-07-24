@@ -6,6 +6,19 @@
  * with nothing enforcing it.
  */
 
+/**
+ * How long after a beat starts the hit actually lands, by move category.
+ *
+ * Mirrors the `--fx-hit-delay` values in app.css ("When the hit lands"). CSS
+ * owns the sprite-holder side; this copy exists because the HP block is a
+ * sibling of the holder and so has to be told inline. test/visual/fx.spec.ts
+ * asserts the two agree.
+ */
+export const HIT_DELAY = {
+  physical: '0.14s',
+  special: '0.28s',
+} as const;
+
 /** The highest-frequency/most iconic moves (by real usage across the app's
  * own team data — see app.css's "Signature moves" section) get a fully
  * bespoke fx-signature-<slug> override instead of the generic type/category
