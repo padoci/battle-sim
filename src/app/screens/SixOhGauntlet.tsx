@@ -92,8 +92,14 @@ function hpColor(frac: number): string {
 
 function HpBar({mon, side, hitDelay}: {mon: MonView; side: 'theirs' | 'mine'; hitDelay?: string}) {
   const frac = mon.maxhp > 0 ? mon.hp / mon.maxhp : 0;
+  // Matches hpColor's red threshold, so the pulse starts exactly when the bar
+  // turns red rather than at some second, invisible cutoff.
+  const critical = frac > 0 && frac <= 0.2;
   return (
-    <div className={`hp-block ${side}`} style={hitDelay ? ({'--fx-hit-delay': hitDelay} as CSSProperties) : undefined}>
+    <div
+      className={`hp-block ${side}${critical ? ' critical' : ''}`}
+      style={hitDelay ? ({'--fx-hit-delay': hitDelay} as CSSProperties) : undefined}
+    >
       <div className="hp-head">
         <span className="hp-name">{mon.species}</span>
         <span className="mono hp-level">Lv100</span>

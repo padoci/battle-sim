@@ -8499,8 +8499,31 @@ button.primary:disabled {
   /* Drains when the hit lands, not when the beat starts. The HP block is a
      sibling of the sprite holder, so it can't inherit --fx-hit-delay from
      there — BattleStage sets it inline per side. */
-  transition: width 0.4s ease;
+  /* `background` is in the transition too: the colour used to snap from green
+     to yellow to red on the frame the width changed, which read as a glitch
+     rather than as a bar draining through the danger zones. */
+  transition: width 0.4s ease, background 0.4s ease;
   transition-delay: var(--fx-hit-delay, 0s);
+}
+
+/* ---- Low HP ----
+
+   The red zone had no urgency of its own: the bar changed colour and that was
+   the whole signal. The handheld games lean on a klaxon here, which this has
+   no equivalent for, so the tension has to be carried visually. */
+.hp-block.critical .hp-fill {
+  animation: hpCritical 0.75s ease-in-out infinite;
+}
+
+@keyframes hpCritical {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.65) saturate(1.3); }
+}
+
+.hp-block.critical .hp-bar {
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 0 6px 1px rgba(232, 60, 46, 0.55);
 }
 
 /* Opponent shows only the bar (no exact number, per the real games); the
@@ -9110,6 +9133,7 @@ button.primary:disabled {
   .faint-drop .stage-sprite,
   .faint-drop .sprite-fallback,
   .sprite-idle.breathing,
+  .hp-block.critical .hp-fill,
   .dodge,
   .sprite-holder.mine.dodge,
   .dodge .stage-sprite,

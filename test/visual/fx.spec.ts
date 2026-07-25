@@ -394,6 +394,78 @@ test('idle breathing survives the playback-rate sweep', async ({page}, testInfo)
   for (const r of rates) expect(r, 'the idle loop was retimed by the FX sweep').toBe(1);
 });
 
+test('a critical HP bar pulses, and the colour ramps instead of snapping', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const mk = (cls: string) => {
+      const block = document.createElement('div');
+      block.className = cls;
+      const bar = document.createElement('div');
+      bar.className = 'hp-bar';
+      const fill = document.createElement('div');
+      fill.className = 'hp-fill';
+      bar.appendChild(fill);
+      block.appendChild(bar);
+      document.body.appendChild(block);
+      const out = {
+        anim: getComputedStyle(fill).animationName,
+        transition: getComputedStyle(fill).transitionProperty,
+        glow: getComputedStyle(bar).boxShadow,
+      };
+      block.remove();
+      return out;
+    };
+    return {calm: mk('hp-block theirs'), critical: mk('hp-block theirs critical')};
+  });
+
+  expect(read.calm.anim).toBe('none');
+  expect(read.critical.anim).toBe('hpCritical');
+  // The colour used to snap on the frame the width changed.
+  expect(read.calm.transition).toContain('background');
+  expect(read.critical.glow).not.toBe(read.calm.glow);
+});
+
+test('reduced motion suppresses the low-HP pulse and the status effects', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const block = document.createElement('div');
+    block.className = 'hp-block theirs critical';
+    const bar = document.createElement('div');
+    bar.className = 'hp-bar';
+    const fill = document.createElement('div');
+    fill.className = 'hp-fill';
+    bar.appendChild(fill);
+    block.appendChild(bar);
+
+    const holder = document.createElement('div');
+    holder.className = 'sprite-holder theirs st-brn';
+    const idle = document.createElement('span');
+    idle.className = 'sprite-idle breathing';
+    holder.appendChild(idle);
+
+    document.body.append(block, holder);
+    const out = {
+      pulse: getComputedStyle(fill).animationName,
+      breath: getComputedStyle(idle).animationName,
+      condition: getComputedStyle(idle, '::after').display,
+    };
+    block.remove();
+    holder.remove();
+    return out;
+  });
+
+  expect(read.pulse).toBe('none');
+  expect(read.breath).toBe('none');
+  expect(read.condition).toBe('none');
+});
+
 test('weather and terrain can both be visible at once', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
   await page.goto('/');
