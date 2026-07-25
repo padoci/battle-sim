@@ -2134,6 +2134,51 @@ button.primary:disabled {
   90% { transform: translate(-1px, 0); }
 }
 
+/* ---- The decided battle ----
+
+   A vignette closing in on whoever is left standing. `ViewState.winner` has
+   been set on the win event since the beginning and read by nothing, so the
+   1500ms win beat played out with no acknowledgement on the stage at all.
+
+   A real element rather than another `.stage-field` pseudo-element, for the
+   same reason the weather washes are: `::before` is shared by six field
+   flourishes and `::after` is now the crit flash.
+
+   Deliberately no camera scale here. `.stage-world`'s animation channel
+   belongs to the push, and this beat lands immediately after the final faint
+   beat, so a second animation on the same element would fight it. The
+   vignette plus the loser already being gone is a legible beat by itself.
+
+   Fixed duration, NOT speed-scaled: `PACE.win / speed` ranges from 300ms at
+   5x to 15s at 0.1x. It blooms in once and then simply sits for the rest of
+   the beat, so it is also not in FIELD_CLASSES: the element mounts fresh,
+   leaving nothing to retrigger. */
+.win-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  animation: winBloom 0.6s ease-out;
+}
+
+/* Centred on each side's own sprite (see the camera origins below). */
+.win-glow.win-mine {
+  background: radial-gradient(circle at 15% 63%, transparent 0 20%, rgba(12, 8, 26, 0.45) 62%);
+}
+
+.win-glow.win-theirs {
+  background: radial-gradient(circle at 84% 33%, transparent 0 20%, rgba(12, 8, 26, 0.45) 62%);
+}
+
+/* A tie leaves nobody to spotlight. */
+.win-glow.win-tie {
+  background: rgba(12, 8, 26, 0.3);
+}
+
+@keyframes winBloom {
+  from { opacity: 0; }
+}
+
 /* ---- The camera ----
 
    A restrained lean toward whatever just happened: a knockout, or a critical
@@ -9314,6 +9359,10 @@ button.primary:disabled {
   .stage-shake,
   .push-theirs .stage-world,
   .push-mine .stage-world,
+  /* `animation: none` and not `display: none`: the base opacity is 1 and the
+     keyframe only fades it IN, so these users keep the static vignette rather
+     than losing the beat. */
+  .win-glow,
   .crit-flash,
   .earthquake-shake,
   .stealth-rock-fall,

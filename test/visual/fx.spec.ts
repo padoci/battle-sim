@@ -473,6 +473,57 @@ test('reduced motion suppresses the low-HP pulse and the status effects', async 
   expect(read.rain).toBe('none');
 });
 
+test('the win vignette spotlights whoever actually won', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const probe = (cls: string) => {
+      const el = document.createElement('span');
+      el.className = cls;
+      document.body.appendChild(el);
+      const cs = getComputedStyle(el);
+      const out = {anim: cs.animationName, bg: cs.backgroundImage, color: cs.backgroundColor};
+      el.remove();
+      return out;
+    };
+    return {mine: probe('win-glow win-mine'), theirs: probe('win-glow win-theirs'), tie: probe('win-glow win-tie')};
+  });
+
+  expect(read.mine.anim).toBe('winBloom');
+  // A loss must spotlight THEIR side, so the two cannot be the same gradient.
+  expect(read.mine.bg).toContain('gradient');
+  expect(read.theirs.bg).toContain('gradient');
+  expect(read.mine.bg).not.toBe(read.theirs.bg);
+  // A tie has nobody to spotlight: a flat wash, no gradient.
+  expect(read.tie.bg).toBe('none');
+  expect(read.tie.color).not.toBe('rgba(0, 0, 0, 0)');
+});
+
+test('reduced motion keeps the win vignette but stops it blooming', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const el = document.createElement('span');
+    el.className = 'win-glow win-mine';
+    document.body.appendChild(el);
+    const cs = getComputedStyle(el);
+    const out = {anim: cs.animationName, display: cs.display, opacity: cs.opacity};
+    el.remove();
+    return out;
+  });
+
+  expect(read.anim).toBe('none');
+  // Unlike the drifting particles, a vignette frozen in place is exactly what
+  // it should be, so these users keep the beat rather than losing it.
+  expect(read.display).not.toBe('none');
+  expect(read.opacity).toBe('1');
+});
+
 test('the camera leans toward the struck side and settles back', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
   await page.goto('/');

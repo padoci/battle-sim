@@ -573,6 +573,17 @@ function BattleStage({
                 a plain battle renders the same DOM it always did. */}
             {wxClass && <span className={`wx-layer ${wxClass}`} aria-hidden="true" />}
             {terrainClass && <span className={`terrain-layer ${terrainClass}`} aria-hidden="true" />}
+
+            {/* The battle is decided: vignette down to whoever is left
+                standing. `winner` is 0 for us, 1 for them and null for a tie,
+                so this has to spotlight THEIR side on a loss. Deriving it from
+                "our side" would glow your own fainted mon. */}
+            {view.winner !== undefined && (
+              <span
+                className={`win-glow ${view.winner === 0 ? 'win-mine' : view.winner === 1 ? 'win-theirs' : 'win-tie'}`}
+                aria-hidden="true"
+              />
+            )}
             </div>
 
             {theirs && <HpBar mon={theirs} side="theirs" hitDelay={hitDelay(1)} />}
