@@ -357,6 +357,49 @@ test('the sprite element survives the replay instead of remounting each beat', a
   expect(after.tag, 'the sprite <img> was rebuilt mid-replay without a switch').toBe('original');
 });
 
+test('the KO animates instead of vanishing', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const ko = await splitProbe(page, 'sprite-holder theirs faint-drop');
+  expect(ko.holderAnim, 'the holder should drop').toBe('faintDrop');
+  expect(ko.spriteAnim, 'the sprite should fade out').toBe('faintFade');
+
+  // .faint-drop, .lead-in and .switch-pop are all (0,1,0) and source order is
+  // the only thing that makes the drop win. A hazard KO on a mon that just
+  // switched in genuinely carries both classes.
+  const both = await splitProbe(page, 'sprite-holder theirs faint-drop lead-in');
+  expect(both.holderAnim, 'an entrance animation outranked the KO').toBe('faintDrop');
+});
+
+test('reduced motion suppresses the KO animation', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const ko = await splitProbe(page, 'sprite-holder theirs faint-drop');
+  expect(ko.holderAnim).toBe('none');
+  expect(ko.spriteAnim).toBe('none');
+
+  const dust = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    const el = document.createElement('div');
+    el.className = 'sprite-holder theirs faint-drop';
+    field.appendChild(el);
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const v = getComputedStyle(el, '::after').display;
+    host.remove();
+    return v;
+  });
+  expect(dust, 'the dust puff should be hidden, not merely unanimated').toBe('none');
+});
+
 test('the battle stage never forces horizontal page scroll', async ({page}, testInfo) => {
   test.skip(!testInfo.project.name.includes('mobile'), 'overflow only bites on a narrow viewport');
   test.slow();

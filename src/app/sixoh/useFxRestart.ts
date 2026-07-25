@@ -1,7 +1,8 @@
 import {useLayoutEffect, useRef} from 'react';
 
 /**
- * The per-hit FX classes on the sprite holder.
+ * The one-shot FX classes on the sprite holder: the ones a beat plays and
+ * that must restart when the next beat repeats them.
  *
  * Deliberately not "every FX class". `.lead-in` and `.switch-pop` are driven
  * by a 450ms JS window rather than by beats, and both carry their own
@@ -11,7 +12,7 @@ import {useLayoutEffect, useRef} from 'react';
  * compound selector containing one of these three, so this list is both
  * sufficient and minimal.
  */
-export const HIT_CLASSES = ['impact', 'lunge-left', 'lunge-right'] as const;
+export const HIT_CLASSES = ['impact', 'lunge-left', 'lunge-right', 'faint-drop'] as const;
 
 /** Whole-field flourishes, which live on `.stage-field`. */
 export const FIELD_CLASSES = [

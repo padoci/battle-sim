@@ -347,7 +347,8 @@ function BattleStage({
   };
   /** A ball accompanies every entrance: the send-out window and mid-battle
    * switch-ins alike. */
-  const showBall = (side: 0 | 1) => (side === 0 ? mineJustIn : theirsJustIn) || !!fxFor(side, 'switch');
+  const showBall = (side: 0 | 1) =>
+    ((side === 0 ? mineJustIn : theirsJustIn) || !!fxFor(side, 'switch')) && !fxFor(side, 'faint');
   const holderStyle = (side: 0 | 1): CSSProperties | undefined => {
     const color = fxFlavor(side).color;
     return color ? ({'--fx-color': color} as CSSProperties) : undefined;
@@ -413,7 +414,13 @@ function BattleStage({
                 <SpriteWithFallback species={outgoingFor(1)!} back={false} />
               </div>
             )}
-            {theirs && !theirs.fainted && (
+            {/* Kept mounted for the beat that knocks it out: `applyBeat` sets
+                `fainted` in the same beat that emits the faint FX, so gating on
+                `!fainted` alone unmounts the holder on the exact frame
+                `.faint-drop` would start and the KO becomes an instant vanish.
+                Self-guarding on the skip path: `foldBeats` leaves no FX, so a
+                fainted mon still renders nothing. */}
+            {theirs && (!theirs.fainted || fxFor(1, 'faint')) && (
               <div
                 key={`t-${theirs.species}`}
                 ref={theirsRef}
@@ -434,7 +441,7 @@ function BattleStage({
                 <SpriteWithFallback species={outgoingFor(0)!} back={true} />
               </div>
             )}
-            {mine && !mine.fainted && (
+            {mine && (!mine.fainted || fxFor(0, 'faint')) && (
               <div
                 key={`m-${mine.species}`}
                 ref={mineRef}
