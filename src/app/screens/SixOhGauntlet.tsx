@@ -85,11 +85,16 @@ function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
   );
 }
 
-/** HP meter colour: green > 50%, yellow > 20%, red below. */
+/** HP meter colour: green > 50%, yellow > 20%, red below.
+ *
+ * Through the tokens rather than repeating their hex values here: these three
+ * are deliberately the same in both themes (they read against the sprites and
+ * the pixel-art field, not the chrome), but a second copy in JS would be
+ * invisible to any future change to them. */
 function hpColor(frac: number): string {
-  if (frac > 0.5) return '#48c451';
-  if (frac > 0.2) return '#f6c343';
-  return '#e83c2e';
+  if (frac > 0.5) return 'var(--hp-high)';
+  if (frac > 0.2) return 'var(--hp-mid)';
+  return 'var(--hp-low)';
 }
 
 function HpBar({mon, side, hitDelay}: {mon: MonView; side: 'theirs' | 'mine'; hitDelay?: string}) {
