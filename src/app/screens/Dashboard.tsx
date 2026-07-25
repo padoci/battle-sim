@@ -9,6 +9,7 @@ import {
   buildPairingContext,
   cardRecord,
   deriveGamePlanFacts,
+  MIN_VERDICT_BATTLES,
   renderGamePlan,
   calcSuggestions,
   rankSuggestions,
@@ -258,7 +259,8 @@ export function Dashboard() {
   // Aggregate-driven suggestions across every card (no calc — cheap). Held
   // back entirely below 25 battles (early reads are noise dressed as advice);
   // a bigger sample earns a deeper list.
-  const INSIGHTS_MIN_BATTLES = 25;
+  // Same gate the headline uses before it will name a band.
+  const INSIGHTS_MIN_BATTLES = MIN_VERDICT_BATTLES;
   const insightsReady = overall.battles >= INSIGHTS_MIN_BATTLES;
   const topSuggestions = insightsReady
     ? rankSuggestions(
@@ -326,7 +328,12 @@ export function Dashboard() {
     <main className="screen wide dashboard">
       <header className="verdict">
         <h1>{overall.verdict}</h1>
-        <p className="mono" role="status" aria-live="polite">
+        {/* Announced on settle, not on every battle. As a live region this
+            re-read the whole line each time a battle landed — around 21 a
+            minute — which for a screen-reader user is a continuous monologue
+            for the length of the run, and the numbers it reads are provisional
+            anyway. */}
+        <p className="mono" role="status" aria-live={run.status === 'running' ? 'off' : 'polite'}>
           {pct(overall.winRate)} win rate ± {Math.round(wilsonHalfWidth(overall.winRate, overall.battles) * 100)}%
           {' · '}{overall.wins}W-{overall.losses}L-{overall.draws}D over {overall.battles} battle{overall.battles === 1 ? '' : 's'}
           {run.status === 'running' && run.emaMsPerBattle > 0
