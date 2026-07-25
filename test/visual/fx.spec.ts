@@ -451,19 +451,26 @@ test('reduced motion suppresses the low-HP pulse and the status effects', async 
     holder.appendChild(idle);
 
     document.body.append(block, holder);
+    const wx = document.createElement('span');
+    wx.className = 'wx-layer wx-raindance';
+    document.body.appendChild(wx);
+
     const out = {
       pulse: getComputedStyle(fill).animationName,
       breath: getComputedStyle(idle).animationName,
       condition: getComputedStyle(idle, '::after').display,
+      rain: getComputedStyle(wx, '::before').display,
     };
     block.remove();
     holder.remove();
+    wx.remove();
     return out;
   });
 
   expect(read.pulse).toBe('none');
   expect(read.breath).toBe('none');
   expect(read.condition).toBe('none');
+  expect(read.rain).toBe('none');
 });
 
 test('weather and terrain can both be visible at once', async ({page}, testInfo) => {
@@ -492,6 +499,10 @@ test('weather and terrain can both be visible at once', async ({page}, testInfo)
       terrainTop: getComputedStyle(terrain).top,
       // The old pseudo-element must be gone, or it would paint on top.
       legacyPseudo: getComputedStyle(field, '::after').content,
+      // Each layer carries its own particles, which the shared pseudo could
+      // never have supported.
+      wxParticles: getComputedStyle(wx, '::before').animationName,
+      terrainParticles: getComputedStyle(terrain, '::before').animationName,
     };
     host.remove();
     return out;
@@ -502,6 +513,8 @@ test('weather and terrain can both be visible at once', async ({page}, testInfo)
   expect(read.terrainBg).toBe('rgba(250, 220, 60, 0.18)');
   expect(read.terrainTop, 'terrain covers the ground only').not.toBe('0px');
   expect(read.legacyPseudo).toBe('none');
+  expect(read.wxParticles).toBe('wxRain');
+  expect(read.terrainParticles).toBe('terrainShimmer');
 });
 
 test('multi-hit damage numbers stack instead of piling up', async ({page}, testInfo) => {
