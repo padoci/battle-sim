@@ -1781,12 +1781,21 @@ button.primary:disabled {
 
 .arena {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  /* minmax(0, …) not 1fr: a grid track's default `auto` floor is min-content,
+     so one wide child (the team-icon rows) can drag the viewport into
+     horizontal scroll. Same guard as `main.screen`'s min-width above. */
+  grid-template-columns: 220px minmax(0, 1fr);
   gap: 1.4rem;
   width: 100%;
   max-width: 1180px;
   margin: 0 auto;
   padding: 1.5rem;
+}
+
+/* Grid items default to `min-width: auto`, so this column would refuse to
+   shrink below its widest child and push the page sideways. */
+.gauntlet-main {
+  min-width: 0;
 }
 
 .gauntlet-rail .record {
@@ -1910,7 +1919,10 @@ button.primary:disabled {
 .stage-field {
   position: relative;
   height: 300px;
-  background: #7fb4d6 center/cover;
+  /* Fallback shown until the scene PNG lands (preloaded during the draft, so
+     rarely, but a cold cache on a slow line still hits it). Roughly the mean
+     of the four scenes — all of which are green or tan, none blue. */
+  background: #a1b88d center/cover;
   overflow: hidden;
 }
 
@@ -2094,18 +2106,84 @@ button.primary:disabled {
   35% { transform: translate(-42px, 16px); }
 }
 
-/* Getting hit: recoil + white flash + a shake, so a hit actually lands. */
+/* Getting hit: recoil + white flash + a shake, so a hit actually lands.
+
+   The recoil and the flash are two animations on two elements on purpose.
+   `filter` on the holder also filters its ::before/::after — which is where
+   every per-type and signature burst is drawn — so a single combined
+   keyframe multiplied those bursts by brightness(2.8→1.3) for the first
+   ~190ms. That is exactly the 80-150ms window where a burst is most legible
+   (it has grown but not yet faded), so Fire orange, Ghost purple and Grass
+   green all flattened to the same pale cream and --fx-color did nothing.
+   Keeping the flash on the sprite leaves the burst its own colour. */
 .impact {
-  animation: impact 0.42s ease-out;
+  animation: impactShake 0.42s ease-out;
 }
 
-@keyframes impact {
-  0% { transform: translateX(0) scale(1); filter: none; }
-  14% { transform: translateX(7px) scale(0.9); filter: brightness(2.8) contrast(1.2); }
-  30% { transform: translateX(-6px) scale(0.95); filter: brightness(1.9); }
-  46% { transform: translateX(5px); filter: brightness(1.3); }
+@keyframes impactShake {
+  0% { transform: translateX(0) scale(1); }
+  14% { transform: translateX(7px) scale(0.9); }
+  30% { transform: translateX(-6px) scale(0.95); }
+  46% { transform: translateX(5px); }
   62% { transform: translateX(-3px); }
-  100% { transform: translateX(0) scale(1); filter: none; }
+  100% { transform: translateX(0) scale(1); }
+}
+
+/* Filter only — never a transform. `.sprite-fallback` carries its own
+   `scale(1.7)`, which an animated transform here would stomp for 0.42s. */
+.impact .stage-sprite,
+.impact .sprite-fallback {
+  animation: impactFlash 0.42s ease-out;
+}
+
+@keyframes impactFlash {
+  0% { filter: none; }
+  14% { filter: brightness(2.8) contrast(1.2); }
+  30% { filter: brightness(1.9); }
+  46% { filter: brightness(1.3); }
+  100% { filter: none; }
+}
+
+/* ---- When the hit lands ----
+
+   Everything in a beat used to start on the same frame: the attacker's lunge,
+   the burst on the defender, the damage number and the HP drain. For special
+   moves that reads backwards — the projectile (`beamShotToTheirs`, 0.34s)
+   arrives at 340ms, but the burst it is supposed to cause had already bloomed
+   and faded by then.
+
+   These selectors carry the full `.battle-stage .stage-field` ancestor chain
+   for specificity (0,3,1), which outranks every `.fx-signature-x.impact::after`
+   rule at (0,2,1). That matters: all 264 signature rules declare the
+   `animation` SHORTHAND, which resets `animation-delay` to 0, so a lower- or
+   equal-specificity rule here would simply be discarded. Winning on
+   specificity rather than source order also means a future batch appended
+   anywhere in this file cannot silently re-zero the delay.
+
+   The delay is NOT divided by playback speed here: useFxRestart sets
+   `playbackRate` on the restarted animations, which compresses delay and
+   duration together. Doing both would scale it twice. */
+.fx-physical.impact {
+  --fx-hit-delay: 0.14s; /* lungeRight peaks at 35% of 0.32s */
+}
+
+.fx-special.impact {
+  --fx-hit-delay: 0.28s; /* beamShotToTheirs lands at 0.34s */
+}
+
+/* `:not()` guards are load-bearing: .lead-in and .switch-pop set their own
+   delay inside an `animation` shorthand, and a holder can be both entering
+   and getting hit in the same beat. Without these, the entrance would snap
+   to 0s. */
+.battle-stage .stage-field .impact:not(.lead-in):not(.switch-pop),
+.battle-stage .stage-field .impact::after,
+.battle-stage .stage-field .impact::before,
+/* The flash lives on the sprite now (see impactFlash), so it needs the delay
+   too — otherwise the defender lights up before the attack reaches it. */
+.battle-stage .stage-field .impact .stage-sprite,
+.battle-stage .stage-field .impact .sprite-fallback,
+.battle-stage .stage-field .float-num {
+  animation-delay: var(--fx-hit-delay, 0s);
 }
 
 /* Hit spark: a burst over the struck sprite (no extra DOM — pseudo-element).
@@ -2279,8 +2357,21 @@ button.primary:disabled {
 }
 
 /* Status moves: the user glows in the move's type color; no defender impact. */
+/* A status move is cast, not thrown: suppress the base lunge dash. (This
+   used to fall out of statusGlow overriding `animation` on the holder; now
+   that the glow rides the sprite, the holder needs saying explicitly or
+   Thunder Wave starts body-slamming.) */
 .fx-status.lunge-right,
 .fx-status.lunge-left {
+  animation: none;
+}
+
+/* Same split as .impact above: the glow rides the sprite, not the holder, so
+   it doesn't wash out the signature shapes drawn on the holder's pseudos. */
+.fx-status.lunge-right .stage-sprite,
+.fx-status.lunge-right .sprite-fallback,
+.fx-status.lunge-left .stage-sprite,
+.fx-status.lunge-left .sprite-fallback {
   animation: statusGlow 0.5s ease-out;
 }
 
@@ -7932,7 +8023,21 @@ button.primary:disabled {
   pointer-events: none;
 }
 
+/* The damage number waits for the hit (see --fx-hit-delay), and nothing fills
+   an animation's *before* phase, so without this it would sit on screen at
+   full opacity through the delay and only then start floating.
+
+   Scoped to no-preference on purpose: reduced motion sets `animation: none`
+   below, and a bare `opacity: 0` base would leave those users with no damage
+   numbers at all. */
+@media (prefers-reduced-motion: no-preference) {
+  .float-num {
+    opacity: 0;
+  }
+}
+
 @keyframes floatUp {
+  from { transform: translateX(-50%); opacity: 1; }
   to { transform: translate(-50%, -26px); opacity: 0; }
 }
 
@@ -8015,7 +8120,11 @@ button.primary:disabled {
 .hp-fill {
   height: 100%;
   border-radius: 4px;
+  /* Drains when the hit lands, not when the beat starts. The HP block is a
+     sibling of the sprite holder, so it can't inherit --fx-hit-delay from
+     there — BattleStage sets it inline per side. */
   transition: width 0.4s ease;
+  transition-delay: var(--fx-hit-delay, 0s);
 }
 
 /* Opponent shows only the bar (no exact number, per the real games); the
@@ -8084,8 +8193,14 @@ button.primary:disabled {
   font-weight: 600;
 }
 
+/* Two 6-icon team rows sit at an INLINE 40px each (from @pkmn/img's
+   spritesheet CSS, so overriding `width` would crop rather than scale). That
+   made this row's min-content ~533px, which propagated out through the grid
+   track and forced the whole page into horizontal scroll on a phone — the
+   stage itself has no width rule at all. Wrapping drops it to one team row. */
 .stage-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   margin: 0.75rem 0.15rem 0;
@@ -8455,7 +8570,7 @@ button.primary:disabled {
 /* ---- Responsive ---- */
 @media (max-width: 900px) {
   .arena {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -8554,6 +8669,12 @@ button.primary:disabled {
   .hp-bar {
     min-width: 70px;
   }
+  /* Wrapped (see .stage-meta): centre the rows and give the wrapped line a
+     little breathing room instead of leaving them pinned to the edges. */
+  .stage-meta {
+    justify-content: center;
+    gap: 0.35rem 0.5rem;
+  }
   .shell-header {
     padding: 0.6rem 1rem;
   }
@@ -8581,6 +8702,15 @@ button.primary:disabled {
   .lunge-right,
   .lunge-left,
   .impact,
+  /* The hit flash and the status glow live on the sprite, not the holder
+     (see .impact / .fx-status above), so suppressing the holder alone would
+     leave reduced-motion users with a brightness(2.8) strobe on every hit. */
+  .impact .stage-sprite,
+  .impact .sprite-fallback,
+  .fx-status.lunge-right .stage-sprite,
+  .fx-status.lunge-right .sprite-fallback,
+  .fx-status.lunge-left .stage-sprite,
+  .fx-status.lunge-left .sprite-fallback,
   .tera-flash,
   .faint-drop,
   .float-num,
