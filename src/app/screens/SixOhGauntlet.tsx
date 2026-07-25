@@ -247,6 +247,13 @@ function BattleIntro({
 }
 
 
+/** FX types that carry a move's type and category, and so decide a holder's
+ * accent colour and its `--fx-hit-delay`. A dodge and a block are outcomes of
+ * an attack arriving, so they time off the attack exactly as an impact does:
+ * leave them out and the defender ducks at beat start, while the beam is still
+ * in flight. Module-level because it is an effect dependency downstream. */
+const FLAVORED: FxItem['type'][] = ['lunge', 'impact', 'dodge', 'blocked'];
+
 function BattleStage({
   team,
   opponentSets,
@@ -318,7 +325,7 @@ function BattleStage({
   // layers a fully bespoke override on top for a small curated set of
   // high-frequency moves (see SIGNATURE_MOVES in sixoh/fx.ts).
   const fxFlavor = (side: 0 | 1) => {
-    const item = fx.find(f => f.side === side && (f.type === 'lunge' || f.type === 'impact'));
+    const item = fx.find(f => f.side === side && FLAVORED.includes(f.type));
     return {
       category: item?.category ? `fx-${item.category.toLowerCase()}` : undefined,
       color: item?.moveType ? typeColor(item.moveType) : undefined,
@@ -334,6 +341,8 @@ function BattleStage({
       fxFor(side, 'lunge') && lungeClass,
       fxFor(side, 'impact') && 'impact',
       fxFor(side, 'impact')?.crit && 'fx-crit',
+      fxFor(side, 'dodge') && 'dodge',
+      fxFor(side, 'blocked') && 'blocked',
       fxFor(side, 'faint') && 'faint-drop',
       fxFor(side, 'tera') && 'tera-flash',
       fxFor(side, 'switch') && 'switch-pop',

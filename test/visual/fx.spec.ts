@@ -357,6 +357,91 @@ test('the sprite element survives the replay instead of remounting each beat', a
   expect(after.tag, 'the sprite <img> was rebuilt mid-replay without a switch').toBe('original');
 });
 
+test('a dodge and a block wait for the attack, like an impact does', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const probe = (cls: string, pseudo?: string) => {
+      const el = document.createElement('div');
+      el.className = cls;
+      field.appendChild(el);
+      const cs = pseudo ? getComputedStyle(el, pseudo) : getComputedStyle(el);
+      const out = {name: cs.animationName, delay: cs.animationDelay};
+      el.remove();
+      return out;
+    };
+    const out = {
+      dodgeSpecial: probe('sprite-holder theirs dodge fx-special'),
+      dodgePhysical: probe('sprite-holder theirs dodge fx-physical'),
+      dodgeMine: probe('sprite-holder mine dodge fx-physical'),
+      blockShield: probe('sprite-holder theirs blocked fx-special', '::after'),
+    };
+    host.remove();
+    return out;
+  });
+
+  // Without the FLAVORED widening these get no --fx-hit-delay at all and the
+  // defender reacts at beat start, while the beam is still in flight.
+  expect(read.dodgeSpecial.delay).toBe('0.28s');
+  expect(read.dodgePhysical.delay).toBe('0.14s');
+  expect(read.dodgeSpecial.name).toBe('dodgeStep');
+  // Each side ducks away from its own attacker.
+  expect(read.dodgeMine.name).toBe('dodgeStepMine');
+  expect(read.blockShield.name).toBe('blockGuard');
+  expect(read.blockShield.delay).toBe('0.28s');
+});
+
+test('reduced motion suppresses the dodge and the block', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const mk = (cls: string) => {
+      const el = document.createElement('div');
+      el.className = cls;
+      const img = document.createElement('img');
+      img.className = 'stage-sprite';
+      el.appendChild(img);
+      field.appendChild(el);
+      return el;
+    };
+    const dodgeTheirs = mk('sprite-holder theirs dodge fx-special');
+    const dodgeMine = mk('sprite-holder mine dodge fx-physical');
+    const blocked = mk('sprite-holder theirs blocked fx-special');
+    const out = {
+      dodge: getComputedStyle(dodgeTheirs).animationName,
+      // .sprite-holder.mine.dodge is (0,3,0) and would otherwise outrank the
+      // reduced-motion list, which @media does not add specificity to.
+      dodgeMine: getComputedStyle(dodgeMine).animationName,
+      dodgeSprite: getComputedStyle(dodgeTheirs.querySelector('img')!).animationName,
+      shield: getComputedStyle(blocked, '::after').display,
+    };
+    host.remove();
+    return out;
+  });
+
+  expect(read.dodge).toBe('none');
+  expect(read.dodgeMine).toBe('none');
+  expect(read.dodgeSprite).toBe('none');
+  expect(read.shield).toBe('none');
+});
+
 test('the KO animates instead of vanishing', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
   await page.goto('/');

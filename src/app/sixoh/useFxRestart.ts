@@ -12,7 +12,14 @@ import {useLayoutEffect, useRef} from 'react';
  * compound selector containing one of these three, so this list is both
  * sufficient and minimal.
  */
-export const HIT_CLASSES = ['impact', 'lunge-left', 'lunge-right', 'faint-drop'] as const;
+export const HIT_CLASSES = [
+  'impact',
+  'lunge-left',
+  'lunge-right',
+  'dodge',
+  'blocked',
+  'faint-drop',
+] as const;
 
 /** Whole-field flourishes, which live on `.stage-field`. */
 export const FIELD_CLASSES = [

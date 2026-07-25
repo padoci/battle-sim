@@ -111,6 +111,41 @@ describe('typed move FX (category + type flavor)', () => {
     expect(fx.some(f => f.type === 'lunge')).toBe(true);
   });
 
+  it('a miss reads as a dodge and an immunity as a block, on the defender', () => {
+    const miss = applyBeat(initView([t1, t2]), mkBeat([moveEvent('Flamethrower', 0, {miss: true})])).fx;
+    const dodge = miss.find(f => f.type === 'dodge')!;
+    expect(dodge).toBeDefined();
+    expect(dodge.side).toBe(1);
+    // Flavored so it inherits the same --fx-hit-delay an impact would get:
+    // without this the defender ducks before the attack reaches it.
+    expect(dodge.category).toBe('Special');
+    expect(dodge.moveType).toBe('Fire');
+    // No `move`, so no fx-signature-* class lands on a holder with no impact
+    // or lunge state to activate it.
+    expect(dodge.move).toBeUndefined();
+
+    const immune = applyBeat(initView([t1, t2]), mkBeat([moveEvent('Flamethrower', 0, {immune: true})])).fx;
+    expect(immune.find(f => f.type === 'blocked')?.side).toBe(1);
+    expect(immune.some(f => f.type === 'dodge')).toBe(false);
+  });
+
+  it('an immunity outranks a miss when the protocol reports both', () => {
+    const {fx} = applyBeat(
+      initView([t1, t2]),
+      mkBeat([moveEvent('Flamethrower', 0, {miss: true, immune: true})])
+    );
+    expect(fx.some(f => f.type === 'blocked')).toBe(true);
+    expect(fx.some(f => f.type === 'dodge')).toBe(false);
+  });
+
+  it('a missed status move still produces no defender FX', () => {
+    // Swords Dance targets nobody, so a miss must not conjure a dodge on the
+    // opponent — the whole branch is skipped.
+    const {fx} = applyBeat(initView([t1, t2]), mkBeat([moveEvent('Swords Dance', 0, {miss: true})]));
+    expect(fx).toHaveLength(1);
+    expect(fx[0].type).toBe('lunge');
+  });
+
   it('unknown move names degrade gracefully (fx without type, no throw)', () => {
     const {fx} = applyBeat(initView([t1, t2]), mkBeat([moveEvent('Notarealmove')]));
     const lunge = fx.find(f => f.type === 'lunge')!;
