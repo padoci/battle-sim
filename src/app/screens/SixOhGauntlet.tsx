@@ -24,6 +24,14 @@ import type {DraftMode} from '../../draft/draft';
 const knownMissingGen5Ani = new Set<string>();
 type SpriteTier = 'gen5ani' | 'gen5' | 'icon';
 
+/** A stable per-species number, used to offset idle phase so the two mons on
+ * the field never breathe in lockstep. */
+function speciesPhase(species: string): number {
+  let h = 0;
+  for (let i = 0; i < species.length; i++) h = (h * 31 + species.charCodeAt(i)) >>> 0;
+  return h % 3200;
+}
+
 function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
   const startTier: SpriteTier = knownMissingGen5Ani.has(species) ? 'gen5' : 'gen5ani';
   const [tier, setTier] = useState<SpriteTier>(startTier);
@@ -31,21 +39,47 @@ function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
     setTier(knownMissingGen5Ani.has(species) ? 'gen5' : 'gen5ani');
   }, [species]);
 
-  if (tier === 'icon') {
-    return <span className="sprite-fallback" style={Icons.getPokemon(species).css} title={species} />;
-  }
-  const sprite = Sprites.getPokemon(species, back ? {gen: tier, side: 'p1'} : {gen: tier});
+  const url =
+    tier === 'icon'
+      ? undefined
+      : Sprites.getPokemon(species, back ? {gen: tier, side: 'p1'} : {gen: tier}).url;
+  const inner =
+    url === undefined ? (
+      <span className="sprite-fallback" style={Icons.getPokemon(species).css} title={species} />
+    ) : (
+      <img
+        key={`${species}-${tier}`}
+        className="stage-sprite"
+        src={url}
+        alt={species}
+        onError={() => {
+          if (tier === 'gen5ani') knownMissingGen5Ani.add(species);
+          setTier(t => (t === 'gen5ani' ? 'gen5' : 'icon'));
+        }}
+      />
+    );
+
+  // Decided by the asset, not by `tier`. Asking @pkmn/img for `gen5ani` on a
+  // species that has none returns a static .png rather than erroring, so the
+  // tier stays 'gen5ani' and would claim the sprite animates when it does not
+  // — which is most of the modern meta.
+  const animated = url?.endsWith('.gif') ?? false;
+
+  // The wrapper is a third transform channel. The holder owns the lunge,
+  // recoil and KO drop; the sprite itself must stay filter-only because
+  // `.sprite-fallback` carries a load-bearing scale(1.7). Idle motion needs
+  // somewhere of its own to live, and it composes with the other two.
+  //
+  // Only the static tiers breathe: `gen5ani` sprites are animated GIFs that
+  // already move on their own, and doubling up looks wrong. That is most of
+  // the field in practice, since Gen 6+ mons have no gen5ani sprite.
   return (
-    <img
-      key={`${species}-${tier}`}
-      className="stage-sprite"
-      src={sprite.url}
-      alt={species}
-      onError={() => {
-        if (tier === 'gen5ani') knownMissingGen5Ani.add(species);
-        setTier(t => (t === 'gen5ani' ? 'gen5' : 'icon'));
-      }}
-    />
+    <span
+      className={animated ? 'sprite-idle' : 'sprite-idle breathing'}
+      style={{animationDelay: `-${speciesPhase(species)}ms`}}
+    >
+      {inner}
+    </span>
   );
 }
 
@@ -58,13 +92,21 @@ function hpColor(frac: number): string {
 
 function HpBar({mon, side, hitDelay}: {mon: MonView; side: 'theirs' | 'mine'; hitDelay?: string}) {
   const frac = mon.maxhp > 0 ? mon.hp / mon.maxhp : 0;
+  // Matches hpColor's red threshold, so the pulse starts exactly when the bar
+  // turns red rather than at some second, invisible cutoff.
+  const critical = frac > 0 && frac <= 0.2;
   return (
-    <div className={`hp-block ${side}`} style={hitDelay ? ({'--fx-hit-delay': hitDelay} as CSSProperties) : undefined}>
+    <div
+      className={`hp-block ${side}${critical ? ' critical' : ''}`}
+      style={hitDelay ? ({'--fx-hit-delay': hitDelay} as CSSProperties) : undefined}
+    >
       <div className="hp-head">
         <span className="hp-name">{mon.species}</span>
         <span className="mono hp-level">Lv100</span>
         {mon.teraType && <span className="tera-badge" style={{background: typeColor(mon.teraType)}}>Tera {mon.teraType}</span>}
-        {mon.status && <span className="status-chip">{mon.status.toUpperCase()}</span>}
+        {mon.status && (
+          <span className={`status-chip st-${mon.status}`}>{mon.status.toUpperCase()}</span>
+        )}
         {Object.entries(mon.boosts)
           .filter(([, v]) => v !== 0)
           .map(([stat, v]) => (
@@ -337,11 +379,13 @@ function BattleStage({
       signature: signatureSlug(item?.move),
     };
   };
-  const holderClasses = (side: 0 | 1, lungeClass: string) => {
+  const holderClasses = (side: 0 | 1, lungeClass: string, status?: string) => {
     const flavor = fxFlavor(side);
     return [
       'sprite-holder',
       side === 1 ? 'theirs' : 'mine',
+      // Drives the persistent on-field condition effect (embers, bubbles...).
+      status && `st-${status}`,
       fxFor(side, 'lunge') && lungeClass,
       fxFor(side, 'impact') && 'impact',
       fxFor(side, 'impact')?.crit && 'fx-crit',
@@ -396,10 +440,17 @@ function BattleStage({
   // Class names are normalized protocol strings ("RainDance" -> wx-raindance,
   // "Electric Terrain" -> terrain-electric).
   const terrain = view.fields.find(f => f.endsWith('Terrain'));
+  // Weather and terrain each get their own layer element. They used to share
+  // `.stage-field::after` at equal specificity, so with both up the terrain
+  // rule won on source order and the weather simply disappeared.
+  const wxClass = view.weather ? `wx-${view.weather.toLowerCase().replace(/[^a-z]/g, '')}` : undefined;
+  const terrainClass = terrain
+    ? `terrain-${terrain.toLowerCase().replace(/ ?terrain/, '').replace(/[^a-z]/g, '')}`
+    : undefined;
   const fieldClasses = [
     'stage-field',
-    view.weather && `wx-${view.weather.toLowerCase().replace(/[^a-z]/g, '')}`,
-    terrain && `terrain-${terrain.toLowerCase().replace(/ ?terrain/, '').replace(/[^a-z]/g, '')}`,
+    wxClass,
+    terrainClass,
     fx.some(f => f.type === 'faint') && 'stage-shake',
     fx.some(f => f.type === 'impact' && f.crit) && 'crit-flash',
     fx.some(f => f.type === 'impact' && f.move === 'Earthquake') && 'earthquake-shake',
@@ -453,7 +504,7 @@ function BattleStage({
               <div
                 key={`t-${theirs.species}`}
                 ref={theirsRef}
-                className={holderClasses(1, 'lunge-left')}
+                className={holderClasses(1, 'lunge-left', theirs.status)}
                 style={holderStyle(1)}
               >
                 <SpriteWithFallback species={theirs.species} back={false} />
@@ -477,7 +528,7 @@ function BattleStage({
               <div
                 key={`m-${mine.species}`}
                 ref={mineRef}
-                className={holderClasses(0, 'lunge-right')}
+                className={holderClasses(0, 'lunge-right', mine.status)}
                 style={holderStyle(0)}
               >
                 <SpriteWithFallback species={mine.species} back={true} />
@@ -492,6 +543,13 @@ function BattleStage({
                 ))}
               </div>
             )}
+
+            {/* After the sprite holders on purpose: both sit at z-index 1, so
+                DOM order is what puts the wash over the Pokemon, exactly where
+                the old ::after painted it. Absent when there is no weather, so
+                a plain battle renders the same DOM it always did. */}
+            {wxClass && <span className={`wx-layer ${wxClass}`} aria-hidden="true" />}
+            {terrainClass && <span className={`terrain-layer ${terrainClass}`} aria-hidden="true" />}
 
             {theirs && <HpBar mon={theirs} side="theirs" hitDelay={hitDelay(1)} />}
             {mine && <HpBar mon={mine} side="mine" hitDelay={hitDelay(0)} />}

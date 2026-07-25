@@ -357,6 +357,166 @@ test('the sprite element survives the replay instead of remounting each beat', a
   expect(after.tag, 'the sprite <img> was rebuilt mid-replay without a switch').toBe('original');
 });
 
+test('idle breathing survives the playback-rate sweep', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'replay behaviour is viewport-independent');
+  test.slow();
+
+  // 4x, so useFxRestart's sweep actually runs (it is a no-op at 1x).
+  await page.goto('/#/sixoh?config=fast&seed=41&speed=4');
+  await page.waitForSelector('.offer-card', {timeout: 120_000});
+  for (let i = 0; i < 6; i++) {
+    await page.locator('.offer-card').first().click();
+    await page.waitForTimeout(120);
+  }
+  await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
+  await page.waitForSelector('.hp-bar', {timeout: 120_000});
+
+  // Only the static tiers breathe, and which mon is out is a property of the
+  // seed, so wait for one rather than assuming. (A mon starts optimistically
+  // on gen5ani and only drops to the static sprite once that 404s, so this
+  // also waits out that round trip.)
+  await page.waitForSelector('.sprite-idle.breathing', {timeout: 90_000});
+  // Then several more beats, so plenty of hits have swept the subtree.
+  await page.waitForTimeout(4_000);
+
+  const rates = await page.evaluate(() =>
+    [...document.querySelectorAll('.sprite-idle.breathing')].flatMap(el =>
+      el.getAnimations().map(a => a.playbackRate)
+    )
+  );
+
+  // Without this the assertion below passes vacuously whenever both mons
+  // happen to have animated gen5ani sprites and so never breathe.
+  expect(rates.length, 'no breathing sprite was on the field to check').toBeGreaterThan(0);
+  // The sweep sets playbackRate on everything it finds. Left unfiltered it
+  // would retime the breath to 4x on the first hit and never put it back,
+  // because the sweep only runs on a beat.
+  for (const r of rates) expect(r, 'the idle loop was retimed by the FX sweep').toBe(1);
+});
+
+test('a critical HP bar pulses, and the colour ramps instead of snapping', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const mk = (cls: string) => {
+      const block = document.createElement('div');
+      block.className = cls;
+      const bar = document.createElement('div');
+      bar.className = 'hp-bar';
+      const fill = document.createElement('div');
+      fill.className = 'hp-fill';
+      bar.appendChild(fill);
+      block.appendChild(bar);
+      document.body.appendChild(block);
+      const out = {
+        anim: getComputedStyle(fill).animationName,
+        transition: getComputedStyle(fill).transitionProperty,
+        glow: getComputedStyle(bar).boxShadow,
+      };
+      block.remove();
+      return out;
+    };
+    return {calm: mk('hp-block theirs'), critical: mk('hp-block theirs critical')};
+  });
+
+  expect(read.calm.anim).toBe('none');
+  expect(read.critical.anim).toBe('hpCritical');
+  // The colour used to snap on the frame the width changed.
+  expect(read.calm.transition).toContain('background');
+  expect(read.critical.glow).not.toBe(read.calm.glow);
+});
+
+test('reduced motion suppresses the low-HP pulse and the status effects', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const block = document.createElement('div');
+    block.className = 'hp-block theirs critical';
+    const bar = document.createElement('div');
+    bar.className = 'hp-bar';
+    const fill = document.createElement('div');
+    fill.className = 'hp-fill';
+    bar.appendChild(fill);
+    block.appendChild(bar);
+
+    const holder = document.createElement('div');
+    holder.className = 'sprite-holder theirs st-brn';
+    const idle = document.createElement('span');
+    idle.className = 'sprite-idle breathing';
+    holder.appendChild(idle);
+
+    document.body.append(block, holder);
+    const wx = document.createElement('span');
+    wx.className = 'wx-layer wx-raindance';
+    document.body.appendChild(wx);
+
+    const out = {
+      pulse: getComputedStyle(fill).animationName,
+      breath: getComputedStyle(idle).animationName,
+      condition: getComputedStyle(idle, '::after').display,
+      rain: getComputedStyle(wx, '::before').display,
+    };
+    block.remove();
+    holder.remove();
+    wx.remove();
+    return out;
+  });
+
+  expect(read.pulse).toBe('none');
+  expect(read.breath).toBe('none');
+  expect(read.condition).toBe('none');
+  expect(read.rain).toBe('none');
+});
+
+test('weather and terrain can both be visible at once', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  // They used to share `.stage-field::after` at equal specificity, so terrain
+  // won on source order and rain disappeared entirely whenever both were up.
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field wx-raindance terrain-electric';
+    const wx = document.createElement('span');
+    wx.className = 'wx-layer wx-raindance';
+    const terrain = document.createElement('span');
+    terrain.className = 'terrain-layer terrain-electric';
+    field.append(wx, terrain);
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const out = {
+      wxBg: getComputedStyle(wx).backgroundImage,
+      wxTop: getComputedStyle(wx).top,
+      terrainBg: getComputedStyle(terrain).backgroundColor,
+      terrainTop: getComputedStyle(terrain).top,
+      // The old pseudo-element must be gone, or it would paint on top.
+      legacyPseudo: getComputedStyle(field, '::after').content,
+      // Each layer carries its own particles, which the shared pseudo could
+      // never have supported.
+      wxParticles: getComputedStyle(wx, '::before').animationName,
+      terrainParticles: getComputedStyle(terrain, '::before').animationName,
+    };
+    host.remove();
+    return out;
+  });
+
+  expect(read.wxBg, 'the rain wash should still render with terrain up').toContain('gradient');
+  expect(read.wxTop, 'weather covers the whole field').toBe('0px');
+  expect(read.terrainBg).toBe('rgba(250, 220, 60, 0.18)');
+  expect(read.terrainTop, 'terrain covers the ground only').not.toBe('0px');
+  expect(read.legacyPseudo).toBe('none');
+  expect(read.wxParticles).toBe('wxRain');
+  expect(read.terrainParticles).toBe('terrainShimmer');
+});
+
 test('multi-hit damage numbers stack instead of piling up', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
   await page.goto('/');
