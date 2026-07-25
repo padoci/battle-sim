@@ -2163,11 +2163,17 @@ button.primary:disabled {
    The delay is NOT divided by playback speed here: useFxRestart sets
    `playbackRate` on the restarted animations, which compresses delay and
    duration together. Doing both would scale it twice. */
-.fx-physical.impact {
+/* A dodge and a block are what happens when the attack arrives, so they wait
+   exactly as long as an impact does. */
+.fx-physical.impact,
+.fx-physical.dodge,
+.fx-physical.blocked {
   --fx-hit-delay: 0.14s; /* lungeRight peaks at 35% of 0.32s */
 }
 
-.fx-special.impact {
+.fx-special.impact,
+.fx-special.dodge,
+.fx-special.blocked {
   --fx-hit-delay: 0.28s; /* beamShotToTheirs lands at 0.34s */
 }
 
@@ -2182,6 +2188,10 @@ button.primary:disabled {
    too — otherwise the defender lights up before the attack reaches it. */
 .battle-stage .stage-field .impact .stage-sprite,
 .battle-stage .stage-field .impact .sprite-fallback,
+.battle-stage .stage-field .dodge:not(.lead-in):not(.switch-pop),
+.battle-stage .stage-field .dodge .stage-sprite,
+.battle-stage .stage-field .dodge .sprite-fallback,
+.battle-stage .stage-field .blocked::after,
 .battle-stage .stage-field .float-num {
   animation-delay: var(--fx-hit-delay, 0s);
 }
@@ -2377,6 +2387,184 @@ button.primary:disabled {
 
 @keyframes statusGlow {
   35% { filter: drop-shadow(0 0 10px var(--fx-color, #b9a6f5)) brightness(1.18); }
+}
+
+/* ---- How hard the hit landed ----
+
+   The type chart is the loudest thing in a Pokemon battle and it reached only
+   the log: `tags.supereffective` and `tags.resisted` have been parsed since
+   the beginning and read by nobody. Every hit looked the same.
+
+   These scale the four channels that are SHARED by all 264 signature moves,
+   never the per-move shape, so not one signature rule has to be edited:
+
+     1. the holder's recoil        (no signature rule targets .fx-signature-x.impact)
+     2. the sprite's flash         (no signature rule targets .impact .stage-sprite)
+     3. a filter on the burst      (no signature rule declares `filter` there, and
+                                    the `animation` shorthand cannot reset it)
+     4. the damage number          (a descendant, untouched by signature rules)
+
+   Longhands only. A shorthand here would re-zero the animation-delay that the
+   "When the hit lands" block installs above. */
+.fx-super.impact {
+  animation-name: impactShakeHard;
+  animation-duration: 0.5s;
+}
+
+.fx-resisted.impact {
+  animation-name: impactShakeSoft;
+}
+
+@keyframes impactShakeHard {
+  0% { transform: translateX(0) scale(1); }
+  10% { transform: translateX(12px) scale(0.85); }
+  24% { transform: translateX(-11px) scale(0.92); }
+  40% { transform: translateX(8px) scale(0.97); }
+  56% { transform: translateX(-6px); }
+  72% { transform: translateX(3px); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+@keyframes impactShakeSoft {
+  0% { transform: translateX(0) scale(1); }
+  16% { transform: translateX(3px) scale(0.97); }
+  40% { transform: translateX(-2px); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+.fx-super.impact .stage-sprite,
+.fx-super.impact .sprite-fallback {
+  animation-name: impactFlashHard;
+}
+
+.fx-resisted.impact .stage-sprite,
+.fx-resisted.impact .sprite-fallback {
+  animation-name: impactFlashSoft;
+}
+
+@keyframes impactFlashHard {
+  0% { filter: none; }
+  12% { filter: brightness(3.6) contrast(1.35); }
+  30% { filter: brightness(2.2); }
+  50% { filter: brightness(1.4); }
+  100% { filter: none; }
+}
+
+@keyframes impactFlashSoft {
+  0% { filter: none; }
+  16% { filter: brightness(1.5); }
+  100% { filter: none; }
+}
+
+/* (0,4,1), so it outranks every .fx-signature-x.impact::after at (0,2,1).
+   One rule, 264 shapes: the burst keeps its own artwork and gains heat. */
+.battle-stage .stage-field .fx-super.impact::after {
+  filter: saturate(1.4) brightness(1.12) drop-shadow(0 0 8px var(--fx-color, #fff));
+}
+
+.battle-stage .stage-field .fx-resisted.impact::after {
+  filter: saturate(0.45) brightness(0.88) blur(0.4px);
+}
+
+/* The single strongest legibility lever: the number itself. */
+.fx-super .float-num {
+  font-size: 1.95rem;
+  color: #ff5a3c;
+  text-shadow: 0 0 12px rgba(255, 120, 60, 0.55);
+}
+
+.fx-resisted .float-num {
+  font-size: 1.05rem;
+  color: #8b8fa3;
+}
+
+/* A shockwave ring, as a child rather than a pseudo-element: `::after` and
+   `::before` on the holder are already spoken for by the burst and the crit
+   ring, and this way it never enters a cascade fight with 264 rules. */
+.fx-eff {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  /* Centred by margin, so the keyframe's transform stays a pure scale. */
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  border: 3px solid var(--fx-color, #fff);
+  box-shadow: 0 0 20px 6px var(--fx-color, rgba(255, 255, 255, 0.6));
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: superShock 0.46s cubic-bezier(0.1, 0.7, 0.2, 1) var(--fx-hit-delay, 0s) backwards;
+}
+
+@keyframes superShock {
+  0% { transform: scale(0.2); opacity: 1; border-width: 5px; }
+  100% { transform: scale(4.2); opacity: 0; border-width: 1px; }
+}
+
+/* ---- The two ways an attack fails ----
+
+   A whiff and a no-sell used to be indistinguishable: both simply produced no
+   impact, so the defender's two best moments looked like nothing happening.
+   Give them opposite motions so they can never be read as each other. A dodge
+   is evasion, so the defender leaves the line of the attack; a block is
+   immovability, so the defender does not move at all and the attack dies on a
+   shield. */
+.dodge {
+  animation: dodgeStep 0.36s cubic-bezier(0.2, 0, 0.1, 1);
+}
+
+/* Mirrored: each side ducks away from its own attacker. */
+.sprite-holder.mine.dodge {
+  animation-name: dodgeStepMine;
+}
+
+@keyframes dodgeStep {
+  0% { transform: none; }
+  30%, 62% { transform: translate(17px, -11px) skewX(-7deg); }
+  100% { transform: none; }
+}
+
+@keyframes dodgeStepMine {
+  0% { transform: none; }
+  30%, 62% { transform: translate(-17px, 11px) skewX(7deg); }
+  100% { transform: none; }
+}
+
+/* Filter only, per the `.sprite-fallback` scale(1.7) constraint. */
+.dodge .stage-sprite,
+.dodge .sprite-fallback {
+  animation: dodgeBlur 0.36s ease-out;
+}
+
+@keyframes dodgeBlur {
+  30%, 62% { filter: blur(1.3px) opacity(0.55); }
+}
+
+/* No motion on the holder at all: standing still IS the effect. */
+.blocked::after {
+  content: '';
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  width: 78px;
+  height: 90px;
+  margin: -45px 0 0 -39px;
+  clip-path: polygon(50% 0%, 100% 24%, 100% 68%, 50% 100%, 0% 68%, 0% 24%);
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.9), rgba(190, 205, 230, 0.32));
+  box-shadow: 0 0 16px 3px rgba(220, 232, 255, 0.7);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: blockGuard 0.5s ease-out backwards;
+}
+
+@keyframes blockGuard {
+  0% { transform: scale(0.55); opacity: 0; }
+  22% { transform: scale(1.06); opacity: 0.95; }
+  58% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.04); opacity: 0; }
 }
 
 /* Per-type FX shapes: five signature types swap the generic spark/beam for
@@ -8000,19 +8188,72 @@ button.primary:disabled {
   30% { filter: hue-rotate(90deg) brightness(2.2) saturate(2); transform: scale(1.15); }
 }
 
+/* Getting knocked out. A flinch upward, then the drop and topple.
+
+   Position in the file is load-bearing: this, `.lead-in` and `.switch-pop`
+   all set `animation` at (0,1,0), and source order is the only reason the
+   drop wins. A mon really can carry both classes (a hazard KO on a mon that
+   just switched in, which at 5x lands inside the 450ms just-arrived window),
+   so moving this rule above them would silently turn the KO into a pop-in. */
 .faint-drop {
-  animation: faintDrop 0.8s ease-in forwards;
+  animation: faintDrop 0.75s cubic-bezier(0.4, 0, 0.85, 0.5) forwards;
 }
 
 @keyframes faintDrop {
-  to { transform: translateY(40px); opacity: 0; }
+  0% { transform: translateY(0) rotate(0deg); }
+  14% { transform: translateY(-7px) rotate(-2deg); }
+  100% { transform: translateY(52px) rotate(9deg); }
+}
+
+/* Filter and opacity only, never a transform: `.sprite-fallback` carries a
+   load-bearing `scale(1.7)` that an animated transform here would stomp for
+   the full 0.75s (same constraint as `.impact`). */
+.faint-drop .stage-sprite,
+.faint-drop .sprite-fallback {
+  animation: faintFade 0.75s ease-in forwards;
+}
+
+@keyframes faintFade {
+  0% { filter: none; opacity: 1; }
+  14% { filter: brightness(2.2) saturate(0.25); opacity: 1; }
+  100% { filter: grayscale(1) brightness(0.55); opacity: 0; }
+}
+
+/* A puff kicked up where it lands. `::after` is free on a KO beat: the burst
+   that owns it belongs to `.impact`, and a faint is always its own beat. */
+.faint-drop::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 76px;
+  height: 20px;
+  margin-left: -38px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 255, 255, 0.5), rgba(210, 200, 180, 0.25) 55%, transparent 75%);
+  opacity: 0;
+  z-index: 2;
+  pointer-events: none;
+  animation: koDust 0.6s ease-out 0.22s backwards;
+}
+
+@keyframes koDust {
+  0% { transform: scale(0.3); opacity: 0; }
+  35% { transform: scale(1); opacity: 0.85; }
+  100% { transform: scale(1.5); opacity: 0; }
 }
 
 /* Floating damage number, above whichever card took the hit. */
 .float-num {
   position: absolute;
-  top: -14px;
-  left: 50%;
+  /* Multi-hit moves stack their numbers upward and fan them alternately left
+     and right, so four hits read as four hits rather than one pile. Both are
+     set inline and only for hits after the first, so a single hit still
+     computes to a plain -14px / 50%. */
+  --fx-float-index: 0;
+  --fx-float-dx: 0px;
+  top: calc(-14px - var(--fx-float-index) * 15px);
+  left: calc(50% + var(--fx-float-dx));
   transform: translateX(-50%);
   font-family: var(--font-mono);
   font-weight: 700;
@@ -8707,12 +8948,27 @@ button.primary:disabled {
      leave reduced-motion users with a brightness(2.8) strobe on every hit. */
   .impact .stage-sprite,
   .impact .sprite-fallback,
+  /* @media adds nothing to specificity, so `.impact` at (0,1,0) does NOT
+     suppress `.fx-super.impact` at (0,2,0) — every compound override needs a
+     matching compound here or reduced-motion users get the harder shake. */
+  .fx-super.impact,
+  .fx-resisted.impact,
+  .fx-super.impact .stage-sprite,
+  .fx-super.impact .sprite-fallback,
+  .fx-resisted.impact .stage-sprite,
+  .fx-resisted.impact .sprite-fallback,
   .fx-status.lunge-right .stage-sprite,
   .fx-status.lunge-right .sprite-fallback,
   .fx-status.lunge-left .stage-sprite,
   .fx-status.lunge-left .sprite-fallback,
   .tera-flash,
   .faint-drop,
+  .faint-drop .stage-sprite,
+  .faint-drop .sprite-fallback,
+  .dodge,
+  .sprite-holder.mine.dodge,
+  .dodge .stage-sprite,
+  .dodge .sprite-fallback,
   .float-num,
   .switch-pop,
   .switch-out,
@@ -8736,7 +8992,13 @@ button.primary:disabled {
   .simulating .pulse {
     animation: none;
   }
-  .switch-ball {
+  /* Purely decorative children get display:none rather than animation:none —
+     their base state is opacity:0, so merely stopping the animation would
+     park them invisible anyway, and hiding them is the honest expression. */
+  .switch-ball,
+  .fx-eff,
+  .faint-drop::after,
+  .blocked::after {
     display: none;
   }
   /* Wildcards cover every current and future per-type/signature shape

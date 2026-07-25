@@ -36,7 +36,7 @@ export interface ViewState {
 
 /** One visual effect triggered by a beat. */
 export interface FxItem {
-  type: 'lunge' | 'impact' | 'float' | 'faint' | 'tera' | 'switch';
+  type: 'lunge' | 'impact' | 'dodge' | 'blocked' | 'float' | 'faint' | 'tera' | 'switch';
   side: 0 | 1;
   text?: string;
   /** The move's type ("Fire") — drives the FX accent color. */
@@ -48,6 +48,10 @@ export interface FxItem {
   move?: string;
   /** `impact` only: a critical hit — drives the extra screen-flash treatment. */
   crit?: boolean;
+  /** `impact` only: how the type chart read this hit. Scales the SHARED
+   *  channels (recoil, flash, burst tint, damage-number size) and never the
+   *  per-move shape, so it composes with every signature override. */
+  effectiveness?: 'super' | 'resisted';
   /** `switch` only: the species leaving the field this beat, if any (undefined
    *  at the turn-0 lead placement, or when the outgoing mon already fainted
    *  and played its own exit) — lets the stage render a switch-out alongside
@@ -170,15 +174,32 @@ export function applyBeat(state: ViewState, beat: Beat): {state: ViewState; fx: 
         // actually lands on the target instead of vanishing into the user's
         // own glow.
         const targetsOpponent = category !== 'Status' || STATUS_SIGNATURE_TARGETS.has(event.move);
-        if (targetsOpponent && !event.tags.miss && !event.tags.immune) {
-          fx.push({
-            type: 'impact',
-            side: (1 - event.ref.side) as 0 | 1,
-            moveType,
-            category,
-            move: event.move,
-            crit: event.tags.crit,
-          });
+        if (targetsOpponent) {
+          const target = (1 - event.ref.side) as 0 | 1;
+          // A whiff and a no-sell used to look identical (both simply produced
+          // no impact), losing the two outcomes the defender most deserves
+          // credit for. Immunity is checked first: it outranks accuracy.
+          // Neither carries `move`, so no signature override lands on a holder
+          // that has no impact/lunge state to activate it.
+          if (event.tags.immune) {
+            fx.push({type: 'blocked', side: target, moveType, category});
+          } else if (event.tags.miss) {
+            fx.push({type: 'dodge', side: target, moveType, category});
+          } else {
+            fx.push({
+              type: 'impact',
+              side: target,
+              moveType,
+              category,
+              move: event.move,
+              crit: event.tags.crit,
+              effectiveness: event.tags.supereffective
+                ? 'super'
+                : event.tags.resisted
+                  ? 'resisted'
+                  : undefined,
+            });
+          }
         }
         break;
       }

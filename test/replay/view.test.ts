@@ -111,6 +111,81 @@ describe('typed move FX (category + type flavor)', () => {
     expect(fx.some(f => f.type === 'lunge')).toBe(true);
   });
 
+  it('a multi-hit move produces one damage number per hit', () => {
+    // Every hit of a multi-hit move is its own -damage line, and pace.ts groups
+    // them all into the move's beat. The view has always emitted one float per
+    // hit; the stage used to render only the first, so Bullet Seed landing four
+    // times looked exactly like it landing once.
+    const view = initView([t1, t2]);
+    const target = view.sides[1].mons[0];
+    const dmg = (hp: number) => ({
+      kind: 'damage' as const,
+      ref: {side: 1 as const, name: target.name},
+      hp,
+      maxhp: target.maxhp,
+      logText: '',
+    });
+    const {fx} = applyBeat(
+      view,
+      mkBeat([
+        moveEvent('Bullet Seed', 0),
+        dmg(Math.round(target.maxhp * 0.9)),
+        dmg(Math.round(target.maxhp * 0.8)),
+        dmg(Math.round(target.maxhp * 0.7)),
+      ])
+    );
+    const floats = fx.filter(f => f.type === 'float');
+    expect(floats).toHaveLength(3);
+    for (const f of floats) expect(f.text).toMatch(/^−\d+%$/);
+  });
+
+  it('carries how the type chart read the hit', () => {
+    const eff = (tags: Record<string, boolean>) =>
+      applyBeat(initView([t1, t2]), mkBeat([moveEvent('Flamethrower', 0, tags)])).fx.find(
+        f => f.type === 'impact'
+      )?.effectiveness;
+    expect(eff({supereffective: true})).toBe('super');
+    expect(eff({resisted: true})).toBe('resisted');
+    expect(eff({})).toBeUndefined();
+    // A crit is a separate axis and must not be conflated with effectiveness.
+    expect(eff({crit: true})).toBeUndefined();
+  });
+
+  it('a miss reads as a dodge and an immunity as a block, on the defender', () => {
+    const miss = applyBeat(initView([t1, t2]), mkBeat([moveEvent('Flamethrower', 0, {miss: true})])).fx;
+    const dodge = miss.find(f => f.type === 'dodge')!;
+    expect(dodge).toBeDefined();
+    expect(dodge.side).toBe(1);
+    // Flavored so it inherits the same --fx-hit-delay an impact would get:
+    // without this the defender ducks before the attack reaches it.
+    expect(dodge.category).toBe('Special');
+    expect(dodge.moveType).toBe('Fire');
+    // No `move`, so no fx-signature-* class lands on a holder with no impact
+    // or lunge state to activate it.
+    expect(dodge.move).toBeUndefined();
+
+    const immune = applyBeat(initView([t1, t2]), mkBeat([moveEvent('Flamethrower', 0, {immune: true})])).fx;
+    expect(immune.find(f => f.type === 'blocked')?.side).toBe(1);
+    expect(immune.some(f => f.type === 'dodge')).toBe(false);
+  });
+
+  it('an immunity outranks a miss when the protocol reports both', () => {
+    const {fx} = applyBeat(
+      initView([t1, t2]),
+      mkBeat([moveEvent('Flamethrower', 0, {miss: true, immune: true})])
+    );
+    expect(fx.some(f => f.type === 'blocked')).toBe(true);
+    expect(fx.some(f => f.type === 'dodge')).toBe(false);
+  });
+
+  it('a missed status move still produces no defender FX', () => {
+    // Swords Dance targets nobody, so a miss must not conjure a dodge on the
+    // opponent — the whole branch is skipped.
+    const {fx} = applyBeat(initView([t1, t2]), mkBeat([moveEvent('Swords Dance', 0, {miss: true})]));
+    expect(fx).toHaveLength(1);
+    expect(fx[0].type).toBe('lunge');
+  });
+
   it('unknown move names degrade gracefully (fx without type, no throw)', () => {
     const {fx} = applyBeat(initView([t1, t2]), mkBeat([moveEvent('Notarealmove')]));
     const lunge = fx.find(f => f.type === 'lunge')!;

@@ -247,6 +247,13 @@ function BattleIntro({
 }
 
 
+/** FX types that carry a move's type and category, and so decide a holder's
+ * accent colour and its `--fx-hit-delay`. A dodge and a block are outcomes of
+ * an attack arriving, so they time off the attack exactly as an impact does:
+ * leave them out and the defender ducks at beat start, while the beam is still
+ * in flight. Module-level because it is an effect dependency downstream. */
+const FLAVORED: FxItem['type'][] = ['lunge', 'impact', 'dodge', 'blocked'];
+
 function BattleStage({
   team,
   opponentSets,
@@ -310,6 +317,10 @@ function BattleStage({
   }, [!!theirs]);
 
   const fxFor = (side: 0 | 1, type: FxItem['type']) => fx.find(f => f.side === side && f.type === type);
+  /** Every damage number this beat put on a side. A multi-hit move produces one
+   * per hit, and taking only the first threw the rest away: Bullet Seed landing
+   * four times looked exactly like it landing once. */
+  const floatsFor = (side: 0 | 1) => fx.filter(f => f.side === side && f.type === 'float');
   const outgoingFor = (side: 0 | 1) => fxFor(side, 'switch')?.outgoingSpecies;
 
   // Category + move-type flavor for a side's FX this beat: the category picks
@@ -318,7 +329,7 @@ function BattleStage({
   // layers a fully bespoke override on top for a small curated set of
   // high-frequency moves (see SIGNATURE_MOVES in sixoh/fx.ts).
   const fxFlavor = (side: 0 | 1) => {
-    const item = fx.find(f => f.side === side && (f.type === 'lunge' || f.type === 'impact'));
+    const item = fx.find(f => f.side === side && FLAVORED.includes(f.type));
     return {
       category: item?.category ? `fx-${item.category.toLowerCase()}` : undefined,
       color: item?.moveType ? typeColor(item.moveType) : undefined,
@@ -334,6 +345,9 @@ function BattleStage({
       fxFor(side, 'lunge') && lungeClass,
       fxFor(side, 'impact') && 'impact',
       fxFor(side, 'impact')?.crit && 'fx-crit',
+      fxFor(side, 'dodge') && 'dodge',
+      fxFor(side, 'blocked') && 'blocked',
+      fxFor(side, 'impact')?.effectiveness && `fx-${fxFor(side, 'impact')!.effectiveness}`,
       fxFor(side, 'faint') && 'faint-drop',
       fxFor(side, 'tera') && 'tera-flash',
       fxFor(side, 'switch') && 'switch-pop',
@@ -347,11 +361,27 @@ function BattleStage({
   };
   /** A ball accompanies every entrance: the send-out window and mid-battle
    * switch-ins alike. */
-  const showBall = (side: 0 | 1) => (side === 0 ? mineJustIn : theirsJustIn) || !!fxFor(side, 'switch');
+  const showBall = (side: 0 | 1) =>
+    ((side === 0 ? mineJustIn : theirsJustIn) || !!fxFor(side, 'switch')) && !fxFor(side, 'faint');
   const holderStyle = (side: 0 | 1): CSSProperties | undefined => {
     const color = fxFlavor(side).color;
     return color ? ({'--fx-color': color} as CSSProperties) : undefined;
   };
+  /** Later hits of a multi-hit move stagger in time and stack upward, so four
+   * numbers read as four hits instead of one illegible pile. The first is left
+   * untouched, so the overwhelmingly common single-hit case renders exactly as
+   * it did before. */
+  const floatStyle = (i: number): CSSProperties | undefined =>
+    i === 0
+      ? undefined
+      : ({
+          animationDelay: `calc(var(--fx-hit-delay, 0s) + ${(i * 0.14).toFixed(2)}s)`,
+          '--fx-float-index': String(i),
+          // Stacking alone is not enough: floatUp travels 26px, further than
+          // the 15px step, so consecutive numbers would cross and overlap.
+          // Fanning them alternately left and right keeps every hit readable.
+          '--fx-float-dx': `${(i % 2 ? 1 : -1) * 32 * Math.ceil(i / 2)}px`,
+        } as CSSProperties);
   /** How long this side's HP drain should wait, so it reads as caused by the
    * hit rather than by the beat. Only when the side is actually being hit. */
   const hitDelay = (side: 0 | 1): string | undefined => {
@@ -413,7 +443,13 @@ function BattleStage({
                 <SpriteWithFallback species={outgoingFor(1)!} back={false} />
               </div>
             )}
-            {theirs && !theirs.fainted && (
+            {/* Kept mounted for the beat that knocks it out: `applyBeat` sets
+                `fainted` in the same beat that emits the faint FX, so gating on
+                `!fainted` alone unmounts the holder on the exact frame
+                `.faint-drop` would start and the KO becomes an instant vanish.
+                Self-guarding on the skip path: `foldBeats` leaves no FX, so a
+                fainted mon still renders nothing. */}
+            {theirs && (!theirs.fainted || fxFor(1, 'faint')) && (
               <div
                 key={`t-${theirs.species}`}
                 ref={theirsRef}
@@ -422,11 +458,14 @@ function BattleStage({
               >
                 <SpriteWithFallback species={theirs.species} back={false} />
                 {showBall(1) && <span className="switch-ball" aria-hidden="true" />}
-                {fxFor(1, 'float') && (
-                  <span key={fxKey} className="float-num">
-                    {fxFor(1, 'float')!.text}
-                  </span>
+                {fxFor(1, 'impact')?.effectiveness === 'super' && (
+                  <span key={`e-${fxKey}`} className="fx-eff" aria-hidden="true" />
                 )}
+                {floatsFor(1).map((f, i) => (
+                  <span key={`${fxKey}-${i}`} className="float-num" style={floatStyle(i)}>
+                    {f.text}
+                  </span>
+                ))}
               </div>
             )}
             {outgoingFor(0) && (
@@ -434,7 +473,7 @@ function BattleStage({
                 <SpriteWithFallback species={outgoingFor(0)!} back={true} />
               </div>
             )}
-            {mine && !mine.fainted && (
+            {mine && (!mine.fainted || fxFor(0, 'faint')) && (
               <div
                 key={`m-${mine.species}`}
                 ref={mineRef}
@@ -443,11 +482,14 @@ function BattleStage({
               >
                 <SpriteWithFallback species={mine.species} back={true} />
                 {showBall(0) && <span className="switch-ball" aria-hidden="true" />}
-                {fxFor(0, 'float') && (
-                  <span key={fxKey} className="float-num">
-                    {fxFor(0, 'float')!.text}
-                  </span>
+                {fxFor(0, 'impact')?.effectiveness === 'super' && (
+                  <span key={`e-${fxKey}`} className="fx-eff" aria-hidden="true" />
                 )}
+                {floatsFor(0).map((f, i) => (
+                  <span key={`${fxKey}-${i}`} className="float-num" style={floatStyle(i)}>
+                    {f.text}
+                  </span>
+                ))}
               </div>
             )}
 

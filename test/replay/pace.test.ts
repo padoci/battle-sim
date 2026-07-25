@@ -48,7 +48,18 @@ describe('toBeats', () => {
   });
 
   it('every beat gets a duration from the PACE table', () => {
-    const allowed = new Set<number>(Object.values(PACE));
-    for (const beat of beats) expect(allowed.has(beat.durationMs)).toBe(true);
+    // PACE.move + BIG_HIT_BONUS_MS is a legitimate duration, so it belongs in
+    // the allowed set. Listing that one combination rather than a cross-product
+    // of every PACE value with the bonus keeps the assertion tight.
+    const allowed = new Set<number>([...Object.values(PACE), PACE.move + BIG_HIT_BONUS_MS]);
+    // The fixture happens to contain no crits and no super-effective hits, so
+    // it alone would never produce the bonus duration and this test would pass
+    // without ever exercising it. Synthetic beats cover the gap.
+    const move = (tags: Record<string, boolean>) =>
+      ({kind: 'move', ref: {side: 0, name: 'X'}, move: 'Surf', tags, logText: ''}) as const;
+    const synthetic = toBeats([move({crit: true}), move({supereffective: true}), move({})]);
+    expect(synthetic.some(b => b.durationMs === PACE.move + BIG_HIT_BONUS_MS)).toBe(true);
+
+    for (const beat of [...beats, ...synthetic]) expect(allowed.has(beat.durationMs)).toBe(true);
   });
 });

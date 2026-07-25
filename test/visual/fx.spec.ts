@@ -357,6 +357,268 @@ test('the sprite element survives the replay instead of remounting each beat', a
   expect(after.tag, 'the sprite <img> was rebuilt mid-replay without a switch').toBe('original');
 });
 
+test('multi-hit damage numbers stack instead of piling up', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const tops = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    const holder = document.createElement('div');
+    holder.className = 'sprite-holder theirs impact fx-physical';
+    field.appendChild(holder);
+    host.appendChild(field);
+    document.body.appendChild(host);
+    holder.style.width = '100px';
+    const read = (index?: number) => {
+      const el = document.createElement('span');
+      el.className = 'float-num';
+      if (index !== undefined) {
+        el.style.setProperty('--fx-float-index', String(index));
+        el.style.setProperty('--fx-float-dx', `${(index % 2 ? 1 : -1) * 32 * Math.ceil(index / 2)}px`);
+      }
+      holder.appendChild(el);
+      const cs = getComputedStyle(el);
+      const out = {top: cs.top, left: cs.left};
+      el.remove();
+      return out;
+    };
+    const out = {first: read(), second: read(1), third: read(2), fourth: read(3)};
+    host.remove();
+    return out;
+  });
+
+  // The first hit must be untouched, so the overwhelmingly common single-hit
+  // case renders exactly as it did before this change.
+  expect(tops.first.top).toBe('-14px');
+  expect(tops.first.left).toBe('50px'); // 50% of the 100px holder
+
+  // Stacked upward...
+  expect(tops.second.top).toBe('-29px');
+  expect(tops.fourth.top).toBe('-59px');
+  // ...and fanned alternately, because floatUp travels 26px (further than the
+  // 15px step), so stacking alone would let consecutive numbers cross.
+  expect(tops.second.left).toBe('82px');
+  expect(tops.third.left).toBe('18px');
+});
+
+test('effectiveness scales the hit without touching any signature shape', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const probe = (cls: string) => {
+      const el = document.createElement('div');
+      el.className = cls;
+      const img = document.createElement('img');
+      img.className = 'stage-sprite';
+      el.appendChild(img);
+      field.appendChild(el);
+      const after = getComputedStyle(el, '::after');
+      const out = {
+        holder: getComputedStyle(el).animationName,
+        sprite: getComputedStyle(img).animationName,
+        burstAnim: after.animationName,
+        burstDelay: after.animationDelay,
+        burstFilter: after.filter,
+      };
+      el.remove();
+      return out;
+    };
+    const sig = 'fx-signature-ice-beam';
+    const out = {
+      neutral: probe(`sprite-holder theirs impact fx-special ${sig}`),
+      superEff: probe(`sprite-holder theirs impact fx-special fx-super ${sig}`),
+      resisted: probe(`sprite-holder theirs impact fx-special fx-resisted ${sig}`),
+    };
+    host.remove();
+    return out;
+  });
+
+  expect(read.neutral.holder).toBe('impactShake');
+  expect(read.superEff.holder).toBe('impactShakeHard');
+  expect(read.resisted.holder).toBe('impactShakeSoft');
+  expect(read.superEff.sprite).toBe('impactFlashHard');
+  expect(read.resisted.sprite).toBe('impactFlashSoft');
+
+  // The whole approach rests on this: the signature artwork must survive, and
+  // the longhand overrides must not re-zero the hit delay.
+  expect(read.superEff.burstAnim, 'the signature burst was clobbered').toBe('iceBeamShard');
+  expect(read.resisted.burstAnim).toBe('iceBeamShard');
+  expect(read.superEff.burstDelay, 'a shorthand re-zeroed the hit delay').toBe('0.28s');
+
+  // `filter` is a channel the signature `animation` shorthand cannot reach.
+  expect(read.neutral.burstFilter).toBe('none');
+  expect(read.superEff.burstFilter).toContain('saturate');
+  expect(read.resisted.burstFilter).toContain('saturate');
+});
+
+test('reduced motion suppresses the effectiveness treatment', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  // The trap: @media contributes no specificity, so `.impact` at (0,1,0) does
+  // not suppress `.fx-super.impact` at (0,2,0). Without matching compound
+  // selectors in the reduced-motion block these users get the HARDER shake.
+  const superEff = await splitProbe(page, 'sprite-holder theirs impact fx-special fx-super');
+  expect(superEff.holderAnim).toBe('none');
+  expect(superEff.spriteAnim).toBe('none');
+
+  const resisted = await splitProbe(page, 'sprite-holder theirs impact fx-special fx-resisted');
+  expect(resisted.holderAnim).toBe('none');
+  expect(resisted.spriteAnim).toBe('none');
+
+  const ring = await page.evaluate(() => {
+    const el = document.createElement('span');
+    el.className = 'fx-eff';
+    document.body.appendChild(el);
+    const v = getComputedStyle(el).display;
+    el.remove();
+    return v;
+  });
+  expect(ring).toBe('none');
+});
+
+test('a dodge and a block wait for the attack, like an impact does', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const probe = (cls: string, pseudo?: string) => {
+      const el = document.createElement('div');
+      el.className = cls;
+      field.appendChild(el);
+      const cs = pseudo ? getComputedStyle(el, pseudo) : getComputedStyle(el);
+      const out = {name: cs.animationName, delay: cs.animationDelay};
+      el.remove();
+      return out;
+    };
+    const out = {
+      dodgeSpecial: probe('sprite-holder theirs dodge fx-special'),
+      dodgePhysical: probe('sprite-holder theirs dodge fx-physical'),
+      dodgeMine: probe('sprite-holder mine dodge fx-physical'),
+      blockShield: probe('sprite-holder theirs blocked fx-special', '::after'),
+    };
+    host.remove();
+    return out;
+  });
+
+  // Without the FLAVORED widening these get no --fx-hit-delay at all and the
+  // defender reacts at beat start, while the beam is still in flight.
+  expect(read.dodgeSpecial.delay).toBe('0.28s');
+  expect(read.dodgePhysical.delay).toBe('0.14s');
+  expect(read.dodgeSpecial.name).toBe('dodgeStep');
+  // Each side ducks away from its own attacker.
+  expect(read.dodgeMine.name).toBe('dodgeStepMine');
+  expect(read.blockShield.name).toBe('blockGuard');
+  expect(read.blockShield.delay).toBe('0.28s');
+});
+
+test('reduced motion suppresses the dodge and the block', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const mk = (cls: string) => {
+      const el = document.createElement('div');
+      el.className = cls;
+      const img = document.createElement('img');
+      img.className = 'stage-sprite';
+      el.appendChild(img);
+      field.appendChild(el);
+      return el;
+    };
+    const dodgeTheirs = mk('sprite-holder theirs dodge fx-special');
+    const dodgeMine = mk('sprite-holder mine dodge fx-physical');
+    const blocked = mk('sprite-holder theirs blocked fx-special');
+    const out = {
+      dodge: getComputedStyle(dodgeTheirs).animationName,
+      // .sprite-holder.mine.dodge is (0,3,0) and would otherwise outrank the
+      // reduced-motion list, which @media does not add specificity to.
+      dodgeMine: getComputedStyle(dodgeMine).animationName,
+      dodgeSprite: getComputedStyle(dodgeTheirs.querySelector('img')!).animationName,
+      shield: getComputedStyle(blocked, '::after').display,
+    };
+    host.remove();
+    return out;
+  });
+
+  expect(read.dodge).toBe('none');
+  expect(read.dodgeMine).toBe('none');
+  expect(read.dodgeSprite).toBe('none');
+  expect(read.shield).toBe('none');
+});
+
+test('the KO animates instead of vanishing', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const ko = await splitProbe(page, 'sprite-holder theirs faint-drop');
+  expect(ko.holderAnim, 'the holder should drop').toBe('faintDrop');
+  expect(ko.spriteAnim, 'the sprite should fade out').toBe('faintFade');
+
+  // .faint-drop, .lead-in and .switch-pop are all (0,1,0) and source order is
+  // the only thing that makes the drop win. A hazard KO on a mon that just
+  // switched in genuinely carries both classes.
+  const both = await splitProbe(page, 'sprite-holder theirs faint-drop lead-in');
+  expect(both.holderAnim, 'an entrance animation outranked the KO').toBe('faintDrop');
+});
+
+test('reduced motion suppresses the KO animation', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const ko = await splitProbe(page, 'sprite-holder theirs faint-drop');
+  expect(ko.holderAnim).toBe('none');
+  expect(ko.spriteAnim).toBe('none');
+
+  const dust = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    const el = document.createElement('div');
+    el.className = 'sprite-holder theirs faint-drop';
+    field.appendChild(el);
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const v = getComputedStyle(el, '::after').display;
+    host.remove();
+    return v;
+  });
+  expect(dust, 'the dust puff should be hidden, not merely unanimated').toBe('none');
+});
+
 test('the battle stage never forces horizontal page scroll', async ({page}, testInfo) => {
   test.skip(!testInfo.project.name.includes('mobile'), 'overflow only bites on a narrow viewport');
   test.slow();
