@@ -111,6 +111,18 @@ describe('typed move FX (category + type flavor)', () => {
     expect(fx.some(f => f.type === 'lunge')).toBe(true);
   });
 
+  it('carries how the type chart read the hit', () => {
+    const eff = (tags: Record<string, boolean>) =>
+      applyBeat(initView([t1, t2]), mkBeat([moveEvent('Flamethrower', 0, tags)])).fx.find(
+        f => f.type === 'impact'
+      )?.effectiveness;
+    expect(eff({supereffective: true})).toBe('super');
+    expect(eff({resisted: true})).toBe('resisted');
+    expect(eff({})).toBeUndefined();
+    // A crit is a separate axis and must not be conflated with effectiveness.
+    expect(eff({crit: true})).toBeUndefined();
+  });
+
   it('a miss reads as a dodge and an immunity as a block, on the defender', () => {
     const miss = applyBeat(initView([t1, t2]), mkBeat([moveEvent('Flamethrower', 0, {miss: true})])).fx;
     const dodge = miss.find(f => f.type === 'dodge')!;

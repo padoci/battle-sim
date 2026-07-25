@@ -2389,6 +2389,120 @@ button.primary:disabled {
   35% { filter: drop-shadow(0 0 10px var(--fx-color, #b9a6f5)) brightness(1.18); }
 }
 
+/* ---- How hard the hit landed ----
+
+   The type chart is the loudest thing in a Pokemon battle and it reached only
+   the log: `tags.supereffective` and `tags.resisted` have been parsed since
+   the beginning and read by nobody. Every hit looked the same.
+
+   These scale the four channels that are SHARED by all 264 signature moves,
+   never the per-move shape, so not one signature rule has to be edited:
+
+     1. the holder's recoil        (no signature rule targets .fx-signature-x.impact)
+     2. the sprite's flash         (no signature rule targets .impact .stage-sprite)
+     3. a filter on the burst      (no signature rule declares `filter` there, and
+                                    the `animation` shorthand cannot reset it)
+     4. the damage number          (a descendant, untouched by signature rules)
+
+   Longhands only. A shorthand here would re-zero the animation-delay that the
+   "When the hit lands" block installs above. */
+.fx-super.impact {
+  animation-name: impactShakeHard;
+  animation-duration: 0.5s;
+}
+
+.fx-resisted.impact {
+  animation-name: impactShakeSoft;
+}
+
+@keyframes impactShakeHard {
+  0% { transform: translateX(0) scale(1); }
+  10% { transform: translateX(12px) scale(0.85); }
+  24% { transform: translateX(-11px) scale(0.92); }
+  40% { transform: translateX(8px) scale(0.97); }
+  56% { transform: translateX(-6px); }
+  72% { transform: translateX(3px); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+@keyframes impactShakeSoft {
+  0% { transform: translateX(0) scale(1); }
+  16% { transform: translateX(3px) scale(0.97); }
+  40% { transform: translateX(-2px); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+.fx-super.impact .stage-sprite,
+.fx-super.impact .sprite-fallback {
+  animation-name: impactFlashHard;
+}
+
+.fx-resisted.impact .stage-sprite,
+.fx-resisted.impact .sprite-fallback {
+  animation-name: impactFlashSoft;
+}
+
+@keyframes impactFlashHard {
+  0% { filter: none; }
+  12% { filter: brightness(3.6) contrast(1.35); }
+  30% { filter: brightness(2.2); }
+  50% { filter: brightness(1.4); }
+  100% { filter: none; }
+}
+
+@keyframes impactFlashSoft {
+  0% { filter: none; }
+  16% { filter: brightness(1.5); }
+  100% { filter: none; }
+}
+
+/* (0,4,1), so it outranks every .fx-signature-x.impact::after at (0,2,1).
+   One rule, 264 shapes: the burst keeps its own artwork and gains heat. */
+.battle-stage .stage-field .fx-super.impact::after {
+  filter: saturate(1.4) brightness(1.12) drop-shadow(0 0 8px var(--fx-color, #fff));
+}
+
+.battle-stage .stage-field .fx-resisted.impact::after {
+  filter: saturate(0.45) brightness(0.88) blur(0.4px);
+}
+
+/* The single strongest legibility lever: the number itself. */
+.fx-super .float-num {
+  font-size: 1.95rem;
+  color: #ff5a3c;
+  text-shadow: 0 0 12px rgba(255, 120, 60, 0.55);
+}
+
+.fx-resisted .float-num {
+  font-size: 1.05rem;
+  color: #8b8fa3;
+}
+
+/* A shockwave ring, as a child rather than a pseudo-element: `::after` and
+   `::before` on the holder are already spoken for by the burst and the crit
+   ring, and this way it never enters a cascade fight with 264 rules. */
+.fx-eff {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  /* Centred by margin, so the keyframe's transform stays a pure scale. */
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  border: 3px solid var(--fx-color, #fff);
+  box-shadow: 0 0 20px 6px var(--fx-color, rgba(255, 255, 255, 0.6));
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: superShock 0.46s cubic-bezier(0.1, 0.7, 0.2, 1) var(--fx-hit-delay, 0s) backwards;
+}
+
+@keyframes superShock {
+  0% { transform: scale(0.2); opacity: 1; border-width: 5px; }
+  100% { transform: scale(4.2); opacity: 0; border-width: 1px; }
+}
+
 /* ---- The two ways an attack fails ----
 
    A whiff and a no-sell used to be indistinguishable: both simply produced no
@@ -8828,6 +8942,15 @@ button.primary:disabled {
      leave reduced-motion users with a brightness(2.8) strobe on every hit. */
   .impact .stage-sprite,
   .impact .sprite-fallback,
+  /* @media adds nothing to specificity, so `.impact` at (0,1,0) does NOT
+     suppress `.fx-super.impact` at (0,2,0) — every compound override needs a
+     matching compound here or reduced-motion users get the harder shake. */
+  .fx-super.impact,
+  .fx-resisted.impact,
+  .fx-super.impact .stage-sprite,
+  .fx-super.impact .sprite-fallback,
+  .fx-resisted.impact .stage-sprite,
+  .fx-resisted.impact .sprite-fallback,
   .fx-status.lunge-right .stage-sprite,
   .fx-status.lunge-right .sprite-fallback,
   .fx-status.lunge-left .stage-sprite,
@@ -8867,6 +8990,7 @@ button.primary:disabled {
      their base state is opacity:0, so merely stopping the animation would
      park them invisible anyway, and hiding them is the honest expression. */
   .switch-ball,
+  .fx-eff,
   .faint-drop::after,
   .blocked::after {
     display: none;

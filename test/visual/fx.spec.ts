@@ -357,6 +357,92 @@ test('the sprite element survives the replay instead of remounting each beat', a
   expect(after.tag, 'the sprite <img> was rebuilt mid-replay without a switch').toBe('original');
 });
 
+test('effectiveness scales the hit without touching any signature shape', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const probe = (cls: string) => {
+      const el = document.createElement('div');
+      el.className = cls;
+      const img = document.createElement('img');
+      img.className = 'stage-sprite';
+      el.appendChild(img);
+      field.appendChild(el);
+      const after = getComputedStyle(el, '::after');
+      const out = {
+        holder: getComputedStyle(el).animationName,
+        sprite: getComputedStyle(img).animationName,
+        burstAnim: after.animationName,
+        burstDelay: after.animationDelay,
+        burstFilter: after.filter,
+      };
+      el.remove();
+      return out;
+    };
+    const sig = 'fx-signature-ice-beam';
+    const out = {
+      neutral: probe(`sprite-holder theirs impact fx-special ${sig}`),
+      superEff: probe(`sprite-holder theirs impact fx-special fx-super ${sig}`),
+      resisted: probe(`sprite-holder theirs impact fx-special fx-resisted ${sig}`),
+    };
+    host.remove();
+    return out;
+  });
+
+  expect(read.neutral.holder).toBe('impactShake');
+  expect(read.superEff.holder).toBe('impactShakeHard');
+  expect(read.resisted.holder).toBe('impactShakeSoft');
+  expect(read.superEff.sprite).toBe('impactFlashHard');
+  expect(read.resisted.sprite).toBe('impactFlashSoft');
+
+  // The whole approach rests on this: the signature artwork must survive, and
+  // the longhand overrides must not re-zero the hit delay.
+  expect(read.superEff.burstAnim, 'the signature burst was clobbered').toBe('iceBeamShard');
+  expect(read.resisted.burstAnim).toBe('iceBeamShard');
+  expect(read.superEff.burstDelay, 'a shorthand re-zeroed the hit delay').toBe('0.28s');
+
+  // `filter` is a channel the signature `animation` shorthand cannot reach.
+  expect(read.neutral.burstFilter).toBe('none');
+  expect(read.superEff.burstFilter).toContain('saturate');
+  expect(read.resisted.burstFilter).toContain('saturate');
+});
+
+test('reduced motion suppresses the effectiveness treatment', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  // The trap: @media contributes no specificity, so `.impact` at (0,1,0) does
+  // not suppress `.fx-super.impact` at (0,2,0). Without matching compound
+  // selectors in the reduced-motion block these users get the HARDER shake.
+  const superEff = await splitProbe(page, 'sprite-holder theirs impact fx-special fx-super');
+  expect(superEff.holderAnim).toBe('none');
+  expect(superEff.spriteAnim).toBe('none');
+
+  const resisted = await splitProbe(page, 'sprite-holder theirs impact fx-special fx-resisted');
+  expect(resisted.holderAnim).toBe('none');
+  expect(resisted.spriteAnim).toBe('none');
+
+  const ring = await page.evaluate(() => {
+    const el = document.createElement('span');
+    el.className = 'fx-eff';
+    document.body.appendChild(el);
+    const v = getComputedStyle(el).display;
+    el.remove();
+    return v;
+  });
+  expect(ring).toBe('none');
+});
+
 test('a dodge and a block wait for the attack, like an impact does', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
   await page.goto('/');

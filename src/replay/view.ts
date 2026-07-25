@@ -48,6 +48,10 @@ export interface FxItem {
   move?: string;
   /** `impact` only: a critical hit — drives the extra screen-flash treatment. */
   crit?: boolean;
+  /** `impact` only: how the type chart read this hit. Scales the SHARED
+   *  channels (recoil, flash, burst tint, damage-number size) and never the
+   *  per-move shape, so it composes with every signature override. */
+  effectiveness?: 'super' | 'resisted';
   /** `switch` only: the species leaving the field this beat, if any (undefined
    *  at the turn-0 lead placement, or when the outgoing mon already fainted
    *  and played its own exit) — lets the stage render a switch-out alongside
@@ -189,6 +193,11 @@ export function applyBeat(state: ViewState, beat: Beat): {state: ViewState; fx: 
               category,
               move: event.move,
               crit: event.tags.crit,
+              effectiveness: event.tags.supereffective
+                ? 'super'
+                : event.tags.resisted
+                  ? 'resisted'
+                  : undefined,
             });
           }
         }

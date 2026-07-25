@@ -343,6 +343,7 @@ function BattleStage({
       fxFor(side, 'impact')?.crit && 'fx-crit',
       fxFor(side, 'dodge') && 'dodge',
       fxFor(side, 'blocked') && 'blocked',
+      fxFor(side, 'impact')?.effectiveness && `fx-${fxFor(side, 'impact')!.effectiveness}`,
       fxFor(side, 'faint') && 'faint-drop',
       fxFor(side, 'tera') && 'tera-flash',
       fxFor(side, 'switch') && 'switch-pop',
@@ -438,6 +439,9 @@ function BattleStage({
               >
                 <SpriteWithFallback species={theirs.species} back={false} />
                 {showBall(1) && <span className="switch-ball" aria-hidden="true" />}
+                {fxFor(1, 'impact')?.effectiveness === 'super' && (
+                  <span key={`e-${fxKey}`} className="fx-eff" aria-hidden="true" />
+                )}
                 {fxFor(1, 'float') && (
                   <span key={fxKey} className="float-num">
                     {fxFor(1, 'float')!.text}
@@ -459,6 +463,9 @@ function BattleStage({
               >
                 <SpriteWithFallback species={mine.species} back={true} />
                 {showBall(0) && <span className="switch-ball" aria-hidden="true" />}
+                {fxFor(0, 'impact')?.effectiveness === 'super' && (
+                  <span key={`e-${fxKey}`} className="fx-eff" aria-hidden="true" />
+                )}
                 {fxFor(0, 'float') && (
                   <span key={fxKey} className="float-num">
                     {fxFor(0, 'float')!.text}
