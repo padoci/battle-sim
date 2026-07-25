@@ -2118,8 +2118,16 @@ button.primary:disabled {
 }
 
 /* Critical hit: a brief whole-field white flash, on top of the struck
-   sprite's own (punchier) fx-crit spark. */
-.crit-flash::before {
+   sprite's own (punchier) fx-crit spark.
+
+   On `::after`, not `::before`. Every other whole-field flourish
+   (earthquake-shake, the four hazard falls, defog) also draws on
+   `.stage-field::before` at identical (0,1,0) specificity, and a critical
+   Earthquake sets BOTH classes in the same beat. Source order handed
+   earthquake `background`, `animation` and `z-index`, so the white flash
+   simply never rendered on a crit Earthquake. `::after` was freed when the
+   weather and terrain washes moved onto real elements. */
+.crit-flash::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -9295,7 +9303,7 @@ button.primary:disabled {
   [class*='fx-signature-'].lunge-left::before,
   .fx-physical.lunge-right::before,
   .fx-physical.lunge-left::before,
-  .crit-flash::before,
+  .crit-flash::after,
   .earthquake-shake::before,
   .stealth-rock-fall::before,
   .spikes-fall::before,

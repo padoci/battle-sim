@@ -1,6 +1,7 @@
 import {readFileSync} from 'node:fs';
 import {describe, expect, it} from 'vitest';
 import {SIGNATURE_MOVES, signatureSlug} from '../../src/app/sixoh/fx';
+import {FIELD_CLASSES} from '../../src/app/sixoh/useFxRestart';
 
 /**
  * SIGNATURE_MOVES (TypeScript) and the `.fx-signature-*` rules (CSS) are
@@ -40,6 +41,49 @@ function slugsInCss(): Set<string> {
   for (const [, slug] of css.matchAll(/\.fx-signature-([a-z0-9-]+)/g)) found.add(slug);
   return found;
 }
+
+/**
+ * Whole-field flourishes that can be set in the SAME beat.
+ *
+ * Sharing a pseudo-element is fine for tokens that are mutually exclusive: the
+ * hazard falls and the defog sweep are each keyed to one move name, and a beat
+ * has exactly one move, so only one of them can ever be present. What is not
+ * fine is two tokens that co-occur, because they all sit on `.stage-field` at
+ * identical (0,1,0) specificity and the later one in source silently takes
+ * `background`, `animation` and `z-index` from the other.
+ *
+ * `crit-flash` and `earthquake-shake` are both driven by the impact FX, and a
+ * critical Earthquake sets both. That combination really did erase the white
+ * flash until `crit-flash` moved to `::after`.
+ */
+const CO_OCCURRING: readonly (readonly string[])[] = [['crit-flash', 'earthquake-shake']];
+
+describe('whole-field flourishes', () => {
+  it('tokens that can share a beat do not share a pseudo-element', () => {
+    // `content:` is what actually creates the box, so that is the claim.
+    const claimed = (token: string, pseudo: string) =>
+      new RegExp(`\\.${token}${pseudo}\\s*\\{[^}]*content\\s*:`).test(css);
+
+    const clashes: string[] = [];
+    for (const group of CO_OCCURRING) {
+      for (const pseudo of ['::before', '::after']) {
+        const claimants = group.filter(t => claimed(t, pseudo));
+        if (claimants.length > 1) clashes.push(`${pseudo}: ${claimants.join(' + ')}`);
+      }
+    }
+    expect(clashes, 'these field effects would erase each other in a shared beat').toEqual([]);
+
+    // Not vacuous: every token named above really is found somewhere, so a
+    // rename cannot turn this test into a no-op.
+    for (const token of CO_OCCURRING.flat()) {
+      expect(
+        claimed(token, '::before') || claimed(token, '::after'),
+        `${token} draws on no pseudo-element, so this check is inert`
+      ).toBe(true);
+      expect(FIELD_CLASSES).toContain(token);
+    }
+  });
+});
 
 describe('app.css keyframes', () => {
   it('has no duplicate @keyframes names', () => {

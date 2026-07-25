@@ -473,6 +473,35 @@ test('reduced motion suppresses the low-HP pulse and the status effects', async 
   expect(read.rain).toBe('none');
 });
 
+test('a critical Earthquake keeps both its flash and its rings', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  // Both are whole-field flourishes and a critical Earthquake sets both in one
+  // beat. They used to share `.stage-field::before` at equal specificity, so
+  // earthquake won on source order and the white flash never rendered.
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field crit-flash earthquake-shake';
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const out = {
+      before: getComputedStyle(field, '::before').animationName,
+      after: getComputedStyle(field, '::after').animationName,
+      afterBg: getComputedStyle(field, '::after').backgroundColor,
+    };
+    host.remove();
+    return out;
+  });
+
+  expect(read.before).toBe('earthquakeRings');
+  expect(read.after, 'the crit flash was swallowed').toBe('critFlash');
+  expect(read.afterBg).toBe('rgb(255, 255, 255)');
+});
+
 test('weather and terrain can both be visible at once', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
   await page.goto('/');
