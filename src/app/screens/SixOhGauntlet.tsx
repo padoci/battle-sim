@@ -396,10 +396,17 @@ function BattleStage({
   // Class names are normalized protocol strings ("RainDance" -> wx-raindance,
   // "Electric Terrain" -> terrain-electric).
   const terrain = view.fields.find(f => f.endsWith('Terrain'));
+  // Weather and terrain each get their own layer element. They used to share
+  // `.stage-field::after` at equal specificity, so with both up the terrain
+  // rule won on source order and the weather simply disappeared.
+  const wxClass = view.weather ? `wx-${view.weather.toLowerCase().replace(/[^a-z]/g, '')}` : undefined;
+  const terrainClass = terrain
+    ? `terrain-${terrain.toLowerCase().replace(/ ?terrain/, '').replace(/[^a-z]/g, '')}`
+    : undefined;
   const fieldClasses = [
     'stage-field',
-    view.weather && `wx-${view.weather.toLowerCase().replace(/[^a-z]/g, '')}`,
-    terrain && `terrain-${terrain.toLowerCase().replace(/ ?terrain/, '').replace(/[^a-z]/g, '')}`,
+    wxClass,
+    terrainClass,
     fx.some(f => f.type === 'faint') && 'stage-shake',
     fx.some(f => f.type === 'impact' && f.crit) && 'crit-flash',
     fx.some(f => f.type === 'impact' && f.move === 'Earthquake') && 'earthquake-shake',
@@ -492,6 +499,13 @@ function BattleStage({
                 ))}
               </div>
             )}
+
+            {/* After the sprite holders on purpose: both sit at z-index 1, so
+                DOM order is what puts the wash over the Pokemon, exactly where
+                the old ::after painted it. Absent when there is no weather, so
+                a plain battle renders the same DOM it always did. */}
+            {wxClass && <span className={`wx-layer ${wxClass}`} aria-hidden="true" />}
+            {terrainClass && <span className={`terrain-layer ${terrainClass}`} aria-hidden="true" />}
 
             {theirs && <HpBar mon={theirs} side="theirs" hitDelay={hitDelay(1)} />}
             {mine && <HpBar mon={mine} side="mine" hitDelay={hitDelay(0)} />}

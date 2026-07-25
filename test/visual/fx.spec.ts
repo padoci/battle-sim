@@ -357,6 +357,44 @@ test('the sprite element survives the replay instead of remounting each beat', a
   expect(after.tag, 'the sprite <img> was rebuilt mid-replay without a switch').toBe('original');
 });
 
+test('weather and terrain can both be visible at once', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  // They used to share `.stage-field::after` at equal specificity, so terrain
+  // won on source order and rain disappeared entirely whenever both were up.
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field wx-raindance terrain-electric';
+    const wx = document.createElement('span');
+    wx.className = 'wx-layer wx-raindance';
+    const terrain = document.createElement('span');
+    terrain.className = 'terrain-layer terrain-electric';
+    field.append(wx, terrain);
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const out = {
+      wxBg: getComputedStyle(wx).backgroundImage,
+      wxTop: getComputedStyle(wx).top,
+      terrainBg: getComputedStyle(terrain).backgroundColor,
+      terrainTop: getComputedStyle(terrain).top,
+      // The old pseudo-element must be gone, or it would paint on top.
+      legacyPseudo: getComputedStyle(field, '::after').content,
+    };
+    host.remove();
+    return out;
+  });
+
+  expect(read.wxBg, 'the rain wash should still render with terrain up').toContain('gradient');
+  expect(read.wxTop, 'weather covers the whole field').toBe('0px');
+  expect(read.terrainBg).toBe('rgba(250, 220, 60, 0.18)');
+  expect(read.terrainTop, 'terrain covers the ground only').not.toBe('0px');
+  expect(read.legacyPseudo).toBe('none');
+});
+
 test('multi-hit damage numbers stack instead of piling up', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
   await page.goto('/');

@@ -1947,51 +1947,62 @@ button.primary:disabled {
   height: 30px;
 }
 
-/* Weather tint: a translucent wash over the whole scene. */
-.stage-field[class*='wx-']::after {
-  content: '';
+/* Weather and terrain washes.
+
+   These are real elements rather than `.stage-field::after`, which they used
+   to share. Both rule sets landed on the same pseudo-element at identical
+   (0,2,1) specificity, so with rain and Electric Terrain up together the
+   terrain rules won on source order and took `background` AND `inset` with
+   them: the rain vanished completely. Two field conditions could never both
+   be visible. Separate elements also give each one somewhere to hang
+   particles (see the particle section). */
+.wx-layer,
+.terrain-layer {
   position: absolute;
-  inset: 0;
   pointer-events: none;
   z-index: 1;
 }
 
-.stage-field.wx-raindance::after {
-  background: linear-gradient(rgba(80, 130, 220, 0.16), rgba(60, 110, 200, 0.1));
+.wx-layer {
+  inset: 0;
 }
 
-.stage-field.wx-sunnyday::after {
-  background: radial-gradient(ellipse at 50% 0%, rgba(255, 200, 60, 0.22), rgba(255, 150, 40, 0.05));
-}
-
-.stage-field.wx-sandstorm::after {
-  background: linear-gradient(rgba(190, 150, 70, 0.2), rgba(160, 120, 50, 0.13));
-}
-
-.stage-field.wx-snowscape::after,
-.stage-field.wx-snow::after,
-.stage-field.wx-hail::after {
-  background: linear-gradient(rgba(220, 235, 255, 0.24), rgba(200, 220, 250, 0.12));
-}
-
-/* Terrain tint: colors the lower half only. */
-.stage-field[class*='terrain-']::after {
+/* Terrain covers the ground, so only the lower part of the field. */
+.terrain-layer {
   inset: 55% 0 0 0;
 }
 
-.stage-field.terrain-electric::after {
+.wx-layer.wx-raindance {
+  background: linear-gradient(rgba(80, 130, 220, 0.16), rgba(60, 110, 200, 0.1));
+}
+
+.wx-layer.wx-sunnyday {
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 200, 60, 0.22), rgba(255, 150, 40, 0.05));
+}
+
+.wx-layer.wx-sandstorm {
+  background: linear-gradient(rgba(190, 150, 70, 0.2), rgba(160, 120, 50, 0.13));
+}
+
+.wx-layer.wx-snowscape,
+.wx-layer.wx-snow,
+.wx-layer.wx-hail {
+  background: linear-gradient(rgba(220, 235, 255, 0.24), rgba(200, 220, 250, 0.12));
+}
+
+.terrain-layer.terrain-electric {
   background: rgba(250, 220, 60, 0.18);
 }
 
-.stage-field.terrain-grassy::after {
+.terrain-layer.terrain-grassy {
   background: rgba(80, 200, 90, 0.18);
 }
 
-.stage-field.terrain-psychic::after {
+.terrain-layer.terrain-psychic {
   background: rgba(220, 100, 200, 0.16);
 }
 
-.stage-field.terrain-misty::after {
+.terrain-layer.terrain-misty {
   background: rgba(240, 180, 220, 0.18);
 }
 
