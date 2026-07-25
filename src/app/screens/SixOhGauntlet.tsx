@@ -2,13 +2,14 @@ import {useCallback, useEffect, useMemo, useRef, useState, type CSSProperties} f
 import {Icons, Sprites} from '@pkmn/img';
 import type {PokemonSet} from '../../data/types';
 import {parseProtocol} from '../../replay/parse';
-import {toBeats} from '../../replay/pace';
+import {PACE, toBeats} from '../../replay/pace';
 import type {FxItem, MonView, SideView} from '../../replay/view';
 import {navigate} from '../router';
 import {readDevParams} from '../sixoh/devParams';
 import {HIT_DELAY, signatureSlug} from '../sixoh/fx';
 import {BATTLE_SCENES, sceneUrl} from '../sixoh/scenes';
 import {FIELD_CLASSES, useFxRestart} from '../sixoh/useFxRestart';
+import {swapOutDelayMs, useStageSwap} from '../sixoh/useStageSwap';
 import {ensureComputed, resetSixOhSession, retryBattle} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/state';
 import {typeColor} from '../sixoh/typeColors';
@@ -303,6 +304,7 @@ function BattleStage({
   sceneIndex,
   battleKey,
   streamDone,
+  onSwapOut,
   speedOverride,
   onDone,
 }: {
@@ -319,6 +321,8 @@ function BattleStage({
   /** Dev/e2e ?speed= override, applied once on mount. */
   speedOverride?: number;
   onDone: () => void;
+  /** Start the dip out, timed to finish as the run advances. */
+  onSwapOut: () => void;
 }) {
   const teams = useMemo(() => [team, opponentSets] as [PokemonSet[], PokemonSet[]], [team, opponentSets]);
   const playback = usePlayback(teams, beats, onDone, {streamDone, battleKey, speedOverride});
@@ -439,6 +443,31 @@ function BattleStage({
   // Background flavor: a per-rung scene, tinted by live weather/terrain.
   // Class names are normalized protocol strings ("RainDance" -> wx-raindance,
   // "Electric Terrain" -> terrain-electric).
+  // Which side the camera leans toward this beat, if any. `??` and not `||`,
+  // since side 0 is falsy. A faint outranks a crit, though in practice they
+  // never share a beat: `toBeats` groups a move with its own damage and notes
+  // only, so a faint always gets its own. A critical KO therefore plays the
+  // push twice in a row from the same token, which works because `push-*` is
+  // in FIELD_CLASSES and gets restarted.
+  const pushSide =
+    fx.find(f => f.type === 'faint')?.side ?? fx.find(f => f.type === 'impact' && f.crit)?.side;
+  // A crit push should land WITH the hit, not ahead of it. `--fx-hit-delay`
+  // lives on the sprite holder and custom properties do not inherit upward,
+  // so the field gets told separately. A faint is its own beat, so no wait.
+  const cameraDelay = fx.some(f => f.type === 'faint') ? undefined : hitDelay(pushSide ?? 1);
+
+  // Start the dip out so it finishes exactly as the run advances. Gated on the
+  // stream being finished: playback can park ON the win beat while the search
+  // is still landing, and fading there would hold a dark stage for as long as
+  // that takes.
+  const hasWinner = view.winner !== undefined;
+  useEffect(() => {
+    if (!hasWinner || !streamDone) return;
+    const beatMs = PACE.win / Math.max(speed, 0.1);
+    const timer = setTimeout(onSwapOut, swapOutDelayMs(beatMs));
+    return () => clearTimeout(timer);
+  }, [hasWinner, streamDone, speed, onSwapOut]);
+
   const terrain = view.fields.find(f => f.endsWith('Terrain'));
   // Weather and terrain each get their own layer element. They used to share
   // `.stage-field::after` at equal specificity, so with both up the terrain
@@ -453,6 +482,7 @@ function BattleStage({
     terrainClass,
     fx.some(f => f.type === 'faint') && 'stage-shake',
     fx.some(f => f.type === 'impact' && f.crit) && 'crit-flash',
+    pushSide !== undefined && (pushSide === 0 ? 'push-mine' : 'push-theirs'),
     fx.some(f => f.type === 'impact' && f.move === 'Earthquake') && 'earthquake-shake',
     fx.some(f => f.type === 'lunge' && f.move === 'Stealth Rock') && 'stealth-rock-fall',
     fx.some(f => f.type === 'lunge' && f.move === 'Spikes') && 'spikes-fall',
@@ -483,9 +513,18 @@ function BattleStage({
     <>
       <div className="battle-frame">
         <div className="battle-stage">
-          <div ref={fieldRef} className={fieldClasses} style={{backgroundImage: `url(${sceneUrl(scene.file)})`}}>
+          <div
+            ref={fieldRef}
+            className={fieldClasses}
+            style={cameraDelay ? ({'--fx-camera-delay': cameraDelay} as CSSProperties) : undefined}
+          >
             <HazardCorner side={1} hazards={view.sides[1].hazards} />
             <HazardCorner side={0} hazards={view.sides[0].hazards} />
+
+            {/* Everything a camera may move lives in here; the HP boxes and
+                hazard glyphs stay outside it, since chrome should hold still
+                while the world leans. */}
+            <div className="stage-world" style={{backgroundImage: `url(${sceneUrl(scene.file)})`}}>
             <span className="ground-shadow theirs" />
             <span className="ground-shadow mine" />
 
@@ -550,6 +589,18 @@ function BattleStage({
                 a plain battle renders the same DOM it always did. */}
             {wxClass && <span className={`wx-layer ${wxClass}`} aria-hidden="true" />}
             {terrainClass && <span className={`terrain-layer ${terrainClass}`} aria-hidden="true" />}
+
+            {/* The battle is decided: vignette down to whoever is left
+                standing. `winner` is 0 for us, 1 for them and null for a tie,
+                so this has to spotlight THEIR side on a loss. Deriving it from
+                "our side" would glow your own fainted mon. */}
+            {view.winner !== undefined && (
+              <span
+                className={`win-glow ${view.winner === 0 ? 'win-mine' : view.winner === 1 ? 'win-theirs' : 'win-tie'}`}
+                aria-hidden="true"
+              />
+            )}
+            </div>
 
             {theirs && <HpBar mon={theirs} side="theirs" hitDelay={hitDelay(1)} />}
             {mine && <HpBar mon={mine} side="mine" hitDelay={hitDelay(0)} />}
@@ -627,6 +678,11 @@ export function SixOhGauntlet() {
   );
   const [introDoneFor, setIntroDoneFor] = useState(-1);
   const introDone = reducedMotion || introDoneFor === index;
+  // Gated in JS, not CSS. The dip is a `transition`, so `animation: none`
+  // would not touch it and `transition: none` would snap straight to opacity
+  // 0: a blank flash, strictly worse than the hard cut it replaces. Same
+  // reasoning that already skips the intro for these users.
+  const {swapClass, beginSwapOut} = useStageSwap(index, !reducedMotion);
   const handleIntroDone = useCallback(() => setIntroDoneFor(index), [index]);
 
   useEffect(() => {
@@ -757,6 +813,12 @@ export function SixOhGauntlet() {
             still fine (still computing, or replaying a win) - only treat the
             error as blocking THIS rung's display when it's actually the one
             that failed; otherwise it surfaces once the run reaches it. */}
+        {/* One node that survives the rung change, so the dip has somewhere to
+            happen while React swaps two entirely different subtrees beneath
+            it. Wraps all three branches, not just the frame: the stage also
+            renders the log, meta row and controls, and wrapping only the
+            frame would leave those popping out at full opacity. */}
+        <div className={swapClass}>
         {(!state.error || state.errorIndex !== index) &&
           !introDone &&
           battle &&
@@ -803,8 +865,11 @@ export function SixOhGauntlet() {
               streamDone={!!battle?.result}
               speedOverride={dev.speed}
               onDone={handleReplayFinished}
+              onSwapOut={beginSwapOut}
             />
           )}
+
+        </div>
 
         {state.error && state.errorIndex === index && (
           <div className="empty-state">

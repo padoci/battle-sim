@@ -473,6 +473,218 @@ test('reduced motion suppresses the low-HP pulse and the status effects', async 
   expect(read.rain).toBe('none');
 });
 
+test('the rung hand-off dips through opacity', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const probe = (cls: string) => {
+      const el = document.createElement('div');
+      el.className = cls;
+      document.body.appendChild(el);
+      const cs = getComputedStyle(el);
+      const out = {opacity: cs.opacity, prop: cs.transitionProperty, dur: cs.transitionDuration};
+      el.remove();
+      return out;
+    };
+    return {rest: probe('stage-swap'), swapping: probe('stage-swap swapping')};
+  });
+
+  expect(read.rest.opacity).toBe('1');
+  expect(read.rest.prop).toContain('opacity');
+  expect(read.rest.dur).not.toBe('0s');
+  expect(read.swapping.opacity).toBe('0');
+});
+
+test('the win vignette spotlights whoever actually won', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const probe = (cls: string) => {
+      const el = document.createElement('span');
+      el.className = cls;
+      document.body.appendChild(el);
+      const cs = getComputedStyle(el);
+      const out = {anim: cs.animationName, bg: cs.backgroundImage, color: cs.backgroundColor};
+      el.remove();
+      return out;
+    };
+    return {mine: probe('win-glow win-mine'), theirs: probe('win-glow win-theirs'), tie: probe('win-glow win-tie')};
+  });
+
+  expect(read.mine.anim).toBe('winBloom');
+  // A loss must spotlight THEIR side, so the two cannot be the same gradient.
+  expect(read.mine.bg).toContain('gradient');
+  expect(read.theirs.bg).toContain('gradient');
+  expect(read.mine.bg).not.toBe(read.theirs.bg);
+  // A tie has nobody to spotlight: a flat wash, no gradient.
+  expect(read.tie.bg).toBe('none');
+  expect(read.tie.color).not.toBe('rgba(0, 0, 0, 0)');
+});
+
+test('reduced motion keeps the win vignette but stops it blooming', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const el = document.createElement('span');
+    el.className = 'win-glow win-mine';
+    document.body.appendChild(el);
+    const cs = getComputedStyle(el);
+    const out = {anim: cs.animationName, display: cs.display, opacity: cs.opacity};
+    el.remove();
+    return out;
+  });
+
+  expect(read.anim).toBe('none');
+  // Unlike the drifting particles, a vignette frozen in place is exactly what
+  // it should be, so these users keep the beat rather than losing it.
+  expect(read.display).not.toBe('none');
+  expect(read.opacity).toBe('1');
+});
+
+test('the camera leans toward the struck side and settles back', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const probe = (fieldCls: string, delay?: string) => {
+      const host = document.createElement('div');
+      host.className = 'battle-stage';
+      const field = document.createElement('div');
+      field.className = fieldCls;
+      if (delay) field.style.setProperty('--fx-camera-delay', delay);
+      const world = document.createElement('div');
+      world.className = 'stage-world';
+      field.appendChild(world);
+      host.appendChild(field);
+      document.body.appendChild(host);
+      const cs = getComputedStyle(world);
+      const out = {name: cs.animationName, origin: cs.transformOrigin, delay: cs.animationDelay};
+      host.remove();
+      return out;
+    };
+    return {
+      theirs: probe('stage-field push-theirs'),
+      mine: probe('stage-field push-mine'),
+      withDelay: probe('stage-field push-theirs', '0.28s'),
+      calm: probe('stage-field'),
+    };
+  });
+
+  expect(read.theirs.name).toBe('cameraPush');
+  expect(read.mine.name).toBe('cameraPush');
+  expect(read.calm.name).toBe('none');
+  // Leans opposite ways, toward each side's own sprite.
+  expect(read.theirs.origin).not.toBe(read.mine.origin);
+  // A crit push waits for the hit; a KO (no delay set) fires immediately.
+  expect(read.theirs.delay).toBe('0s');
+  expect(read.withDelay.delay).toBe('0.28s');
+});
+
+test('reduced motion suppresses the camera', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field push-theirs';
+    const world = document.createElement('div');
+    world.className = 'stage-world';
+    field.appendChild(world);
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const cs = getComputedStyle(world);
+    const out = {name: cs.animationName, scale: cs.scale};
+    host.remove();
+    return out;
+  });
+
+  expect(read.name).toBe('none');
+  // The base declares no scale, so suppressing the animation rests at 1:1.
+  expect(read.scale === 'none' || read.scale === '1').toBe(true);
+});
+
+test('the world layer fills the field and still covers with the scene', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    host.style.width = '800px';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    const world = document.createElement('div');
+    world.className = 'stage-world';
+    world.style.backgroundImage = 'url(data:image/gif;base64,R0lGODlhAQABAAAAACw=)';
+    field.appendChild(world);
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const cs = getComputedStyle(world);
+    const box = world.getBoundingClientRect();
+    const out = {
+      position: cs.position,
+      // `center/cover` came from .stage-field's `background` SHORTHAND, which
+      // this element does not inherit. Without its own the scene would render
+      // top-left at intrinsic size.
+      size: cs.backgroundSize,
+      pos: cs.backgroundPosition,
+      // A static block would be height 0: every child is absolutely positioned.
+      w: Math.round(box.width),
+      h: Math.round(box.height),
+    };
+    host.remove();
+    return out;
+  });
+
+  expect(read.position).toBe('absolute');
+  expect(read.size).toBe('cover');
+  expect(read.pos).toBe('50% 50%');
+  expect(read.w).toBe(800);
+  expect(read.h, 'the world collapsed, so nothing would paint').toBe(300);
+});
+
+test('a critical Earthquake keeps both its flash and its rings', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  // Both are whole-field flourishes and a critical Earthquake sets both in one
+  // beat. They used to share `.stage-field::before` at equal specificity, so
+  // earthquake won on source order and the white flash never rendered.
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field crit-flash earthquake-shake';
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const out = {
+      before: getComputedStyle(field, '::before').animationName,
+      after: getComputedStyle(field, '::after').animationName,
+      afterBg: getComputedStyle(field, '::after').backgroundColor,
+    };
+    host.remove();
+    return out;
+  });
+
+  expect(read.before).toBe('earthquakeRings');
+  expect(read.after, 'the crit flash was swallowed').toBe('critFlash');
+  expect(read.afterBg).toBe('rgb(255, 255, 255)');
+});
+
 test('weather and terrain can both be visible at once', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
   await page.goto('/');

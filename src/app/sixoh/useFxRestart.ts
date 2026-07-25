@@ -25,6 +25,11 @@ export const HIT_CLASSES = [
 export const FIELD_CLASSES = [
   'stage-shake',
   'crit-flash',
+  // A critical KO is two consecutive beats (toBeats gives a faint its own),
+  // and both emit the SAME push token, so the second only replays because of
+  // the strip-and-re-add below.
+  'push-theirs',
+  'push-mine',
   'earthquake-shake',
   'stealth-rock-fall',
   'spikes-fall',
