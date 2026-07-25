@@ -357,6 +357,54 @@ test('the sprite element survives the replay instead of remounting each beat', a
   expect(after.tag, 'the sprite <img> was rebuilt mid-replay without a switch').toBe('original');
 });
 
+test('multi-hit damage numbers stack instead of piling up', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const tops = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    const holder = document.createElement('div');
+    holder.className = 'sprite-holder theirs impact fx-physical';
+    field.appendChild(holder);
+    host.appendChild(field);
+    document.body.appendChild(host);
+    holder.style.width = '100px';
+    const read = (index?: number) => {
+      const el = document.createElement('span');
+      el.className = 'float-num';
+      if (index !== undefined) {
+        el.style.setProperty('--fx-float-index', String(index));
+        el.style.setProperty('--fx-float-dx', `${(index % 2 ? 1 : -1) * 32 * Math.ceil(index / 2)}px`);
+      }
+      holder.appendChild(el);
+      const cs = getComputedStyle(el);
+      const out = {top: cs.top, left: cs.left};
+      el.remove();
+      return out;
+    };
+    const out = {first: read(), second: read(1), third: read(2), fourth: read(3)};
+    host.remove();
+    return out;
+  });
+
+  // The first hit must be untouched, so the overwhelmingly common single-hit
+  // case renders exactly as it did before this change.
+  expect(tops.first.top).toBe('-14px');
+  expect(tops.first.left).toBe('50px'); // 50% of the 100px holder
+
+  // Stacked upward...
+  expect(tops.second.top).toBe('-29px');
+  expect(tops.fourth.top).toBe('-59px');
+  // ...and fanned alternately, because floatUp travels 26px (further than the
+  // 15px step), so stacking alone would let consecutive numbers cross.
+  expect(tops.second.left).toBe('82px');
+  expect(tops.third.left).toBe('18px');
+});
+
 test('effectiveness scales the hit without touching any signature shape', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
   await page.goto('/');

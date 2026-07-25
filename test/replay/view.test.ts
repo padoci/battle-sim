@@ -111,6 +111,34 @@ describe('typed move FX (category + type flavor)', () => {
     expect(fx.some(f => f.type === 'lunge')).toBe(true);
   });
 
+  it('a multi-hit move produces one damage number per hit', () => {
+    // Every hit of a multi-hit move is its own -damage line, and pace.ts groups
+    // them all into the move's beat. The view has always emitted one float per
+    // hit; the stage used to render only the first, so Bullet Seed landing four
+    // times looked exactly like it landing once.
+    const view = initView([t1, t2]);
+    const target = view.sides[1].mons[0];
+    const dmg = (hp: number) => ({
+      kind: 'damage' as const,
+      ref: {side: 1 as const, name: target.name},
+      hp,
+      maxhp: target.maxhp,
+      logText: '',
+    });
+    const {fx} = applyBeat(
+      view,
+      mkBeat([
+        moveEvent('Bullet Seed', 0),
+        dmg(Math.round(target.maxhp * 0.9)),
+        dmg(Math.round(target.maxhp * 0.8)),
+        dmg(Math.round(target.maxhp * 0.7)),
+      ])
+    );
+    const floats = fx.filter(f => f.type === 'float');
+    expect(floats).toHaveLength(3);
+    for (const f of floats) expect(f.text).toMatch(/^−\d+%$/);
+  });
+
   it('carries how the type chart read the hit', () => {
     const eff = (tags: Record<string, boolean>) =>
       applyBeat(initView([t1, t2]), mkBeat([moveEvent('Flamethrower', 0, tags)])).fx.find(

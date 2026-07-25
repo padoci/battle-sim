@@ -317,6 +317,10 @@ function BattleStage({
   }, [!!theirs]);
 
   const fxFor = (side: 0 | 1, type: FxItem['type']) => fx.find(f => f.side === side && f.type === type);
+  /** Every damage number this beat put on a side. A multi-hit move produces one
+   * per hit, and taking only the first threw the rest away: Bullet Seed landing
+   * four times looked exactly like it landing once. */
+  const floatsFor = (side: 0 | 1) => fx.filter(f => f.side === side && f.type === 'float');
   const outgoingFor = (side: 0 | 1) => fxFor(side, 'switch')?.outgoingSpecies;
 
   // Category + move-type flavor for a side's FX this beat: the category picks
@@ -363,6 +367,21 @@ function BattleStage({
     const color = fxFlavor(side).color;
     return color ? ({'--fx-color': color} as CSSProperties) : undefined;
   };
+  /** Later hits of a multi-hit move stagger in time and stack upward, so four
+   * numbers read as four hits instead of one illegible pile. The first is left
+   * untouched, so the overwhelmingly common single-hit case renders exactly as
+   * it did before. */
+  const floatStyle = (i: number): CSSProperties | undefined =>
+    i === 0
+      ? undefined
+      : ({
+          animationDelay: `calc(var(--fx-hit-delay, 0s) + ${(i * 0.14).toFixed(2)}s)`,
+          '--fx-float-index': String(i),
+          // Stacking alone is not enough: floatUp travels 26px, further than
+          // the 15px step, so consecutive numbers would cross and overlap.
+          // Fanning them alternately left and right keeps every hit readable.
+          '--fx-float-dx': `${(i % 2 ? 1 : -1) * 32 * Math.ceil(i / 2)}px`,
+        } as CSSProperties);
   /** How long this side's HP drain should wait, so it reads as caused by the
    * hit rather than by the beat. Only when the side is actually being hit. */
   const hitDelay = (side: 0 | 1): string | undefined => {
@@ -442,11 +461,11 @@ function BattleStage({
                 {fxFor(1, 'impact')?.effectiveness === 'super' && (
                   <span key={`e-${fxKey}`} className="fx-eff" aria-hidden="true" />
                 )}
-                {fxFor(1, 'float') && (
-                  <span key={fxKey} className="float-num">
-                    {fxFor(1, 'float')!.text}
+                {floatsFor(1).map((f, i) => (
+                  <span key={`${fxKey}-${i}`} className="float-num" style={floatStyle(i)}>
+                    {f.text}
                   </span>
-                )}
+                ))}
               </div>
             )}
             {outgoingFor(0) && (
@@ -466,11 +485,11 @@ function BattleStage({
                 {fxFor(0, 'impact')?.effectiveness === 'super' && (
                   <span key={`e-${fxKey}`} className="fx-eff" aria-hidden="true" />
                 )}
-                {fxFor(0, 'float') && (
-                  <span key={fxKey} className="float-num">
-                    {fxFor(0, 'float')!.text}
+                {floatsFor(0).map((f, i) => (
+                  <span key={`${fxKey}-${i}`} className="float-num" style={floatStyle(i)}>
+                    {f.text}
                   </span>
-                )}
+                ))}
               </div>
             )}
 

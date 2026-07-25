@@ -8246,8 +8246,14 @@ button.primary:disabled {
 /* Floating damage number, above whichever card took the hit. */
 .float-num {
   position: absolute;
-  top: -14px;
-  left: 50%;
+  /* Multi-hit moves stack their numbers upward and fan them alternately left
+     and right, so four hits read as four hits rather than one pile. Both are
+     set inline and only for hits after the first, so a single hit still
+     computes to a plain -14px / 50%. */
+  --fx-float-index: 0;
+  --fx-float-dx: 0px;
+  top: calc(-14px - var(--fx-float-index) * 15px);
+  left: calc(50% + var(--fx-float-dx));
   transform: translateX(-50%);
   font-family: var(--font-mono);
   font-weight: 700;
