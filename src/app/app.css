@@ -2134,6 +2134,20 @@ button.primary:disabled {
   90% { transform: translate(-1px, 0); }
 }
 
+/* Rung-to-rung hand-off. The stage dips to nothing just before the run
+   advances and comes back with the next opponent, instead of the previous
+   single-frame cut. A dip and not a true A-over-B dissolve on purpose: the
+   stage renders the frame PLUS the log, meta row and controls, while the
+   intro renders only the frame, so stacking them would overlap a 300px
+   viewport with a roughly 700px column. */
+.stage-swap {
+  transition: opacity 0.35s ease;
+}
+
+.stage-swap.swapping {
+  opacity: 0;
+}
+
 /* ---- The decided battle ----
 
    A vignette closing in on whoever is left standing. `ViewState.winner` has

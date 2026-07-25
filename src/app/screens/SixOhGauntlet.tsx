@@ -2,13 +2,14 @@ import {useCallback, useEffect, useMemo, useRef, useState, type CSSProperties} f
 import {Icons, Sprites} from '@pkmn/img';
 import type {PokemonSet} from '../../data/types';
 import {parseProtocol} from '../../replay/parse';
-import {toBeats} from '../../replay/pace';
+import {PACE, toBeats} from '../../replay/pace';
 import type {FxItem, MonView, SideView} from '../../replay/view';
 import {navigate} from '../router';
 import {readDevParams} from '../sixoh/devParams';
 import {HIT_DELAY, signatureSlug} from '../sixoh/fx';
 import {BATTLE_SCENES, sceneUrl} from '../sixoh/scenes';
 import {FIELD_CLASSES, useFxRestart} from '../sixoh/useFxRestart';
+import {swapOutDelayMs, useStageSwap} from '../sixoh/useStageSwap';
 import {ensureComputed, resetSixOhSession, retryBattle} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/state';
 import {typeColor} from '../sixoh/typeColors';
@@ -303,6 +304,7 @@ function BattleStage({
   sceneIndex,
   battleKey,
   streamDone,
+  onSwapOut,
   speedOverride,
   onDone,
 }: {
@@ -319,6 +321,8 @@ function BattleStage({
   /** Dev/e2e ?speed= override, applied once on mount. */
   speedOverride?: number;
   onDone: () => void;
+  /** Start the dip out, timed to finish as the run advances. */
+  onSwapOut: () => void;
 }) {
   const teams = useMemo(() => [team, opponentSets] as [PokemonSet[], PokemonSet[]], [team, opponentSets]);
   const playback = usePlayback(teams, beats, onDone, {streamDone, battleKey, speedOverride});
@@ -451,6 +455,18 @@ function BattleStage({
   // lives on the sprite holder and custom properties do not inherit upward,
   // so the field gets told separately. A faint is its own beat, so no wait.
   const cameraDelay = fx.some(f => f.type === 'faint') ? undefined : hitDelay(pushSide ?? 1);
+
+  // Start the dip out so it finishes exactly as the run advances. Gated on the
+  // stream being finished: playback can park ON the win beat while the search
+  // is still landing, and fading there would hold a dark stage for as long as
+  // that takes.
+  const hasWinner = view.winner !== undefined;
+  useEffect(() => {
+    if (!hasWinner || !streamDone) return;
+    const beatMs = PACE.win / Math.max(speed, 0.1);
+    const timer = setTimeout(onSwapOut, swapOutDelayMs(beatMs));
+    return () => clearTimeout(timer);
+  }, [hasWinner, streamDone, speed, onSwapOut]);
 
   const terrain = view.fields.find(f => f.endsWith('Terrain'));
   // Weather and terrain each get their own layer element. They used to share
@@ -662,6 +678,11 @@ export function SixOhGauntlet() {
   );
   const [introDoneFor, setIntroDoneFor] = useState(-1);
   const introDone = reducedMotion || introDoneFor === index;
+  // Gated in JS, not CSS. The dip is a `transition`, so `animation: none`
+  // would not touch it and `transition: none` would snap straight to opacity
+  // 0: a blank flash, strictly worse than the hard cut it replaces. Same
+  // reasoning that already skips the intro for these users.
+  const {swapClass, beginSwapOut} = useStageSwap(index, !reducedMotion);
   const handleIntroDone = useCallback(() => setIntroDoneFor(index), [index]);
 
   useEffect(() => {
@@ -792,6 +813,12 @@ export function SixOhGauntlet() {
             still fine (still computing, or replaying a win) - only treat the
             error as blocking THIS rung's display when it's actually the one
             that failed; otherwise it surfaces once the run reaches it. */}
+        {/* One node that survives the rung change, so the dip has somewhere to
+            happen while React swaps two entirely different subtrees beneath
+            it. Wraps all three branches, not just the frame: the stage also
+            renders the log, meta row and controls, and wrapping only the
+            frame would leave those popping out at full opacity. */}
+        <div className={swapClass}>
         {(!state.error || state.errorIndex !== index) &&
           !introDone &&
           battle &&
@@ -838,8 +865,11 @@ export function SixOhGauntlet() {
               streamDone={!!battle?.result}
               speedOverride={dev.speed}
               onDone={handleReplayFinished}
+              onSwapOut={beginSwapOut}
             />
           )}
+
+        </div>
 
         {state.error && state.errorIndex === index && (
           <div className="empty-state">

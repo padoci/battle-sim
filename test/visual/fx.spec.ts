@@ -473,6 +473,30 @@ test('reduced motion suppresses the low-HP pulse and the status effects', async 
   expect(read.rain).toBe('none');
 });
 
+test('the rung hand-off dips through opacity', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const probe = (cls: string) => {
+      const el = document.createElement('div');
+      el.className = cls;
+      document.body.appendChild(el);
+      const cs = getComputedStyle(el);
+      const out = {opacity: cs.opacity, prop: cs.transitionProperty, dur: cs.transitionDuration};
+      el.remove();
+      return out;
+    };
+    return {rest: probe('stage-swap'), swapping: probe('stage-swap swapping')};
+  });
+
+  expect(read.rest.opacity).toBe('1');
+  expect(read.rest.prop).toContain('opacity');
+  expect(read.rest.dur).not.toBe('0s');
+  expect(read.swapping.opacity).toBe('0');
+});
+
 test('the win vignette spotlights whoever actually won', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
   await page.goto('/');
