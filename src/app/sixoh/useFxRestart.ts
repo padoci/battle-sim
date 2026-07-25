@@ -77,7 +77,19 @@ export function useFxRestart<T extends HTMLElement>(
     // without this second flush getAnimations() returns [] and the rate never
     // gets applied.
     void el.offsetWidth;
-    for (const a of el.getAnimations({subtree: true})) a.playbackRate = rate;
+    for (const a of el.getAnimations({subtree: true})) {
+      // Skip ambience. This sweep is indiscriminate: it reaches every
+      // animation in the subtree, so a looping one (idle breathing, weather
+      // particles) would be permanently retimed to the playback speed by the
+      // first hit beat, leaving a mon breathing 5x too fast for the rest of
+      // the battle. Speed is about how fast the *replay* advances; a loop is
+      // not part of a beat.
+      //
+      // Detected structurally rather than by an animation-name list, so it
+      // cannot fall out of sync with the stylesheet.
+      if (a.effect?.getTiming().iterations === Infinity) continue;
+      a.playbackRate = rate;
+    }
   }, [fxKey, rate, tokens]);
   return ref;
 }
