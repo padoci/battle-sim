@@ -2100,6 +2100,43 @@ button.primary:disabled {
   transform-origin: bottom center;
 }
 
+/* Idle breathing.
+
+   Half the mons on stage are static PNGs (Gen 6+ species have no animated
+   gen5ani sprite), so between beats the field was two frozen images. This is
+   a wrapper element rather than a rule on the sprite or the holder because
+   both of those transform channels are already taken: the holder does the
+   lunge, recoil and KO drop, and `.sprite-fallback` carries a load-bearing
+   scale(1.7) that a transform here would stomp.
+
+   Sized to fill the holder so the sprite's own `height: 100%` still resolves
+   and layout is unchanged. */
+.sprite-idle {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: bottom center;
+}
+
+.sprite-idle.breathing {
+  animation: spriteIdle 3.2s ease-in-out infinite;
+}
+
+@keyframes spriteIdle {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-2px) scaleY(1.018); }
+}
+
+/* Hold the breath while something is happening: a mon calmly breathing
+   through its own knockout reads badly, and freezing the loop makes the hit
+   land harder for free. */
+.impact .sprite-idle,
+.faint-drop .sprite-idle,
+.dodge .sprite-idle,
+.blocked .sprite-idle {
+  animation-play-state: paused;
+}
+
 .lunge-right {
   animation: lungeRight 0.32s cubic-bezier(0.34, 0, 0.2, 1);
 }
@@ -8976,6 +9013,7 @@ button.primary:disabled {
   .faint-drop,
   .faint-drop .stage-sprite,
   .faint-drop .sprite-fallback,
+  .sprite-idle.breathing,
   .dodge,
   .sprite-holder.mine.dodge,
   .dodge .stage-sprite,

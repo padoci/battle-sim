@@ -357,6 +357,43 @@ test('the sprite element survives the replay instead of remounting each beat', a
   expect(after.tag, 'the sprite <img> was rebuilt mid-replay without a switch').toBe('original');
 });
 
+test('idle breathing survives the playback-rate sweep', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'replay behaviour is viewport-independent');
+  test.slow();
+
+  // 4x, so useFxRestart's sweep actually runs (it is a no-op at 1x).
+  await page.goto('/#/sixoh?config=fast&seed=41&speed=4');
+  await page.waitForSelector('.offer-card', {timeout: 120_000});
+  for (let i = 0; i < 6; i++) {
+    await page.locator('.offer-card').first().click();
+    await page.waitForTimeout(120);
+  }
+  await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
+  await page.waitForSelector('.hp-bar', {timeout: 120_000});
+
+  // Only the static tiers breathe, and which mon is out is a property of the
+  // seed, so wait for one rather than assuming. (A mon starts optimistically
+  // on gen5ani and only drops to the static sprite once that 404s, so this
+  // also waits out that round trip.)
+  await page.waitForSelector('.sprite-idle.breathing', {timeout: 90_000});
+  // Then several more beats, so plenty of hits have swept the subtree.
+  await page.waitForTimeout(4_000);
+
+  const rates = await page.evaluate(() =>
+    [...document.querySelectorAll('.sprite-idle.breathing')].flatMap(el =>
+      el.getAnimations().map(a => a.playbackRate)
+    )
+  );
+
+  // Without this the assertion below passes vacuously whenever both mons
+  // happen to have animated gen5ani sprites and so never breathe.
+  expect(rates.length, 'no breathing sprite was on the field to check').toBeGreaterThan(0);
+  // The sweep sets playbackRate on everything it finds. Left unfiltered it
+  // would retime the breath to 4x on the first hit and never put it back,
+  // because the sweep only runs on a beat.
+  for (const r of rates) expect(r, 'the idle loop was retimed by the FX sweep').toBe(1);
+});
+
 test('weather and terrain can both be visible at once', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
   await page.goto('/');

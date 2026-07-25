@@ -24,6 +24,14 @@ import type {DraftMode} from '../../draft/draft';
 const knownMissingGen5Ani = new Set<string>();
 type SpriteTier = 'gen5ani' | 'gen5' | 'icon';
 
+/** A stable per-species number, used to offset idle phase so the two mons on
+ * the field never breathe in lockstep. */
+function speciesPhase(species: string): number {
+  let h = 0;
+  for (let i = 0; i < species.length; i++) h = (h * 31 + species.charCodeAt(i)) >>> 0;
+  return h % 3200;
+}
+
 function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
   const startTier: SpriteTier = knownMissingGen5Ani.has(species) ? 'gen5' : 'gen5ani';
   const [tier, setTier] = useState<SpriteTier>(startTier);
@@ -31,21 +39,47 @@ function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
     setTier(knownMissingGen5Ani.has(species) ? 'gen5' : 'gen5ani');
   }, [species]);
 
-  if (tier === 'icon') {
-    return <span className="sprite-fallback" style={Icons.getPokemon(species).css} title={species} />;
-  }
-  const sprite = Sprites.getPokemon(species, back ? {gen: tier, side: 'p1'} : {gen: tier});
+  const url =
+    tier === 'icon'
+      ? undefined
+      : Sprites.getPokemon(species, back ? {gen: tier, side: 'p1'} : {gen: tier}).url;
+  const inner =
+    url === undefined ? (
+      <span className="sprite-fallback" style={Icons.getPokemon(species).css} title={species} />
+    ) : (
+      <img
+        key={`${species}-${tier}`}
+        className="stage-sprite"
+        src={url}
+        alt={species}
+        onError={() => {
+          if (tier === 'gen5ani') knownMissingGen5Ani.add(species);
+          setTier(t => (t === 'gen5ani' ? 'gen5' : 'icon'));
+        }}
+      />
+    );
+
+  // Decided by the asset, not by `tier`. Asking @pkmn/img for `gen5ani` on a
+  // species that has none returns a static .png rather than erroring, so the
+  // tier stays 'gen5ani' and would claim the sprite animates when it does not
+  // — which is most of the modern meta.
+  const animated = url?.endsWith('.gif') ?? false;
+
+  // The wrapper is a third transform channel. The holder owns the lunge,
+  // recoil and KO drop; the sprite itself must stay filter-only because
+  // `.sprite-fallback` carries a load-bearing scale(1.7). Idle motion needs
+  // somewhere of its own to live, and it composes with the other two.
+  //
+  // Only the static tiers breathe: `gen5ani` sprites are animated GIFs that
+  // already move on their own, and doubling up looks wrong. That is most of
+  // the field in practice, since Gen 6+ mons have no gen5ani sprite.
   return (
-    <img
-      key={`${species}-${tier}`}
-      className="stage-sprite"
-      src={sprite.url}
-      alt={species}
-      onError={() => {
-        if (tier === 'gen5ani') knownMissingGen5Ani.add(species);
-        setTier(t => (t === 'gen5ani' ? 'gen5' : 'icon'));
-      }}
-    />
+    <span
+      className={animated ? 'sprite-idle' : 'sprite-idle breathing'}
+      style={{animationDelay: `-${speciesPhase(species)}ms`}}
+    >
+      {inner}
+    </span>
   );
 }
 
