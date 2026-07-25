@@ -473,6 +473,73 @@ test('reduced motion suppresses the low-HP pulse and the status effects', async 
   expect(read.rain).toBe('none');
 });
 
+test('the camera leans toward the struck side and settles back', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const probe = (fieldCls: string, delay?: string) => {
+      const host = document.createElement('div');
+      host.className = 'battle-stage';
+      const field = document.createElement('div');
+      field.className = fieldCls;
+      if (delay) field.style.setProperty('--fx-camera-delay', delay);
+      const world = document.createElement('div');
+      world.className = 'stage-world';
+      field.appendChild(world);
+      host.appendChild(field);
+      document.body.appendChild(host);
+      const cs = getComputedStyle(world);
+      const out = {name: cs.animationName, origin: cs.transformOrigin, delay: cs.animationDelay};
+      host.remove();
+      return out;
+    };
+    return {
+      theirs: probe('stage-field push-theirs'),
+      mine: probe('stage-field push-mine'),
+      withDelay: probe('stage-field push-theirs', '0.28s'),
+      calm: probe('stage-field'),
+    };
+  });
+
+  expect(read.theirs.name).toBe('cameraPush');
+  expect(read.mine.name).toBe('cameraPush');
+  expect(read.calm.name).toBe('none');
+  // Leans opposite ways, toward each side's own sprite.
+  expect(read.theirs.origin).not.toBe(read.mine.origin);
+  // A crit push waits for the hit; a KO (no delay set) fires immediately.
+  expect(read.theirs.delay).toBe('0s');
+  expect(read.withDelay.delay).toBe('0.28s');
+});
+
+test('reduced motion suppresses the camera', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    const field = document.createElement('div');
+    field.className = 'stage-field push-theirs';
+    const world = document.createElement('div');
+    world.className = 'stage-world';
+    field.appendChild(world);
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const cs = getComputedStyle(world);
+    const out = {name: cs.animationName, scale: cs.scale};
+    host.remove();
+    return out;
+  });
+
+  expect(read.name).toBe('none');
+  // The base declares no scale, so suppressing the animation rests at 1:1.
+  expect(read.scale === 'none' || read.scale === '1').toBe(true);
+});
+
 test('the world layer fills the field and still covers with the scene', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
   await page.goto('/');

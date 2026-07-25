@@ -2134,6 +2134,44 @@ button.primary:disabled {
   90% { transform: translate(-1px, 0); }
 }
 
+/* ---- The camera ----
+
+   A restrained lean toward whatever just happened: a knockout, or a critical
+   hit. Not super-effective hits or Tera, which fire often enough that a camera
+   move would become background noise instead of emphasis.
+
+   On `scale`, the independent longhand, rather than `transform`. The field
+   above already animates `transform` for the KO screen-shake, and one element
+   can only have one `transform`; the two longhands compose natively, so the
+   world can lean while the whole frame jolts.
+
+   The origin is lerped HALFWAY from centre toward the struck sprite rather
+   than parked on it. The sprite centres are 84%/33% and 15%/63% of the field;
+   pushing fully to those reads as a zoom onto a corner, while half keeps the
+   frame centre nearly still and still leans. Percentages resolve against
+   `.stage-world`'s own box, and after the lerp the desktop and mobile origins
+   differ by about 4 percentage points, which at scale 1.06 on the narrow
+   field is under a pixel. So no mobile variant.
+
+   Ends at `scale: 1` rather than using `forwards` on purpose: Playwright's
+   `animations: 'disabled'` fast-forwards finite animations to their END
+   frame, so a held zoom would bake itself into every visual baseline. */
+.push-theirs .stage-world {
+  transform-origin: 67% 42%;
+  animation: cameraPush 0.5s ease-out var(--fx-camera-delay, 0s);
+}
+
+.push-mine .stage-world {
+  transform-origin: 33% 56%;
+  animation: cameraPush 0.5s ease-out var(--fx-camera-delay, 0s);
+}
+
+@keyframes cameraPush {
+  0% { scale: 1; }
+  30% { scale: 1.06; }
+  100% { scale: 1; }
+}
+
 /* Critical hit: a brief whole-field white flash, on top of the struck
    sprite's own (punchier) fx-crit spark.
 
@@ -9274,6 +9312,8 @@ button.primary:disabled {
   [class*='fx-signature-'].lunge-right,
   [class*='fx-signature-'].lunge-left,
   .stage-shake,
+  .push-theirs .stage-world,
+  .push-mine .stage-world,
   .crit-flash,
   .earthquake-shake,
   .stealth-rock-fall,

@@ -439,6 +439,19 @@ function BattleStage({
   // Background flavor: a per-rung scene, tinted by live weather/terrain.
   // Class names are normalized protocol strings ("RainDance" -> wx-raindance,
   // "Electric Terrain" -> terrain-electric).
+  // Which side the camera leans toward this beat, if any. `??` and not `||`,
+  // since side 0 is falsy. A faint outranks a crit, though in practice they
+  // never share a beat: `toBeats` groups a move with its own damage and notes
+  // only, so a faint always gets its own. A critical KO therefore plays the
+  // push twice in a row from the same token, which works because `push-*` is
+  // in FIELD_CLASSES and gets restarted.
+  const pushSide =
+    fx.find(f => f.type === 'faint')?.side ?? fx.find(f => f.type === 'impact' && f.crit)?.side;
+  // A crit push should land WITH the hit, not ahead of it. `--fx-hit-delay`
+  // lives on the sprite holder and custom properties do not inherit upward,
+  // so the field gets told separately. A faint is its own beat, so no wait.
+  const cameraDelay = fx.some(f => f.type === 'faint') ? undefined : hitDelay(pushSide ?? 1);
+
   const terrain = view.fields.find(f => f.endsWith('Terrain'));
   // Weather and terrain each get their own layer element. They used to share
   // `.stage-field::after` at equal specificity, so with both up the terrain
@@ -453,6 +466,7 @@ function BattleStage({
     terrainClass,
     fx.some(f => f.type === 'faint') && 'stage-shake',
     fx.some(f => f.type === 'impact' && f.crit) && 'crit-flash',
+    pushSide !== undefined && (pushSide === 0 ? 'push-mine' : 'push-theirs'),
     fx.some(f => f.type === 'impact' && f.move === 'Earthquake') && 'earthquake-shake',
     fx.some(f => f.type === 'lunge' && f.move === 'Stealth Rock') && 'stealth-rock-fall',
     fx.some(f => f.type === 'lunge' && f.move === 'Spikes') && 'spikes-fall',
@@ -483,7 +497,11 @@ function BattleStage({
     <>
       <div className="battle-frame">
         <div className="battle-stage">
-          <div ref={fieldRef} className={fieldClasses}>
+          <div
+            ref={fieldRef}
+            className={fieldClasses}
+            style={cameraDelay ? ({'--fx-camera-delay': cameraDelay} as CSSProperties) : undefined}
+          >
             <HazardCorner side={1} hazards={view.sides[1].hazards} />
             <HazardCorner side={0} hazards={view.sides[0].hazards} />
 
