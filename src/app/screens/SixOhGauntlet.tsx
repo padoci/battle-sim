@@ -98,7 +98,9 @@ function HpBar({mon, side, hitDelay}: {mon: MonView; side: 'theirs' | 'mine'; hi
         <span className="hp-name">{mon.species}</span>
         <span className="mono hp-level">Lv100</span>
         {mon.teraType && <span className="tera-badge" style={{background: typeColor(mon.teraType)}}>Tera {mon.teraType}</span>}
-        {mon.status && <span className="status-chip">{mon.status.toUpperCase()}</span>}
+        {mon.status && (
+          <span className={`status-chip st-${mon.status}`}>{mon.status.toUpperCase()}</span>
+        )}
         {Object.entries(mon.boosts)
           .filter(([, v]) => v !== 0)
           .map(([stat, v]) => (
@@ -371,11 +373,13 @@ function BattleStage({
       signature: signatureSlug(item?.move),
     };
   };
-  const holderClasses = (side: 0 | 1, lungeClass: string) => {
+  const holderClasses = (side: 0 | 1, lungeClass: string, status?: string) => {
     const flavor = fxFlavor(side);
     return [
       'sprite-holder',
       side === 1 ? 'theirs' : 'mine',
+      // Drives the persistent on-field condition effect (embers, bubbles...).
+      status && `st-${status}`,
       fxFor(side, 'lunge') && lungeClass,
       fxFor(side, 'impact') && 'impact',
       fxFor(side, 'impact')?.crit && 'fx-crit',
@@ -494,7 +498,7 @@ function BattleStage({
               <div
                 key={`t-${theirs.species}`}
                 ref={theirsRef}
-                className={holderClasses(1, 'lunge-left')}
+                className={holderClasses(1, 'lunge-left', theirs.status)}
                 style={holderStyle(1)}
               >
                 <SpriteWithFallback species={theirs.species} back={false} />
@@ -518,7 +522,7 @@ function BattleStage({
               <div
                 key={`m-${mine.species}`}
                 ref={mineRef}
-                className={holderClasses(0, 'lunge-right')}
+                className={holderClasses(0, 'lunge-right', mine.status)}
                 style={holderStyle(0)}
               >
                 <SpriteWithFallback species={mine.species} back={true} />

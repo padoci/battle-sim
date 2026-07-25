@@ -2113,6 +2113,7 @@ button.primary:disabled {
    and layout is unchanged. */
 .sprite-idle {
   display: block;
+  position: relative;
   width: 100%;
   height: 100%;
   transform-origin: bottom center;
@@ -2134,6 +2135,92 @@ button.primary:disabled {
 .faint-drop .sprite-idle,
 .dodge .sprite-idle,
 .blocked .sprite-idle {
+  animation-play-state: paused;
+}
+
+/* ---- Status conditions, on the field ----
+
+   A burned Pokemon used to look exactly like a healthy one: the only sign was
+   a 0.6rem text chip in the HP box, in the same colour for every condition.
+   The condition is persistent, so its visual should be too.
+
+   Drawn on the idle wrapper's own pseudo-element, which nothing else uses.
+   Particles are animated background-positions on a tiled radial-gradient
+   rather than real elements: one composited layer per mon, and the tile size
+   matches the travel distance so the loop is seamless. */
+.sprite-idle::after {
+  content: '';
+  position: absolute;
+  inset: -6% -10% 0 -10%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.st-brn .sprite-idle::after {
+  background-image:
+    radial-gradient(circle, rgba(255, 148, 54, 0.95) 0 1.6px, transparent 2.2px),
+    radial-gradient(circle, rgba(255, 208, 92, 0.8) 0 1.1px, transparent 1.7px);
+  background-size: 27px 36px, 19px 29px;
+  animation: statusEmber 2.3s linear infinite;
+}
+
+@keyframes statusEmber {
+  to { background-position: 3px -36px, -5px -29px; }
+}
+
+.st-psn .sprite-idle::after,
+.st-tox .sprite-idle::after {
+  background-image:
+    radial-gradient(circle, rgba(190, 92, 208, 0.85) 0 2px, transparent 2.6px),
+    radial-gradient(circle, rgba(226, 150, 240, 0.7) 0 1.2px, transparent 1.8px);
+  background-size: 31px 40px, 23px 31px;
+  animation: bubbleRise 3s linear infinite;
+}
+
+@keyframes bubbleRise {
+  to { background-position: -4px -40px, 6px -31px; }
+}
+
+.st-par .sprite-idle::after {
+  background-image:
+    radial-gradient(circle, rgba(248, 224, 84, 0.9) 0 1.5px, transparent 2.1px),
+    radial-gradient(circle, rgba(255, 245, 170, 0.75) 0 1px, transparent 1.5px);
+  background-size: 22px 22px, 17px 17px;
+  /* Paralysis crackles in place rather than drifting: it is a seize, not a
+     plume. */
+  animation: paraCrackle 0.55s steps(3, end) infinite;
+}
+
+@keyframes paraCrackle {
+  0% { opacity: 0.15; background-position: 0 0, 4px 6px; }
+  40% { opacity: 0.95; background-position: 5px 3px, -3px -4px; }
+  100% { opacity: 0.2; background-position: -4px 5px, 6px 2px; }
+}
+
+.st-slp .sprite-idle::after {
+  background-image:
+    radial-gradient(ellipse at 72% 14%, rgba(160, 190, 255, 0.75) 0 5px, transparent 12px),
+    radial-gradient(ellipse at 84% 4%, rgba(190, 214, 255, 0.6) 0 3px, transparent 8px);
+  animation: sleepPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes sleepPulse {
+  0%, 100% { opacity: 0.35; transform: translateY(2px) scale(0.9); }
+  50% { opacity: 0.95; transform: translateY(-6px) scale(1.08); }
+}
+
+.st-frz .sprite-idle::after {
+  background: linear-gradient(150deg, rgba(190, 235, 255, 0.42), rgba(120, 200, 240, 0.16) 60%, transparent);
+  animation: frostSheen 3.4s ease-in-out infinite;
+}
+
+@keyframes frostSheen {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.85; }
+}
+
+/* A frozen mon does not breathe. */
+.st-frz .sprite-idle.breathing {
   animation-play-state: paused;
 }
 
@@ -8447,10 +8534,19 @@ button.primary:disabled {
   padding: 1px 0.35rem;
 }
 
+/* Colour-coded per condition, matching the on-field effect, so BRN and PAR
+   are distinguishable at a glance instead of being the same purple chip. */
 .status-chip {
   background: var(--signal);
   color: var(--on-accent);
 }
+
+.status-chip.st-brn { background: #ee6b2f; }
+.status-chip.st-psn,
+.status-chip.st-tox { background: #a840a0; }
+.status-chip.st-par { background: #d9b310; color: #2b2410; }
+.status-chip.st-slp { background: #6b6f8c; }
+.status-chip.st-frz { background: #6fc4e0; color: #123039; }
 
 .boost-chip.up {
   background: var(--boost-up-bg);
@@ -9047,7 +9143,11 @@ button.primary:disabled {
   .switch-ball,
   .fx-eff,
   .faint-drop::after,
-  .blocked::after {
+  .blocked::after,
+  /* The on-field condition effects are all motion (drifting embers, crackle,
+     pulse); frozen in place they would read as debris stuck to the sprite.
+     The colour-coded HP-box chip still names the condition. */
+  .sprite-idle::after {
     display: none;
   }
   /* Wildcards cover every current and future per-type/signature shape

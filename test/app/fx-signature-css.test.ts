@@ -41,6 +41,25 @@ function slugsInCss(): Set<string> {
   return found;
 }
 
+describe('app.css keyframes', () => {
+  it('has no duplicate @keyframes names', () => {
+    // A later @keyframes silently replaces an earlier one of the same name,
+    // across the whole stylesheet. In ~9000 lines with 350+ animations that is
+    // very easy to do by accident and produces no error: a status-condition
+    // ember loop was once shadowed by an unrelated signature move's keyframe,
+    // which ended at opacity 0, so the effect simply never appeared.
+    const names = [...css.matchAll(/@keyframes\s+([\w-]+)/g)].map(m => m[1]);
+    const seen = new Set<string>();
+    const dupes = new Set<string>();
+    for (const n of names) {
+      if (seen.has(n)) dupes.add(n);
+      seen.add(n);
+    }
+    expect([...dupes], `these @keyframes names are defined more than once`).toEqual([]);
+    expect(names.length).toBeGreaterThan(100); // the check is not vacuous
+  });
+});
+
 describe('signature move FX: TypeScript list vs app.css rules', () => {
   it('every signature move resolves to a slug', () => {
     for (const move of SIGNATURE_MOVES) {
