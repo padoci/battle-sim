@@ -27,6 +27,7 @@ import {THIN_SAMPLE_BATTLES, wilsonHalfWidth} from '../../analysis/confidence';
 import {cancelRun} from '../simSession';
 import {navigate} from '../router';
 import {useAppState, type PoolEntryWithMeta} from '../state';
+import {useUnloadGuard} from '../useUnloadGuard';
 
 interface Enrichment {
   threats: ThreatFact[];
@@ -207,6 +208,8 @@ export function Dashboard() {
   const [downloaded, setDownloaded] = useState<string>();
 
   const {team, pool, run} = state;
+  // Results are memory-only too: a reload mid-run drops every battle so far.
+  useUnloadGuard(run.status === 'running');
 
   const analysis = useMemo(() => {
     if (!team || run.battles.length === 0) return undefined;

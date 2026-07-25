@@ -5,6 +5,7 @@ import {parseProtocol} from '../../replay/parse';
 import {PACE, toBeats} from '../../replay/pace';
 import type {FxItem, MonView, SideView} from '../../replay/view';
 import {navigate} from '../router';
+import {useUnloadGuard} from '../useUnloadGuard';
 import {readDevParams} from '../sixoh/devParams';
 import {HIT_DELAY, signatureSlug} from '../sixoh/fx';
 import {BATTLE_SCENES, sceneUrl} from '../sixoh/scenes';
@@ -705,6 +706,8 @@ export function SixOhGauntlet() {
   // redirect — that would trap the user in a result↔gauntlet loop; show a
   // terminal panel instead (below).
   const wasFinishedOnMount = useRef(state.phase === 'finished');
+  // A live run is memory-only: reloading lands on "No run in progress".
+  useUnloadGuard(state.phase !== 'draft' && state.phase !== 'finished');
   useEffect(() => {
     if (state.phase === 'finished' && !wasFinishedOnMount.current) navigate('sixoh-result');
   }, [state.phase]);
