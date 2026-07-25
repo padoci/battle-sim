@@ -1926,6 +1926,23 @@ button.primary:disabled {
   overflow: hidden;
 }
 
+/* Everything a camera may move, separated from the chrome that must not.
+
+   `position: absolute; inset: 0` rather than a plain block: every child in
+   here is absolutely positioned, so a static block would compute to height 0
+   — no background paint, and `transform-origin` percentages resolving against
+   a zero-height box.
+
+   `center/cover` is NOT redundant. It used to come from `.stage-field`'s
+   `background` SHORTHAND above, which this element does not inherit; without
+   it the scene renders top-left at its intrinsic size. The flat fallback
+   colour deliberately stays on the field, behind the world. */
+.stage-world {
+  position: absolute;
+  inset: 0;
+  background: center/cover;
+}
+
 .ground-shadow {
   position: absolute;
   border-radius: 50%;

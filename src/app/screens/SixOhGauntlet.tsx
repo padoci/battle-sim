@@ -483,9 +483,14 @@ function BattleStage({
     <>
       <div className="battle-frame">
         <div className="battle-stage">
-          <div ref={fieldRef} className={fieldClasses} style={{backgroundImage: `url(${sceneUrl(scene.file)})`}}>
+          <div ref={fieldRef} className={fieldClasses}>
             <HazardCorner side={1} hazards={view.sides[1].hazards} />
             <HazardCorner side={0} hazards={view.sides[0].hazards} />
+
+            {/* Everything a camera may move lives in here; the HP boxes and
+                hazard glyphs stay outside it, since chrome should hold still
+                while the world leans. */}
+            <div className="stage-world" style={{backgroundImage: `url(${sceneUrl(scene.file)})`}}>
             <span className="ground-shadow theirs" />
             <span className="ground-shadow mine" />
 
@@ -550,6 +555,7 @@ function BattleStage({
                 a plain battle renders the same DOM it always did. */}
             {wxClass && <span className={`wx-layer ${wxClass}`} aria-hidden="true" />}
             {terrainClass && <span className={`terrain-layer ${terrainClass}`} aria-hidden="true" />}
+            </div>
 
             {theirs && <HpBar mon={theirs} side="theirs" hitDelay={hitDelay(1)} />}
             {mine && <HpBar mon={mine} side="mine" hitDelay={hitDelay(0)} />}

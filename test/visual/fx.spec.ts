@@ -473,6 +473,47 @@ test('reduced motion suppresses the low-HP pulse and the status effects', async 
   expect(read.rain).toBe('none');
 });
 
+test('the world layer fills the field and still covers with the scene', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  const read = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    host.style.width = '800px';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    const world = document.createElement('div');
+    world.className = 'stage-world';
+    world.style.backgroundImage = 'url(data:image/gif;base64,R0lGODlhAQABAAAAACw=)';
+    field.appendChild(world);
+    host.appendChild(field);
+    document.body.appendChild(host);
+    const cs = getComputedStyle(world);
+    const box = world.getBoundingClientRect();
+    const out = {
+      position: cs.position,
+      // `center/cover` came from .stage-field's `background` SHORTHAND, which
+      // this element does not inherit. Without its own the scene would render
+      // top-left at intrinsic size.
+      size: cs.backgroundSize,
+      pos: cs.backgroundPosition,
+      // A static block would be height 0: every child is absolutely positioned.
+      w: Math.round(box.width),
+      h: Math.round(box.height),
+    };
+    host.remove();
+    return out;
+  });
+
+  expect(read.position).toBe('absolute');
+  expect(read.size).toBe('cover');
+  expect(read.pos).toBe('50% 50%');
+  expect(read.w).toBe(800);
+  expect(read.h, 'the world collapsed, so nothing would paint').toBe(300);
+});
+
 test('a critical Earthquake keeps both its flash and its rings', async ({page}, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
   await page.goto('/');
