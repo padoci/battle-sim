@@ -9,7 +9,7 @@ import {readDevParams} from '../sixoh/devParams';
 import {HIT_DELAY, signatureSlug} from '../sixoh/fx';
 import {BATTLE_SCENES, sceneUrl} from '../sixoh/scenes';
 import {FIELD_CLASSES, useFxRestart} from '../sixoh/useFxRestart';
-import {swapOutDelayMs, useStageSwap} from '../sixoh/useStageSwap';
+import {swapFadeMs, swapOutDelayMs, useStageSwap} from '../sixoh/useStageSwap';
 import {ensureComputed, resetSixOhSession, retryBattle} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/state';
 import {typeColor} from '../sixoh/typeColors';
@@ -322,7 +322,7 @@ function BattleStage({
   speedOverride?: number;
   onDone: () => void;
   /** Start the dip out, timed to finish as the run advances. */
-  onSwapOut: () => void;
+  onSwapOut: (fadeMs?: number) => void;
 }) {
   const teams = useMemo(() => [team, opponentSets] as [PokemonSet[], PokemonSet[]], [team, opponentSets]);
   const playback = usePlayback(teams, beats, onDone, {streamDone, battleKey, speedOverride});
@@ -464,7 +464,10 @@ function BattleStage({
   useEffect(() => {
     if (!hasWinner || !streamDone) return;
     const beatMs = PACE.win / Math.max(speed, 0.1);
-    const timer = setTimeout(onSwapOut, swapOutDelayMs(beatMs));
+    // The dip's duration travels with it: at speed the beat is shorter than
+    // the full fade, and a CSS transition still running when the rung
+    // advances springs back from partial opacity instead of passing through.
+    const timer = setTimeout(() => onSwapOut(swapFadeMs(beatMs)), swapOutDelayMs(beatMs));
     return () => clearTimeout(timer);
   }, [hasWinner, streamDone, speed, onSwapOut]);
 
@@ -682,7 +685,7 @@ export function SixOhGauntlet() {
   // would not touch it and `transition: none` would snap straight to opacity
   // 0: a blank flash, strictly worse than the hard cut it replaces. Same
   // reasoning that already skips the intro for these users.
-  const {swapClass, beginSwapOut} = useStageSwap(index, !reducedMotion);
+  const {swapClass, beginSwapOut, swapStyle} = useStageSwap(index, !reducedMotion);
   const handleIntroDone = useCallback(() => setIntroDoneFor(index), [index]);
 
   useEffect(() => {
@@ -802,12 +805,12 @@ export function SixOhGauntlet() {
       </aside>
 
       <section className="gauntlet-main">
-        <h2 className="battle-title">
+        <h1 className="battle-title">
           {state.opponents[index]?.avatarKey && (
             <TrainerPortrait avatarKey={state.opponents[index].avatarKey!} className="title-portrait" />
           )}
           Battle {index + 1} of {state.opponents.length} vs {state.opponents[index]?.name}
-        </h2>
+        </h1>
 
         {/* A prefetched next rung can error while this on-screen rung is
             still fine (still computing, or replaying a win) - only treat the
@@ -818,7 +821,7 @@ export function SixOhGauntlet() {
             it. Wraps all three branches, not just the frame: the stage also
             renders the log, meta row and controls, and wrapping only the
             frame would leave those popping out at full opacity. */}
-        <div className={swapClass}>
+        <div className={swapClass} style={swapStyle}>
         {(!state.error || state.errorIndex !== index) &&
           !introDone &&
           battle &&

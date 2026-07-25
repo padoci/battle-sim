@@ -2,7 +2,7 @@
 import {createElement, useEffect} from 'react';
 import {act, cleanup, render} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import {SWAP_FADE_MS, swapOutDelayMs, useStageSwap} from '../../src/app/sixoh/useStageSwap';
+import {SWAP_FADE_MS, swapFadeMs, swapOutDelayMs, useStageSwap} from '../../src/app/sixoh/useStageSwap';
 
 let latest: ReturnType<typeof useStageSwap>;
 
@@ -31,6 +31,27 @@ describe('swapOutDelayMs', () => {
 
   it('never returns a negative delay', () => {
     expect(swapOutDelayMs(0)).toBe(0);
+  });
+});
+
+describe('swapFadeMs', () => {
+  it('grants the full fade when the beat can hold it', () => {
+    expect(swapFadeMs(1500)).toBe(SWAP_FADE_MS);
+  });
+
+  it('shortens the fade itself when the beat is short', () => {
+    // The bug this exists to prevent: the delay was clamped to half the beat
+    // while the CSS transition stayed a fixed 350ms, so above ~2.1x speed the
+    // rung advanced mid-dip and the stage sprang back from ~0.35 opacity
+    // instead of passing through nothing.
+    expect(swapFadeMs(300)).toBe(150);
+    expect(swapFadeMs(50)).toBe(25);
+  });
+
+  it('always leaves the delay and the fade summing to the beat', () => {
+    for (const beat of [1500, 700, 300, 100, 50]) {
+      expect(swapOutDelayMs(beat) + swapFadeMs(beat)).toBeCloseTo(beat, 5);
+    }
   });
 });
 
@@ -72,6 +93,15 @@ describe('useStageSwap', () => {
     act(() => latest.beginSwapOut());
     expect(latest.swappingOut).toBe(false);
     expect(latest.swapClass).toBe('stage-swap');
+  });
+
+  it('publishes the clamped duration for CSS to use', () => {
+    render(createElement(Probe, {index: 0, enabled: true}));
+    // Default keeps the no-argument call working for existing callers.
+    expect(latest.swapStyle).toEqual({'--swap-fade': `${SWAP_FADE_MS}ms`});
+
+    act(() => latest.beginSwapOut(swapFadeMs(300)));
+    expect(latest.swapStyle).toEqual({'--swap-fade': '150ms'});
   });
 
   it('keeps a stable callback identity across re-renders', () => {

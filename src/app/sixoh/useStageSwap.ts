@@ -1,7 +1,25 @@
 import {useCallback, useEffect, useState} from 'react';
+import type {CSSProperties} from 'react';
 
-/** How long the stage takes to dip out before a rung change. */
+/** The longest the stage ever takes to dip out before a rung change. */
 export const SWAP_FADE_MS = 350;
+
+/**
+ * How long the dip may actually take at this beat.
+ *
+ * The clamp is the whole point: a fade that outlives the beat means the rung
+ * advances mid-dip, `out` resets, and the stage springs back from partial
+ * opacity instead of passing through nothing — a flicker, not a fade. The
+ * beat shrinks with playback speed, so above ~2.1x a fixed 350ms fade is
+ * already longer than the beat it has to fit inside.
+ *
+ * This has to drive the CSS duration as well as the start time. Shortening
+ * only `swapOutDelayMs` moves when the dip begins while leaving it 350ms
+ * long, which is exactly the mid-fade advance the clamp exists to prevent.
+ */
+export function swapFadeMs(beatMs: number): number {
+  return Math.min(SWAP_FADE_MS, beatMs * 0.5);
+}
 
 /**
  * Dip the stage to nothing just before the run advances to the next rung, and
@@ -22,20 +40,30 @@ export const SWAP_FADE_MS = 350;
  */
 export function useStageSwap(index: number, enabled: boolean) {
   const [out, setOut] = useState(false);
+  const [fadeMs, setFadeMs] = useState(SWAP_FADE_MS);
 
   // A new rung has mounted: come back in.
   useEffect(() => {
     setOut(false);
   }, [index]);
 
-  const beginSwapOut = useCallback(() => {
-    if (enabled) setOut(true);
-  }, [enabled]);
+  // The caller passes the window this dip has to fit inside; it knows the
+  // beat, this hook doesn't. Defaulting keeps the no-argument call working.
+  const beginSwapOut = useCallback(
+    (fade: number = SWAP_FADE_MS) => {
+      if (!enabled) return;
+      setFadeMs(fade);
+      setOut(true);
+    },
+    [enabled]
+  );
 
   return {
     swapClass: out ? 'stage-swap swapping' : 'stage-swap',
     beginSwapOut,
     swappingOut: out,
+    /** Hands the clamped duration to CSS so it can't disagree with the delay. */
+    swapStyle: {'--swap-fade': `${Math.round(fadeMs)}ms`} as CSSProperties,
   };
 }
 
@@ -47,6 +75,5 @@ export function useStageSwap(index: number, enabled: boolean) {
  * unmounting) pops at partial opacity.
  */
 export function swapOutDelayMs(beatMs: number): number {
-  const fade = Math.min(SWAP_FADE_MS, beatMs * 0.5);
-  return Math.max(0, beatMs - fade);
+  return Math.max(0, beatMs - swapFadeMs(beatMs));
 }

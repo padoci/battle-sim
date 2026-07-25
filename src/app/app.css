@@ -191,7 +191,12 @@ h3 {
   border: 0;
   color: inherit;
   font: inherit;
-  padding: 0;
+  /* Real buttons, not inline text links, so the 24x24 minimum target size
+     applies to them (WCAG 2.2 AA 2.5.8). They rendered 111x17 and 72x17. */
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.25rem;
   text-decoration: underline;
   cursor: pointer;
 }
@@ -560,6 +565,11 @@ main.screen.wide {
   padding: 0.6rem 1rem;
   margin: 0.75rem 0;
   list-style-position: inside;
+  /* These messages quote the user's own team back at them, and a nickname is
+     one unbroken token. Without this a long one is unwrappable and takes the
+     whole page sideways with it — at 375px a 150-char nickname overflowed by
+     1244px. */
+  overflow-wrap: anywhere;
 }
 
 .import-status {
@@ -2141,7 +2151,10 @@ button.primary:disabled {
    intro renders only the frame, so stacking them would overlap a 300px
    viewport with a roughly 700px column. */
 .stage-swap {
-  transition: opacity 0.35s ease;
+  /* Duration comes from the stage, which knows the beat: at speed the beat is
+     shorter than the full fade, and a transition still running when the rung
+     advances springs back from partial opacity instead of passing through. */
+  transition: opacity var(--swap-fade, 350ms) ease;
 }
 
 .stage-swap.swapping {
@@ -9111,10 +9124,12 @@ button.primary:disabled {
 .game-name {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* Archetype names run long by construction. Truncating them to "Grassy
+     Terrai…" inside a 615px card in a 1440px viewport hid the one thing the
+     row is for; two lines cost less than the ellipsis did. */
+  overflow-wrap: anywhere;
   font-size: 0.88rem;
+  line-height: 1.3;
   color: var(--ink);
 }
 

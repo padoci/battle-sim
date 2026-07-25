@@ -65,7 +65,7 @@ export function TeamImport() {
         spellCheck={false}
       />
       {parsed && parsed.problems.length > 0 && (
-        <ul className="problems">
+        <ul className="problems" role="alert" aria-live="polite">
           {parsed.problems.map((problem, i) => (
             <li key={i}>{problem}</li>
           ))}
