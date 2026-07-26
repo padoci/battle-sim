@@ -336,7 +336,7 @@ export function SixOhDraft() {
                 style={{
                   transform: fanTransform(index, draft.offers.length, 5.5, 3),
                   zIndex: index,
-                  background: `linear-gradient(#fdfbff, #efe7fa) padding-box, ${typeBorderGradient(types)} border-box`,
+                  background: `linear-gradient(var(--surface), var(--panel-lilac)) padding-box, ${typeBorderGradient(types)} border-box`,
                 }}
                 onClick={() => dispatch({type: 'SET_DRAFT', draft: pickBundle(draft, data.pool, data.sets, index)})}
               >

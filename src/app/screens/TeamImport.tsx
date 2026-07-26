@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {Teams, TeamValidator} from '@pkmn/sim';
 import type {PokemonSet} from '../../data/types';
 import {EXAMPLE_TEAM} from '../../data/exampleTeam';
@@ -19,13 +19,38 @@ Jolly Nature
 - Knock Off
 ...`;
 
+/**
+ * The pasted team survives a reload. In-session navigation already kept it
+ * (Back from Configure returns it intact), but a refresh dropped it and sent
+ * the user off to find their export again — the sharpest edge of losing a run,
+ * and the cheapest to remove.
+ */
+const DRAFT_KEY = 'battle-sim:team-draft';
+
+function loadDraft(): string {
+  try {
+    return localStorage.getItem(DRAFT_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 export function TeamImport() {
   const dispatch = useAppDispatch();
   const {team} = useAppState();
   const validator = useMemo(() => new TeamValidator('gen9ou'), []);
   // Prefill with the previously analyzed team so "Tweak team" doesn't dump the
-  // user back to a blank box.
-  const [raw, setRaw] = useState(() => team?.raw ?? '');
+  // user back to a blank box, then with whatever survived the last reload.
+  const [raw, setRaw] = useState(() => team?.raw ?? loadDraft());
+
+  useEffect(() => {
+    try {
+      if (raw.trim()) localStorage.setItem(DRAFT_KEY, raw);
+      else localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // Private mode / quota — the box just won't survive a reload.
+    }
+  }, [raw]);
 
   const parsed = useMemo(() => {
     if (!raw.trim()) return undefined;
@@ -65,7 +90,7 @@ export function TeamImport() {
         spellCheck={false}
       />
       {parsed && parsed.problems.length > 0 && (
-        <ul className="problems">
+        <ul className="problems" role="alert" aria-live="polite">
           {parsed.problems.map((problem, i) => (
             <li key={i}>{problem}</li>
           ))}

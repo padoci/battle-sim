@@ -1,5 +1,12 @@
 import {describe, expect, it} from 'vitest';
-import {aggregateMatchup, cardRecord, rollUpByArchetype, summarize, type RecordedBattle} from '../../src/analysis/stats';
+import {
+  aggregateMatchup,
+  cardRecord,
+  MIN_VERDICT_BATTLES,
+  rollUpByArchetype,
+  summarize,
+  type RecordedBattle,
+} from '../../src/analysis/stats';
 import type {ArchetypeResult} from '../../src/analysis/archetype';
 import type {BattleResult} from '../../src/search/runner';
 import type {BattleStats} from '../../src/search/stats';
@@ -94,5 +101,45 @@ describe('cardRecord', () => {
     const empty = aggregateMatchup('e1', 'Empty', archetype(), []);
     const [card] = rollUpByArchetype([empty]);
     expect(cardRecord(card)).toEqual({wins: 0, losses: 0, draws: 0});
+  });
+});
+
+describe('summarize verdict confidence', () => {
+  /** n battles against one balanced opponent, `wins` of them won. */
+  const run = (wins: number, n: number) => {
+    const battles = Array.from({length: n}, (_, i) => battle(i < wins ? 0 : 1));
+    const m = aggregateMatchup('b1', 'Bal', archetype(), battles);
+    return summarize(rollUpByArchetype([m]), [m]);
+  };
+
+  it('will not name a band before the sample earns one', () => {
+    // One win used to read "Strong overall, no glaring archetype hole" at
+    // +/-40%, on the same team that settles at "Struggling".
+    const one = run(1, 1);
+    expect(one.provisional).toBe(true);
+    expect(one.verdict).toMatch(/Still sampling/);
+    expect(one.verdict).not.toMatch(/Strong overall|Solid|Struggling|Rough/);
+    expect(run(MIN_VERDICT_BATTLES - 1, MIN_VERDICT_BATTLES - 1).provisional).toBe(true);
+  });
+
+  it('withholds the all-clear while provisional, since absence needs a sample', () => {
+    expect(run(1, 1).verdict).not.toMatch(/no glaring archetype hole/);
+  });
+
+  it('names a band once the threshold is reached', () => {
+    const settled = run(MIN_VERDICT_BATTLES, MIN_VERDICT_BATTLES);
+    expect(settled.provisional).toBe(false);
+    expect(settled.verdict).toMatch(/Strong overall/);
+  });
+
+  it('does not re-label on a single battle either side of a boundary', () => {
+    // The observed failure: Solid -> Struggling -> Solid on adjacent battles
+    // as the rate crossed 50%. Snapping to 5% steps holds the label still.
+    const n = 40;
+    const labels = new Set<string>();
+    for (const wins of [19, 20, 21]) {
+      labels.add(run(wins, n).verdict.split(',')[0]);
+    }
+    expect(labels.size).toBe(1);
   });
 });

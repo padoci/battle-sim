@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Icons} from '@pkmn/img';
 import {Teams, TeamValidator} from '@pkmn/sim';
 import {DataClient} from '../../data/client';
@@ -90,6 +90,45 @@ export function ConfigureRun() {
   const [addRaw, setAddRaw] = useState('');
   const [addedNote, setAddedNote] = useState<string>();
   const validator = useMemo(() => new TeamValidator('gen9ou'), []);
+
+  // Curating a 62-row field one checkbox at a time was the friction here: the
+  // screen invites you to weight a matchup, then makes isolating one archetype
+  // ~55 individual clicks. These go through the existing per-entry action
+  // rather than adding a bulk reducer case — same result, nothing new to keep
+  // in sync.
+  const setAllEnabled = useCallback(
+    (enabled: boolean) => {
+      for (const entry of state.pool) {
+        if (entry.enabled !== enabled) {
+          dispatch({type: 'UPDATE_POOL_ENTRY', teamId: entry.teamId, patch: {enabled}});
+        }
+      }
+    },
+    [state.pool, dispatch]
+  );
+
+  const invertEnabled = useCallback(() => {
+    for (const entry of state.pool) {
+      dispatch({type: 'UPDATE_POOL_ENTRY', teamId: entry.teamId, patch: {enabled: !entry.enabled}});
+    }
+  }, [state.pool, dispatch]);
+
+  const onlyArchetype = useCallback(
+    (label: string) => {
+      for (const entry of state.pool) {
+        const want = entry.archetype.label === label;
+        if (entry.enabled !== want) {
+          dispatch({type: 'UPDATE_POOL_ENTRY', teamId: entry.teamId, patch: {enabled: want}});
+        }
+      }
+    },
+    [state.pool, dispatch]
+  );
+
+  const archetypeOptions = useMemo(
+    () => [...new Set(state.pool.map(e => e.archetype.label))].sort(),
+    [state.pool]
+  );
 
   // Load + classify the opponent pool once. Guarded by a watchdog + elapsed-
   // time feedback, mirroring SixOhDraft's load effect: without it, a slow (not
@@ -267,6 +306,30 @@ export function ConfigureRun() {
       </button>
       {poolOpen && (
         <>
+          {!poolLocked && (
+            <div className="pool-tools">
+              <span className="pool-tools-label mono">Select</span>
+              <button type="button" onClick={() => setAllEnabled(true)}>All</button>
+              <button type="button" onClick={() => setAllEnabled(false)}>None</button>
+              <button type="button" onClick={invertEnabled}>Invert</button>
+              <label className="pool-only">
+                <span className="mono">Only</span>
+                <select
+                  value=""
+                  onChange={event => {
+                    if (event.target.value) onlyArchetype(event.target.value);
+                  }}
+                >
+                  <option value="">an archetype…</option>
+                  {archetypeOptions.map(label => (
+                    <option key={label} value={label}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
           <div className="table-scroll">
             <table className="pool-table">
               <thead>
@@ -319,7 +382,7 @@ export function ConfigureRun() {
       )}
 
       {run.status === 'idle' && (
-        <section className="run-controls">
+        <section className={poolOpen ? 'run-controls run-controls-stuck' : 'run-controls'}>
           <label className="n-input-label mono">
             auto-stop after{' '}
             <input

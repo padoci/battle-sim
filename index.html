@@ -8,6 +8,31 @@
       content="Draft, simulate, pressure-test. AI-vs-AI Gen 9 OU teambuilding in your browser. Direction, not gospel."
     />
     <meta name="theme-color" content="#5B34D6" />
+
+    <!-- Unfurls. This gets pasted into Discord and Reddit more than it gets
+         found by search, and without these a share is a bare URL: no title,
+         no blurb, no picture of the thing that makes it worth clicking.
+         og:image has to be absolute — relative paths fail on most unfurlers,
+         which also means PR previews unfurl with production's image. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="battle-sim" />
+    <meta property="og:url" content="https://battle-sim-eo1.pages.dev/" />
+    <meta property="og:title" content="battle-sim: draft, simulate, pressure-test" />
+    <meta
+      property="og:description"
+      content="AI-vs-AI Gen 9 OU simulation, in your browser. Draft a team and take it through a six-battle gauntlet, or paste one and see its worst matchups. Direction, not gospel."
+    />
+    <meta property="og:image" content="https://battle-sim-eo1.pages.dev/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="battle-sim — build the team, we'll pressure-test it." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="battle-sim: draft, simulate, pressure-test" />
+    <meta
+      name="twitter:description"
+      content="AI-vs-AI Gen 9 OU simulation, in your browser. Draft a team and take it through a six-battle gauntlet, or paste one and see its worst matchups."
+    />
+    <meta name="twitter:image" content="https://battle-sim-eo1.pages.dev/og.png" />
     <!-- The draft screen fires off ~10 parallel lookups to TCGdex for card
          art; warming the connection (DNS + TLS) before those requests fire
          shaves a round trip off each one. -->

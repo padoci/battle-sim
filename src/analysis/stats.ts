@@ -194,6 +194,39 @@ export interface OverallSummary {
   draws: number;
   winRate: number;
   verdict: string;
+  /** True while the sample is too thin to name a band — the headline is a
+   *  progress read, not a judgement. */
+  provisional: boolean;
+}
+
+/**
+ * Battles before the headline will call the team anything.
+ *
+ * Matches the threshold the "what to change" reads already wait for, and for
+ * the same reason. The page is otherwise careful — thin-sample chips, a ±
+ * interval beside every rate, "direction, not gospel" — but the largest text
+ * on it used to commit from the first battle: one win read "Strong overall,
+ * no glaring archetype hole" at ±40%, and the same team settled at
+ * "Struggling" thirty battles later.
+ */
+export const MIN_VERDICT_BATTLES = 25;
+
+/**
+ * Band the rate in 5% steps rather than off the raw value.
+ *
+ * The bands are 15 points wide and a run walks its win rate across them one
+ * battle at a time, so a rate sitting near a boundary used to re-label on
+ * almost every battle: observed flipping Solid -> Struggling -> Solid ->
+ * Struggling on adjacent battles around 50%. Snapping costs nothing real —
+ * the interval is far wider than 5% at any sample this side of hundreds — and
+ * it stops the headline contradicting itself while you watch.
+ */
+function band(winRate: number): string {
+  const snapped = Math.round(winRate * 20) / 20;
+  if (snapped >= 0.65) return 'Strong overall';
+  if (snapped >= 0.5) return 'Solid';
+  if (snapped >= 0.35) return 'Struggling';
+  return 'Rough';
 }
 
 export function summarize(cards: ArchetypeCard[], matchups: MatchupAggregate[]): OverallSummary {
@@ -204,8 +237,6 @@ export function summarize(cards: ArchetypeCard[], matchups: MatchupAggregate[]):
   const winRate = battles ? wins / battles : 0;
 
   const worst = cards[0];
-  const band =
-    winRate >= 0.65 ? 'Strong overall' : winRate >= 0.5 ? 'Solid' : winRate >= 0.35 ? 'Struggling' : 'Rough';
   const speedTrouble = matchups.length
     ? matchups.reduce((sum, m) => sum + m.speedRaceWinRate * m.battles, 0) / Math.max(1, battles) < 0.4
     : false;
@@ -214,5 +245,20 @@ export function summarize(cards: ArchetypeCard[], matchups: MatchupAggregate[]):
     : speedTrouble
       ? 'leans fragile to speed control'
       : 'no glaring archetype hole';
-  return {battles, wins, losses, draws, winRate, verdict: `${band}, ${weakness}`};
+
+  // Under the threshold the headline reports progress instead of a verdict.
+  //
+  // What survives the gate is the weakness, and only when something was
+  // actually seen losing: "the worst thing so far" is a true statement about
+  // any sample. The all-clear is not — "no glaring archetype hole" is a claim
+  // that nothing is there, which is precisely what a thin sample cannot
+  // support, so it waits with the band.
+  const provisional = battles < MIN_VERDICT_BATTLES;
+  const observed = weakness === 'no glaring archetype hole' ? undefined : weakness;
+  const verdict = provisional
+    ? `Still sampling — ${Math.round(winRate * 100)}% over ${battles} battle${battles === 1 ? '' : 's'}` +
+      `${observed ? `, ${observed}` : ''} so far`
+    : `${band(winRate)}, ${weakness}`;
+
+  return {battles, wins, losses, draws, winRate, verdict, provisional};
 }
