@@ -4,6 +4,7 @@ import type {PokemonSet} from '../../data/types';
 import {EXAMPLE_TEAM} from '../../data/exampleTeam';
 import {navigate} from '../router';
 import {useAppDispatch, useAppState} from '../state';
+import {PrivacyNote} from '../components/PrivacyNote';
 import {TeamPreviewRow} from '../components/TeamPreviewRow';
 
 const PLACEHOLDER = `Paste your team in Showdown export format, e.g.
@@ -78,6 +79,7 @@ export function TeamImport() {
     <main className="screen">
       <h1>Test your team</h1>
       <p className="screen-sub">Paste a Gen 9 OU team. We validate as you type.</p>
+      <PrivacyNote />
       <button type="button" className="load-sample" onClick={() => setRaw(EXAMPLE_TEAM)}>
         Load a sample team
       </button>

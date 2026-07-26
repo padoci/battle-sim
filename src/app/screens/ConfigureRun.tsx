@@ -9,6 +9,7 @@ import type {PokemonSet} from '../../data/types';
 import {classifyTeam, teamDisplayName} from '../../analysis/archetype';
 import {getRunner} from '../simSession';
 import {navigate} from '../router';
+import {PrivacyNote} from '../components/PrivacyNote';
 import {useAppDispatch, useAppState, type PoolEntryWithMeta} from '../state';
 
 /** Same budget as SixOhDraft's load watchdog — see its comment for why this
@@ -351,6 +352,7 @@ export function ConfigureRun() {
           {!poolLocked && (
             <section className="add-team">
               <h3>Add your own team to the field</h3>
+              <PrivacyNote className="compact" />
               <textarea
                 className="team-input add-team-input mono"
                 rows={6}
