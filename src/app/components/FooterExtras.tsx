@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {ContactPanel} from './ContactPanel';
 
 // Author's own words, verbatim (see repo root "ai usage policy.rtf").
 const AI_POLICY_PARAGRAPHS = [
@@ -19,9 +20,18 @@ export function FooterExtras() {
   const [policyOpen, setPolicyOpen] = useState(false);
   const [donateOpen, setDonateOpen] = useState(false);
   const [dataOpen, setDataOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
   return (
     <>
       <p className="footer-links">
+        <button
+          className="footer-toggle mono"
+          onClick={() => setContactOpen(o => !o)}
+          aria-expanded={contactOpen}
+        >
+          {contactOpen ? '▾ hide' : '▸'} Get in touch
+        </button>
+        <span aria-hidden="true"> · </span>
         <button
           className="footer-toggle mono"
           onClick={() => setPolicyOpen(o => !o)}
@@ -46,6 +56,7 @@ export function FooterExtras() {
           {dataOpen ? '▾ hide' : '▸'} Your data
         </button>
       </p>
+      {contactOpen && <ContactPanel />}
       {policyOpen && (
         <div className="footer-panel mono" role="region" aria-label="AI usage policy">
           {AI_POLICY_PARAGRAPHS.map((text, i) => (
