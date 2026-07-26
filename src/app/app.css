@@ -699,6 +699,123 @@ main.screen.wide {
   outline: 2px solid var(--signal-2);
 }
 
+/* ---- Get in touch ----
+   A composer, not a form: it builds a mailto and hands it to the reader's own
+   email app (see ContactPanel). Styled to sit inside .footer-panel, which
+   already owns the surface and border. */
+.contact-panel {
+  text-align: left;
+}
+
+.contact-field {
+  display: block;
+  margin: 0.75rem 0;
+}
+
+.contact-field > span {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.contact-field select {
+  font: inherit;
+  min-height: 32px;
+  width: 100%;
+  max-width: 22rem;
+  padding: 0 0.45rem;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  color: var(--ink-2);
+}
+
+.contact-message {
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  color: var(--ink);
+  resize: vertical;
+}
+
+.contact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0.5rem;
+}
+
+/* An anchor, so it gets the browser's own link affordances (open in a new
+   window, copy address) rather than a button that only works on click.
+   Scoped through .footer-panel: the panel's own `a` rule is (0,1,1) and would
+   otherwise win, painting link-coloured underlined text on the violet fill. */
+.footer-panel .contact-send {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 0.85rem;
+  border-radius: var(--r-pill);
+  background: var(--signal);
+  color: var(--on-accent);
+  text-decoration: none;
+  font-size: 0.78rem;
+}
+
+.footer-panel .contact-send:hover {
+  background: var(--signal-deep);
+  color: var(--on-accent);
+}
+
+.contact-copy {
+  min-height: 34px;
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: 0.74rem;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  /* The address is long; never let it push the footer sideways. */
+  overflow-wrap: anywhere;
+}
+
+.contact-copy:hover {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.contact-note {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+/* Must sit after the base rule above, not up with the other dark overrides:
+   both are (0,2,0), so the later one wins and an override declared earlier in
+   the file would silently do nothing.
+
+   --signal is the *lightened* violet in dark mode — it exists to read as text
+   on the dark ground, so white on top of it only reaches 2.9:1. Flip the
+   fill's ink dark instead: 6.5:1, and it still reads as the primary action. */
+@media (prefers-color-scheme: dark) {
+  .footer-panel .contact-send {
+    color: var(--paper);
+  }
+
+  .footer-panel .contact-send:hover {
+    background: var(--signal-bright);
+    color: var(--paper);
+  }
+}
+
 /* The reassurance beside a paste box. Quiet by design — a competitive team is
    hours of work and pasting it somewhere new is a fair thing to pause over, but
    a loud banner would read as protesting too much. */
