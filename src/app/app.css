@@ -380,6 +380,65 @@ h3 {
   color: var(--signal);
 }
 
+/* ---- The landing page's stage still ----
+
+   Reuses the arena's own classes (see StagePreview), so it can't drift from
+   the real thing. All this adds is the framing the landing needs: a width the
+   hero can sit inside, and a scale that keeps the 300px field's proportions on
+   a phone. Nothing here restyles the stage itself. */
+.stage-preview {
+  width: 100%;
+  max-width: 620px;
+  margin: 0.25rem auto 2.25rem;
+  border-radius: var(--r-l);
+  overflow: hidden;
+  box-shadow: var(--shadow-lift);
+  /* The field is a fixed 300px tall; below ~620px the stage would letterbox,
+     so shrink the whole vignette instead of reflowing its absolute children. */
+  transform-origin: top center;
+}
+
+/* The stage's own frame already draws a border; the landing wants it to read
+   as one object with the hero, not as a panel inside a panel. */
+.stage-preview .battle-stage {
+  margin: 0;
+}
+
+/* main.landing centres its children, and that leaked into the message box —
+   which is left-aligned on the real stage. The point of this vignette is that
+   it looks like the thing, so it takes the stage's alignment, not the hero's. */
+.stage-preview {
+  text-align: left;
+}
+
+/* Decoration, not a control: nothing in here should look clickable or catch a
+   pointer aimed at the mode cards below. */
+.stage-preview,
+.stage-preview * {
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 680px) {
+  .stage-preview {
+    max-width: 100%;
+  }
+  /* Keep the two mons and their HP boxes in proportion rather than letting the
+     absolute positions crowd on a narrow field. */
+  .stage-preview .stage-field {
+    height: 232px;
+  }
+  .stage-preview .sprite-holder {
+    width: 84px;
+    height: 84px;
+  }
+  .stage-preview .message-box {
+    font-size: 0.85rem;
+    min-height: 2.6em;
+    padding: 10px 13px;
+  }
+}
+
 /* ---- Lab screens ---- */
 main.screen,
 main.landing {

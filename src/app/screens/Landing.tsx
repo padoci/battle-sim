@@ -1,4 +1,5 @@
 import {navigate} from '../router';
+import {StagePreview} from '../components/StagePreview';
 
 export function Landing() {
   return (
@@ -7,6 +8,8 @@ export function Landing() {
       <p className="hero-sub">
         AI-vs-AI Gen 9 OU simulation, in your browser. Direction, not gospel.
       </p>
+      {/* Show the thing before asking anyone to choose a mode. */}
+      <StagePreview />
       <div className="mode-cards">
         <button className="mode-card dark" onClick={() => navigate('sixoh-draft')}>
           <h2>Can you 6-0?</h2>
