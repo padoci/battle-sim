@@ -2,15 +2,19 @@
  * Stage 2 measurement gate — browser side (the REAL gate numbers).
  *
  * Usage:
- *   npm run build
+ *   BUILD_TOOLS=1 npm run build
  *   NODE_PATH=/opt/node22/lib/node_modules node scripts/measure-browser.mjs
+ *
+ * BUILD_TOOLS is required: a plain `npm run build` deliberately omits
+ * measure.html so it never ships to production, and `vite preview` serves
+ * only what the build emitted. Without it every run 404s.
  *
  * Spawns `vite preview`, drives measure.html in headless Chromium for the
  * FAST and STRONG configs, writes logs/browser-results.json, then re-renders
  * logs/gate-report.md via `vite-node scripts/measure.ts --render-only`.
  */
 import {spawn, execSync} from 'node:child_process';
-import {mkdirSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -23,6 +27,16 @@ const RUNS = [
 ];
 
 async function main() {
+  // Fail with the fix rather than a wall of 404s: a plain `npm run build`
+  // omits measure.html on purpose so it can't ship to production.
+  if (!existsSync('dist/measure.html')) {
+    console.error(
+      'dist/measure.html is missing.\n' +
+        'The production build omits the dev tools by design. Rebuild with:\n' +
+        '  BUILD_TOOLS=1 npm run build'
+    );
+    process.exit(1);
+  }
   mkdirSync('logs', {recursive: true});
   const preview = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], {
     stdio: 'ignore',
