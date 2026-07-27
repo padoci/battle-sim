@@ -27,6 +27,37 @@ export interface CachedJsonOptions {
   fetchFn?: typeof fetch;
   /** Per-URL stall timeout — see DEFAULT_STALL_TIMEOUT_MS. */
   timeoutMs?: number;
+  /**
+   * Cheap top-level shape check on a parsed body. A 200 carrying JSON of the
+   * WRONG shape (a mirror mid-rewrite, a captive portal, an error envelope)
+   * otherwise counts as success: the mirror is never tried and the garbage is
+   * cached for a full TTL. Rejecting here throws inside the per-URL try, so
+   * failover happens for free. Keep it to a top-level assertion — do not walk
+   * a 3MB payload on every load.
+   */
+  validate?: (data: unknown) => boolean;
+}
+
+/** Store I/O is best-effort: a cache that fails must never fail the load. */
+async function safeGet(store: KVStore, key: string) {
+  try {
+    return await store.get(key);
+  } catch {
+    // Private-mode IndexedDB, a blocked transaction, a corrupt DB: fall
+    // through to the network rather than bricking on a good connection.
+    return undefined;
+  }
+}
+
+async function safeSet(store: KVStore, key: string, entry: {fetchedAt: number; payload: unknown}) {
+  try {
+    await store.set(key, entry);
+  } catch {
+    // Quota exceeded (stats is ~3MB), Safari ITP eviction, private mode. The
+    // data is already in hand and about to be returned — caching it is an
+    // optimisation, and failing the whole load over it told the user to
+    // "check your connection" when the network had worked perfectly.
+  }
 }
 
 export interface CachedJsonResult<T> {
@@ -44,7 +75,12 @@ export interface CachedJsonResult<T> {
  * so genuine progress — including slow, chunk-by-chunk progress — keeps
  * pushing the deadline out indefinitely.
  */
-async function fetchJsonStreamed<T>(url: string, fetchFn: typeof fetch, stallMs: number): Promise<T> {
+async function fetchJsonStreamed<T>(
+  url: string,
+  fetchFn: typeof fetch,
+  stallMs: number,
+  validate?: (data: unknown) => boolean
+): Promise<T> {
   const controller = new AbortController();
   let stallTimer: ReturnType<typeof setTimeout> | undefined;
   const armStall = () => {
@@ -61,7 +97,7 @@ async function fetchJsonStreamed<T>(url: string, fetchFn: typeof fetch, stallMs:
     // response.body is unavailable in a few edge environments (defensive
     // fallback only — no per-chunk progress to reset the stall on, so this
     // path keeps the old one-shot behavior rather than risking a hang).
-    if (!response.body) return (await response.json()) as T;
+    if (!response.body) return checkShape<T>(await response.json(), url, validate);
 
     const reader = response.body.getReader();
     const chunks: Uint8Array[] = [];
@@ -79,23 +115,35 @@ async function fetchJsonStreamed<T>(url: string, fetchFn: typeof fetch, stallMs:
       buf.set(chunk, offset);
       offset += chunk.length;
     }
-    return JSON.parse(new TextDecoder().decode(buf)) as T;
+    return checkShape<T>(JSON.parse(new TextDecoder().decode(buf)), url, validate);
   } finally {
     clearTimeout(stallTimer);
   }
 }
 
+function checkShape<T>(data: unknown, url: string, validate?: (data: unknown) => boolean): T {
+  if (validate && !validate(data)) {
+    throw new Error(`GET ${url} -> 200 but the payload has the wrong shape`);
+  }
+  return data as T;
+}
+
 /**
- * Try each URL in order; a URL that errors OR stalls fails over to the
- * next. Sequential, not concurrent — racing a mirror in parallel with a
- * live-but-slow primary would only split the already-scarce bandwidth on
- * the connection that's actually the bottleneck, making both slower.
+ * Try each URL in order; a URL that errors, stalls, OR returns a wrong-shaped
+ * body fails over to the next. Sequential, not concurrent — racing a mirror in
+ * parallel with a live-but-slow primary would only split the already-scarce
+ * bandwidth on the connection that's actually the bottleneck, making both slower.
  */
-async function fetchFirstSuccess<T>(urls: string[], fetchFn: typeof fetch, stallMs: number): Promise<T> {
+async function fetchFirstSuccess<T>(
+  urls: string[],
+  fetchFn: typeof fetch,
+  stallMs: number,
+  validate?: (data: unknown) => boolean
+): Promise<T> {
   let lastError: unknown;
   for (const url of urls) {
     try {
-      return await fetchJsonStreamed<T>(url, fetchFn, stallMs);
+      return await fetchJsonStreamed<T>(url, fetchFn, stallMs, validate);
     } catch (error) {
       lastError = error;
     }
@@ -123,17 +171,18 @@ export async function cachedJson<T>(
     now = Date.now,
     fetchFn = fetch,
     timeoutMs = DEFAULT_STALL_TIMEOUT_MS,
+    validate,
   } = options;
 
-  const cached = await store.get(key);
+  const cached = await safeGet(store, key);
   if (cached && now() - cached.fetchedAt < ttlMs) {
     return {data: cached.payload as T, fetchedAt: cached.fetchedAt, fromCache: true};
   }
 
   if (cached) {
-    const revalidated = fetchFirstSuccess<T>(urls, fetchFn, timeoutMs)
+    const revalidated = fetchFirstSuccess<T>(urls, fetchFn, timeoutMs, validate)
       .then(async data => {
-        await store.set(key, {fetchedAt: now(), payload: data});
+        await safeSet(store, key, {fetchedAt: now(), payload: data});
       })
       .catch(() => {
         // Refresh failure is invisible by design: the stale copy already served.
@@ -141,12 +190,15 @@ export async function cachedJson<T>(
     return {data: cached.payload as T, fetchedAt: cached.fetchedAt, fromCache: true, revalidated};
   }
 
+  let data: T;
   try {
-    const data = await fetchFirstSuccess<T>(urls, fetchFn, timeoutMs);
-    const fetchedAt = now();
-    await store.set(key, {fetchedAt, payload: data});
-    return {data, fetchedAt, fromCache: false};
+    data = await fetchFirstSuccess<T>(urls, fetchFn, timeoutMs, validate);
   } catch (error) {
     throw new Error(`all sources failed for ${key}: ${String(error)}`);
   }
+  // Deliberately outside the try above: the network has already succeeded, so
+  // a cache write failure must not be reported as "all sources failed".
+  const fetchedAt = now();
+  await safeSet(store, key, {fetchedAt, payload: data});
+  return {data, fetchedAt, fromCache: false};
 }

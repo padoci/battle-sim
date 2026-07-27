@@ -1,7 +1,22 @@
 import {MemoryStore, openStore, type KVStore} from './cache';
-import {resourceKey, resourceUrls, type FormatId, type Resource} from './endpoints';
+import {cacheKey, resourceUrls, type FormatId, type Resource} from './endpoints';
 import {cachedJson, type CachedJsonResult} from './fetch';
 import type {Moveset, PoolEntry, SetsData, StatsData, Team} from './types';
+
+const isRecord = (data: unknown): data is Record<string, unknown> =>
+  typeof data === 'object' && data !== null && !Array.isArray(data);
+
+/**
+ * Top-level shape assertions, one per resource. A 200 that fails these fails
+ * OVER to the mirror instead of being cached as if it were good — the failure
+ * mode otherwise is a silently empty draft pool (`Object.entries({})`) with no
+ * error shown at all. Deliberately shallow: these run on a ~3MB payload.
+ */
+const RESOURCE_SHAPE: Record<Resource, (data: unknown) => boolean> = {
+  sets: data => isRecord(data) && Object.keys(data).length > 0,
+  stats: data => isRecord(data) && isRecord(data.pokemon) && Object.keys(data.pokemon).length > 0,
+  teams: data => Array.isArray(data),
+};
 
 export interface DataClientOptions {
   store?: KVStore;
@@ -40,12 +55,13 @@ export class DataClient {
     let pending = this.memo.get(resource);
     if (!pending) {
       pending = this.store.then(store =>
-        cachedJson<unknown>(resourceKey(resource, this.format), resourceUrls(resource, this.format), {
+        cachedJson<unknown>(cacheKey(resource, this.format), resourceUrls(resource, this.format), {
           store,
           ttlMs: this.options.ttlMs,
           now: this.options.now,
           fetchFn: this.options.fetchFn,
           timeoutMs: this.options.timeoutMs,
+          validate: RESOURCE_SHAPE[resource],
         })
       );
       this.memo.set(resource, pending);

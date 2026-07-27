@@ -18,7 +18,20 @@ import '@fontsource/ibm-plex-mono/latin-500.css';
 import '@fontsource/ibm-plex-mono/latin-600.css';
 import '@fontsource/ibm-plex-mono/latin-700.css';
 import {AppShell} from './app/AppShell';
+import {installPreloadErrorHandler} from './app/preloadError';
 import './app/app.css';
+
+// Must run before the first lazy() navigation can fail — see preloadError.ts.
+installPreloadErrorHandler({
+  storage: (() => {
+    try {
+      return sessionStorage;
+    } catch {
+      return undefined; // storage disabled: no one-shot record, so no reload
+    }
+  })(),
+  reload: () => location.reload(),
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
