@@ -61,14 +61,28 @@ Data comes from [data.pkmn.cc](https://data.pkmn.cc) per format: `/sets/gen9ou.j
 npm install
 npm run dev      # the app
 npm test         # the vitest suite (200+ tests), fully offline
-npm run build    # production build (three pages)
+npm run build    # production build (the app only)
 ```
 
 Pages:
 
-- `/` — the app (both modes)
+- `/` — the app (both modes); the only thing a production build emits
 - `/dev.html` — data/engine inspector (draft pool, resolved sets, opponent teams, live TeamValidator checks)
 - `/measure.html?battles=N&config=fast|strong&seed=N` — search performance measurement in the real browser worker
+
+`npm run dev` serves all three. **The two dev tools are deliberately excluded
+from `npm run build`** — `measure.html` takes its battle count and config
+straight from the query string and will run a visitor's CPU flat out for ~20
+minutes, so it must not exist on the deployed site. `public/robots.txt` also
+disallows both, but that only asks crawlers nicely; omitting them from the
+build is what actually makes the URLs 404.
+
+To build them anyway (which `scripts/measure-browser.mjs` needs, since it
+drives the built artifact through `vite preview`):
+
+```bash
+BUILD_TOOLS=1 npm run build
+```
 
 Dev/tuning knobs on the gauntlet: `#/sixoh?seed=123&config=fast&tera=25` (reproducible run / d1 search / eval `TERA_AVAILABLE` override — for watching how Tera timing changes with the weight).
 
@@ -92,7 +106,7 @@ Cloudflare posts each preview URL back onto the PR as a deployment status once i
 ## Scripts
 
 - `npx vite-node scripts/measure.ts` — Node-side search gate numbers (ms/turn, nodes/turn, strength vs baselines) + rendered battle logs into `logs/`
-- `node scripts/measure-browser.mjs` — the same numbers in headless Chromium against the production build (the real gate numbers)
+- `BUILD_TOOLS=1 npm run build && node scripts/measure-browser.mjs` — the same numbers in headless Chromium against the built artifact (the real gate numbers); needs the flag, see above
 - `node scripts/e2e-test-your-team.mjs` — full Playwright walkthrough of Test your team
 - `node scripts/e2e-six-oh.mjs` — full Playwright walkthrough of Can you 6-0?
 - `npm run test:visual` — visual-regression suite (`@playwright/test`, `test/visual/`)
