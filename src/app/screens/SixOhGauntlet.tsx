@@ -737,7 +737,18 @@ export function SixOhGauntlet() {
   const log = battle?.result?.protocolLog ?? battle?.partialLog;
   const beats = useMemo(() => {
     if (!log?.length) return undefined;
-    return toBeats(parseProtocol(log, ['Your', 'The opposing']));
+    try {
+      return toBeats(parseProtocol(log, ['Your', 'The opposing']));
+    } catch (error) {
+      // This runs on the render path once per streamed decision, so a parse
+      // throw here white-screens a live battle via the ErrorBoundary. The
+      // parser is guarded against every malformed line we know of; this is
+      // the backstop for the ones we don't (e.g. a @pkmn/sim bump changing a
+      // line's shape). Losing the animation beats degrades to the static
+      // result card, which is a far better outcome than losing the screen.
+      console.error('replay parse failed; falling back to a static result', error);
+      return undefined;
+    }
   }, [log]);
   const hasBeats = !!beats?.length;
 

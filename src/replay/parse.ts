@@ -44,11 +44,18 @@ export function parseRef(ident: string): Ref | undefined {
   return {side: (Number(match[1]) - 1) as 0 | 1, name: match[2]};
 }
 
-function parseHp(condition: string): {hp: number; maxhp: number; fainted: boolean} {
+/**
+ * Undefined for a missing or unparseable condition. Callers DROP the event
+ * rather than fabricate an HP number: a truncated `|-damage|p1a: X` used to
+ * become "0 HP", i.e. a phantom faint in the replay view.
+ */
+function parseHp(condition: string | undefined): {hp: number; maxhp: number; fainted: boolean} | undefined {
+  if (!condition) return undefined;
   const [current] = condition.split(' ');
   if (current === '0' || condition.endsWith('fnt')) return {hp: 0, maxhp: 0, fainted: true};
   const [hp, maxhp] = current.split('/').map(Number);
-  return {hp: hp || 0, maxhp: maxhp || 100, fainted: false};
+  if (!Number.isFinite(hp)) return undefined;
+  return {hp: hp || 0, maxhp: Number.isFinite(maxhp) && maxhp ? maxhp : 100, fainted: false};
 }
 
 const SKIP = new Set([
@@ -130,17 +137,20 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
     if (SKIP.has(kind)) continue;
 
     switch (kind) {
-      case 'turn':
+      case 'turn': {
         pendingMove = undefined;
-        events.push({kind: 'turn', turn: Number(parts[2])});
+        const turn = Number(parts[2]);
+        if (!Number.isFinite(turn)) break;
+        events.push({kind: 'turn', turn});
         break;
+      }
       case 'switch':
       case 'drag': {
         pendingMove = undefined;
         const ref = parseRef(parts[2]);
         if (!ref) break;
         const species = (parts[3] ?? '').split(',')[0] || ref.name;
-        const {hp, maxhp} = parseHp(parts[4] ?? '100/100');
+        const {hp, maxhp} = parseHp(parts[4]) ?? {hp: 100, maxhp: 100};
         events.push({
           kind: 'switch', ref, species, hp, maxhp: maxhp || hp, drag: kind === 'drag',
           logText: `${label(ref, names)} ${kind === 'drag' ? 'was dragged in' : 'switched in'}!`,
@@ -149,19 +159,21 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
       }
       case 'move': {
         const ref = parseRef(parts[2]);
-        if (!ref) break;
+        const move = parts[3];
+        if (!ref || !move) break;
         const target = parts[4] ? parseRef(parts[4]) : undefined;
         events.push({
-          kind: 'move', ref, move: parts[3], target, tags: {},
-          logText: `${label(ref, names)} used ${parts[3]}!`,
+          kind: 'move', ref, move, target, tags: {},
+          logText: `${label(ref, names)} used ${move}!`,
         });
-        pendingMove = {ref, move: parts[3], eventIndex: events.length - 1};
+        pendingMove = {ref, move, eventIndex: events.length - 1};
         break;
       }
       case '-damage': {
         const ref = parseRef(parts[2]);
-        if (!ref) break;
-        const {hp, maxhp} = parseHp(parts[3]);
+        const condition = parseHp(parts[3]);
+        if (!ref || !condition) break;
+        const {hp, maxhp} = condition;
         const from = parts.find(p => p.startsWith('[from]'))?.replace('[from] ', '');
         const sourceMove =
           !from && pendingMove && pendingMove.ref.side !== ref.side
@@ -175,8 +187,9 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
       }
       case '-heal': {
         const ref = parseRef(parts[2]);
-        if (!ref) break;
-        const {hp, maxhp} = parseHp(parts[3]);
+        const condition = parseHp(parts[3]);
+        if (!ref || !condition) break;
+        const {hp, maxhp} = condition;
         const from = parts.find(p => p.startsWith('[from]'))?.replace('[from] ', '');
         events.push({
           kind: 'heal', ref, hp, maxhp, from,
@@ -192,24 +205,28 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
       }
       case '-status': {
         const ref = parseRef(parts[2]);
-        if (!ref) break;
-        events.push({kind: 'status', ref, status: parts[3], logText: `${label(ref, names)} is now ${parts[3]}!`});
+        const status = parts[3];
+        if (!ref || !status) break;
+        events.push({kind: 'status', ref, status, logText: `${label(ref, names)} is now ${status}!`});
         break;
       }
       case '-curestatus': {
         const ref = parseRef(parts[2]);
-        if (!ref) break;
-        events.push({kind: 'curestatus', ref, status: parts[3], logText: `${label(ref, names)} was cured of ${parts[3]}.`});
+        const status = parts[3];
+        if (!ref || !status) break;
+        events.push({kind: 'curestatus', ref, status, logText: `${label(ref, names)} was cured of ${status}.`});
         break;
       }
       case '-boost':
       case '-unboost': {
         const ref = parseRef(parts[2]);
-        if (!ref) break;
-        const delta = (kind === '-boost' ? 1 : -1) * Number(parts[4]);
+        const stat = parts[3];
+        const amount = Number(parts[4]);
+        if (!ref || !stat || !Number.isFinite(amount)) break;
+        const delta = (kind === '-boost' ? 1 : -1) * amount;
         events.push({
-          kind: 'boost', ref, stat: parts[3], delta,
-          logText: `${label(ref, names)}: ${delta > 0 ? '+' : ''}${delta} ${parts[3]}`,
+          kind: 'boost', ref, stat, delta,
+          logText: `${label(ref, names)}: ${delta > 0 ? '+' : ''}${delta} ${stat}`,
         });
         break;
       }
@@ -221,20 +238,24 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
         break;
       }
       case '-fieldstart':
-      case '-fieldend':
+      case '-fieldend': {
+        const effect = (parts[2] ?? '').replace(/^move: /, '');
+        if (!effect) break;
         events.push({
           kind: 'field',
-          effect: parts[2].replace(/^move: /, ''),
+          effect,
           start: kind === '-fieldstart',
-          logText: `${parts[2].replace(/^move: /, '')} ${kind === '-fieldstart' ? 'started' : 'ended'}.`,
+          logText: `${effect} ${kind === '-fieldstart' ? 'started' : 'ended'}.`,
         });
         break;
+      }
       case '-sidestart':
       case '-sideend': {
-        const sideMatch = /^p([12])/.exec(parts[2]);
+        const sideMatch = /^p([12])/.exec(parts[2] ?? '');
         if (!sideMatch) break;
         const side = (Number(sideMatch[1]) - 1) as 0 | 1;
-        const effect = parts[3].replace(/^move: /, '');
+        const effect = (parts[3] ?? '').replace(/^move: /, '');
+        if (!effect) break;
         events.push({
           kind: 'side', side, effect, start: kind === '-sidestart',
           logText: `${effect} ${kind === '-sidestart' ? `went up on ${names[side]} side` : `faded on ${names[side]} side`}.`,
@@ -243,15 +264,20 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
       }
       case '-terastallize': {
         const ref = parseRef(parts[2]);
-        if (!ref) break;
-        events.push({kind: 'tera', ref, teraType: parts[3], logText: `${label(ref, names)} TERASTALLIZED into ${parts[3]}!`});
+        const teraType = parts[3];
+        if (!ref || !teraType) break;
+        events.push({kind: 'tera', ref, teraType, logText: `${label(ref, names)} TERASTALLIZED into ${teraType}!`});
         break;
       }
       case 'cant': {
         const ref = parseRef(parts[2]);
         if (!ref) break;
         pendingMove = undefined;
-        events.push({kind: 'cant', ref, reason: parts[3], logText: `${label(ref, names)} can't move (${parts[3]})!`});
+        const reason = parts[3] ?? '';
+        events.push({
+          kind: 'cant', ref, reason,
+          logText: reason ? `${label(ref, names)} can't move (${reason})!` : `${label(ref, names)} can't move!`,
+        });
         break;
       }
       case '-crit':
@@ -275,8 +301,10 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
         events.push({kind: 'note', text: 'immune', logText: "It doesn't affect the target..."});
         break;
       case 'win': {
-        const side = parts[2] === names[0] || parts[2] === 'P1' ? 0 : parts[2] === names[1] || parts[2] === 'P2' ? 1 : null;
-        events.push({kind: 'win', side, logText: `${parts[2]} wins!`});
+        const who = parts[2];
+        if (!who) break;
+        const side = who === names[0] || who === 'P1' ? 0 : who === names[1] || who === 'P2' ? 1 : null;
+        events.push({kind: 'win', side, logText: `${who} wins!`});
         break;
       }
       case 'tie':
