@@ -64,12 +64,25 @@ Added an **idle** deadline (default 120 s), reset on every `progress`/`chunk`,
 not a wall-clock one — a legitimate STRONG batch legitimately takes minutes. Same
 reasoning the stall-timeout in `fetch.ts` already documents.
 
-### 5. `cancel()` silently missed older runs
+*Headroom, since this is new production behaviour and can't be exercised
+locally:* the bulk path emits `progress` per FAST battle (~1–3 s) and the
+gauntlet path emits `chunk` per decision, so 120 s of total silence is far
+outside normal. The one case with genuine silence is the **first** `run()` on a
+cold worker — the timer starts at call time, and dex load plus the initial
+`buildCalcTable` happens with no message in flight. That's seconds, not minutes,
+but it's the number to revisit if a slow device ever trips this.
+
+### 5. `cancel()` missed older runs
 `src/worker/client.ts`
 
 `inFlightId` was a single value overwritten by every `run()`, so with two runs in
 flight `cancel()` aborted only the newest and the older kept burning CPU. Now
 aborts everything pending.
+
+**Reachability: none today** — every call site submits runs strictly
+sequentially, so two runs are never in flight at once. This is a guard on an
+unenforced invariant, and the new test locks it: the day someone adds a second
+concurrent submit, `cancel()` already behaves.
 
 ### 6. A stale lazy chunk after every redeploy
 `src/app/preloadError.ts` (new), `src/main.tsx`, `src/app/ErrorBoundary.tsx`
@@ -178,6 +191,18 @@ Worth recording, because "we looked and it was fine" is a result too:
   `ConfigureRun` copy is a bare IIFE rather than a `useMemo`, so it re-runs
   `TeamValidator.validateTeam` on **every render of that screen** — including
   every pool-weight slider drag. Worth doing; it's a refactor, not a bug fix.
+  Because it wasn't extracted, `test/data/team-input.test.ts` covers the
+  validation **logic** by running the same composition, not the screen's wiring
+  to it. The two can drift; extracting would close that.
+- **A seeded engine-invariant soak** (`test/engine/invariants.test.ts` in the
+  plan). Skipped in favour of the harnesses above: the engine already has the
+  repo's strongest coverage — zero-sum evaluation, seed determinism, snapshot
+  isolation, and an explicit search-clairvoyance regression — so it was the
+  lowest-yield place to spend the budget. Worth adding as a nightly soak rather
+  than a per-PR test.
+- **No length cap or debounce on the paste box.** Validation runs synchronously
+  on every keystroke. A 1 MB paste is handled without throwing (tested) but the
+  work is real; the cap belongs with the extraction above.
 - **`ensureFresh`'s positional forme-change re-keying** (`calc/table.ts:193-203`).
   Two forme changes on one side in a single transition mispair, producing a
   silently wrong damage table. Vanishingly rare in Gen 9 OU singles and it needs
