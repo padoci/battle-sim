@@ -1,45 +1,58 @@
 import {Sprites} from '@pkmn/img';
 import {sceneUrl} from '../sixoh/scenes';
+import {useLandingReel, type ReelMon} from './useLandingReel';
 
 /**
- * A still of the battle stage, for the landing page.
+ * The battle stage on the landing page, replaying a real battle.
  *
  * The landing page asked people to choose between two modes without showing
  * them what either looks like, while the most persuasive thing the app owns —
  * the Gen 5 battle stage — sat two clicks behind a draft. This puts it on the
- * page.
+ * page, and plays an actual 30-turn battle through it at the same pace the
+ * gauntlet uses, looping.
  *
- * It borrows the stage's own classes rather than a screenshot: it stays crisp
- * at any size, themes itself, costs one background and two sprites instead of
- * a large binary, and cannot drift from the real stage's styling. It is not
- * the real stage — no engine, no playback, no state — just the frame with two
- * mons standing in it, so nothing here can break a run.
+ * It borrows the stage's own classes rather than a screenshot or a video: it
+ * stays crisp at any size, themes itself, costs one background and two sprites
+ * instead of a large binary, and cannot drift from the real stage's styling.
+ * There is still no engine and no worker here — `useLandingReel` steps a
+ * vendored protocol log, so nothing on this page can break a run, and the
+ * first paint pulls no data.
+ *
+ * Under reduced motion it holds the poster frame and loads nothing at all.
  *
  * Decorative: `aria-hidden`, and the mode cards below are the real controls,
  * so this adds no duplicate tab stop and nothing for a screen reader to read.
  */
 
-/** Gen 9 OU staples with static Gen 5-style sprites, so both idle-breathe. */
-const THEIRS = 'Dragapult';
-const MINE = 'Great Tusk';
-
 function spriteUrl(species: string, back: boolean): string {
   return Sprites.getPokemon(species, back ? {gen: 'gen5', side: 'p1'} : {gen: 'gen5'}).url;
 }
 
-function StageMon({species, side}: {species: string; side: 'theirs' | 'mine'}) {
+function StageMon({species, side, fainted}: {species: string; side: 'theirs' | 'mine'; fainted: boolean}) {
   return (
     <div className={`sprite-holder ${side}`}>
       {/* Same wrapper the stage uses, so the idle breath composes the same way
-          — and stands down under reduced motion with everything else. */}
-      <span className="sprite-idle breathing" style={{animationDelay: side === 'mine' ? '-1400ms' : '0ms'}}>
-        <img className="stage-sprite" src={spriteUrl(species, side === 'mine')} alt="" />
+          — and stands down under reduced motion with everything else.
+          Keyed on species so swapping mons restarts the sprite cleanly rather
+          than cross-fading one image into another. */}
+      <span
+        className="sprite-idle breathing"
+        style={{
+          animationDelay: side === 'mine' ? '-1400ms' : '0ms',
+          // A fainted mon drops out until its replacement switches in.
+          opacity: fainted ? 0 : 1,
+          transition: 'opacity 220ms ease-out',
+        }}
+      >
+        <img key={species} className="stage-sprite" src={spriteUrl(species, side === 'mine')} alt="" />
       </span>
     </div>
   );
 }
 
-function StageHp({species, side, pct}: {species: string; side: 'theirs' | 'mine'; pct: number}) {
+function StageHp({mon, side}: {mon: ReelMon; side: 'theirs' | 'mine'}) {
+  const {species} = mon;
+  const pct = mon.maxhp > 0 ? Math.max(0, Math.round((mon.hp / mon.maxhp) * 100)) : 0;
   // Mirrors the stage's own thresholds via the shared tokens.
   const fill = pct > 50 ? 'var(--hp-high)' : pct > 20 ? 'var(--hp-mid)' : 'var(--hp-low)';
   return (
@@ -51,11 +64,16 @@ function StageHp({species, side, pct}: {species: string; side: 'theirs' | 'mine'
       <div className="hp-row">
         <span className="hp-hp mono">HP</span>
         <div className="hp-bar">
-          <div className="hp-fill" style={{width: `${pct}%`, background: fill}} />
+          <div
+            className="hp-fill"
+            // Animating width is what makes a hit read as a hit rather than a
+            // jump cut; the stage itself does the same.
+            style={{width: `${pct}%`, background: fill, transition: 'width 320ms ease-out'}}
+          />
         </div>
       </div>
       {side === 'mine' ? (
-        <span className="mono hp-numeric">341 / 404</span>
+        <span className="mono hp-numeric">{Math.max(0, mon.hp)} / {mon.maxhp}</span>
       ) : (
         <span className="mono hp-label">{pct}%</span>
       )}
@@ -64,6 +82,7 @@ function StageHp({species, side, pct}: {species: string; side: 'theirs' | 'mine'
 }
 
 export function StagePreview() {
+  const frame = useLandingReel();
   return (
     <div className="stage-preview" aria-hidden="true">
       <div className="battle-stage">
@@ -74,13 +93,13 @@ export function StagePreview() {
           >
             <span className="ground-shadow theirs" />
             <span className="ground-shadow mine" />
-            <StageMon species={THEIRS} side="theirs" />
-            <StageMon species={MINE} side="mine" />
+            <StageMon species={frame.theirs.species} side="theirs" fainted={frame.theirs.hp <= 0} />
+            <StageMon species={frame.mine.species} side="mine" fainted={frame.mine.hp <= 0} />
           </div>
-          <StageHp species={THEIRS} side="theirs" pct={38} />
-          <StageHp species={MINE} side="mine" pct={84} />
+          <StageHp mon={frame.theirs} side="theirs" />
+          <StageHp mon={frame.mine} side="mine" />
         </div>
-        <div className="message-box">Great Tusk used Headlong Rush!</div>
+        <div className="message-box">{frame.message}</div>
       </div>
     </div>
   );
