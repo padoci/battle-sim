@@ -10,6 +10,7 @@ import {readDevParams} from '../sixoh/devParams';
 import {HIT_DELAY, signatureSlug} from '../sixoh/fx';
 import {BATTLE_SCENES, sceneUrl} from '../sixoh/scenes';
 import {FIELD_CLASSES, useFxRestart} from '../sixoh/useFxRestart';
+import {useStageGeometry} from '../sixoh/useStageGeometry';
 import {swapFadeMs, swapOutDelayMs, useStageSwap} from '../sixoh/useStageSwap';
 import {ensureComputed, resetSixOhSession, retryBattle} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/state';
@@ -803,6 +804,9 @@ function BattleStage({
   const theirsRef = useFxRestart<HTMLDivElement>(fxKey, fxRate);
   const mineRef = useFxRestart<HTMLDivElement>(fxKey, fxRate);
   const fieldRef = useFxRestart<HTMLDivElement>(fxKey, fxRate, FIELD_CLASSES);
+  // The field is fluid, so the distance the FX have to travel is only knowable
+  // by measuring it. Re-measured whenever the mons change.
+  useStageGeometry(fieldRef, `${theirs?.species ?? ''}|${mine?.species ?? ''}`);
 
   return (
     <>

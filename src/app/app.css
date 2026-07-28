@@ -2163,11 +2163,7 @@ button.primary:disabled {
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 1.4rem;
   width: 100%;
-  /* Sized to the battle screen rather than the page: the stage is now a fixed
-     4:3 viewport (see .stage-field), so a 1180px arena left it marooned in the
-     middle of an empty column. 220 rail + 1.4rem gap + 576 frame + 3rem
-     padding. */
-  max-width: 870px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: 1.5rem;
 }
@@ -2283,21 +2279,6 @@ button.primary:disabled {
   padding: 8px;
   background: linear-gradient(#2c2350, #1b1436);
   box-shadow: 0 14px 34px rgba(60, 40, 120, 0.3);
-  /* 560 field + 2x8 padding. Capped rather than fluid so the field can hold a
-     handheld 4:3 shape: stretched across a full desktop column it was 2.91:1,
-     which pushed the two Pokemon into opposite corners of a letterbox with
-     600px of empty ground between them. Centres once the column is wider. */
-  width: min(100%, 576px);
-  margin-inline: auto;
-}
-
-/* The rows under the frame (field strip, team icons, log, speed) line up with
-   the frame rather than spanning the whole column, so the battle reads as one
-   object instead of a narrow screen floating over full-width chrome. */
-.battle-title,
-.battle-below {
-  width: min(100%, 576px);
-  margin-inline: auto;
 }
 
 .battle-stage {
@@ -2313,17 +2294,15 @@ button.primary:disabled {
    lower-right (see .hp-block below for the box placement). */
 .stage-field {
   position: relative;
-  /* 4:3, the handheld battle-screen shape, instead of the old fixed 300px
-     height stretched to whatever the column happened to be. Every position
-     inside the field is a percentage and every FX distance is in `cqw`, so
-     the whole scene scales as one piece from a phone up to the 560px cap and
-     the desktop and mobile compositions are identical. */
-  aspect-ratio: 4 / 3;
-  /* Makes the field the query container the FX measure against. `inline-size`
-     and not `size`: the aspect ratio is fixed, so 1cqh is always 0.75cqw and
-     one axis is enough — and `size` would need the height to not depend on
-     content, which `aspect-ratio` only satisfies by side effect. */
-  container-type: inline-size;
+  /* Fluid width at a fixed height, filling whatever column it is given. That
+     means the width-to-height ratio is NOT constant — roughly 2.9:1 on a
+     desktop column and 1.6:1 on a phone — so no single container-relative
+     constant can describe the distance between the two Pokemon. The FX
+     distances are measured at runtime instead and written onto this element
+     as `--gap-x`/`--gap-y` in px (see `useStageGeometry`); a hardcoded px
+     travel is exactly what left every special move dying a quarter of the way
+     across the field. */
+  height: 300px;
   /* Fallback shown until the scene PNG lands (preloaded during the draft, so
      rarely, but a cold cache on a slow line still hits it). Roughly the mean
      of the four scenes — all of which are green or tan, none blue. */
@@ -2336,15 +2315,15 @@ button.primary:disabled {
      tosses, lunges, recoils) is derived from these instead of being a px
      constant, which is what left `beamShotToTheirs` covering 160px of a 606px
      gap on desktop while reading correctly on mobile. */
-  --mon-theirs-x: 68%;
-  --mon-theirs-y: 30%;
-  --mon-mine-x: 28%;
-  --mon-mine-y: 65.3%;
-  /* theirs-x − mine-x, in container units. */
-  --gap-x: 40cqw;
-  /* (mine-y − theirs-y) of the HEIGHT, converted to cqw at the fixed 4:3
-     ratio: 35.3% × 0.75 = 26.5%. */
-  --gap-y: 26.5cqw;
+  --mon-theirs-x: 84.4%;
+  --mon-theirs-y: 33.5%;
+  --mon-mine-x: 15%;
+  --mon-mine-y: 62.8%;
+  /* Fallbacks only. `useStageGeometry` overwrites both with the measured
+     distance between the two sprite centres on mount and on every resize;
+     these keep the FX sane for the frame before that lands. */
+  --gap-x: 600px;
+  --gap-y: 88px;
   /* How far an attacker dashes: a quarter of the way to the defender for a
      contact move, a tenth for a setup/status move that never leaves its own
      half. Fractions of the gap rather than fixed px, so the dash always covers
@@ -2421,19 +2400,19 @@ button.primary:disabled {
 
 .stage-base.theirs {
   left: var(--mon-theirs-x);
-  /* Each holder's feet: its centre plus half its height (30% of the width is
-     40% of the height at 4:3), less a couple of points so the disc reads as
-     ground the mon stands on rather than a ring around its ankles. */
-  top: calc(var(--mon-theirs-y) + 18%);
-  width: 29%;
-  height: 8%;
+  /* The mon's feet: its measured centre plus half the holder's height, less a
+     little so the disc reads as ground it stands on rather than a ring round
+     its ankles. In px because the holders are sized in px here. */
+  top: calc(var(--mon-theirs-y) + 44px);
+  width: 118px;
+  height: 26px;
 }
 
 .stage-base.mine {
   left: var(--mon-mine-x);
-  top: calc(var(--mon-mine-y) + 25%);
-  width: 39%;
-  height: 10.5%;
+  top: calc(var(--mon-mine-y) + 64px);
+  width: 146px;
+  height: 32px;
 }
 
 /* Weather and terrain washes.
@@ -2745,15 +2724,14 @@ button.primary:disabled {
   pointer-events: none;
 }
 
-/* Tucked just under each side's HP box (see .hp-block.theirs/.mine). */
 .hazard-corner.theirs {
-  top: 24%;
-  left: 3.5%;
+  top: 78px;
+  left: 16px;
 }
 
 .hazard-corner.mine {
-  bottom: 24%;
-  right: 3.5%;
+  bottom: 84px;
+  right: 16px;
 }
 
 /* Each side's sprite, placed diagonally on the field — opponent front
@@ -2772,23 +2750,18 @@ button.primary:disabled {
 
    `aspect-ratio` rather than a matching height percentage — a percentage
    height would resolve against the field's HEIGHT and skew the box. */
-/* Deliberately smaller than the share a Gen 5 sprite holds of its screen.
-   Gen 5 sprites are 96x96 canvases with the Pokemon centred inside built-in
-   padding; Showdown's are trimmed tight to the artwork, so the same nominal
-   fraction renders visibly larger here. 30/40 lands the drawn mon at roughly
-   the size a padded 37%/50% canvas would. */
 .sprite-holder.theirs {
-  top: 10%;
-  right: 17%;
-  width: 30%;
-  aspect-ratio: 1;
+  top: 48px;
+  right: 84px;
+  width: 104px;
+  height: 104px;
 }
 
 .sprite-holder.mine {
-  bottom: 8%;
-  left: 8%;
-  width: 40%;
-  aspect-ratio: 1;
+  bottom: 38px;
+  left: 58px;
+  width: 148px;
+  height: 148px;
 }
 
 .stage-sprite {
@@ -9202,11 +9175,7 @@ button.primary:disabled {
      computes to a plain -14px / 50%. */
   --fx-float-index: 0;
   --fx-float-dx: 0px;
-  /* A percentage of the holder, not a fixed -14px above it. The holder used to
-     be 104px and the number sat just over the mon's head; at the current size
-     the same offset put it outside the field, where `overflow: hidden` clipped
-     it against the top edge. */
-  top: calc(10% - var(--fx-float-index) * 12px);
+  top: calc(-14px - var(--fx-float-index) * 15px);
   left: calc(50% + var(--fx-float-dx));
   transform: translateX(-50%);
   font-family: var(--font-mono);
@@ -9244,31 +9213,25 @@ button.primary:disabled {
 .hp-block {
   position: absolute;
   z-index: 2;
-  /* Width now comes from .theirs/.mine as a share of the field; this is only
-     the floor that keeps the name + level + bar legible on a small phone. */
-  min-width: 150px;
+  min-width: 206px;
   background: #f7f4ea;
   border: 3px solid #33526b;
   box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.28);
   padding: 6px 14px 7px;
 }
 
-/* Percentages of the field, so the boxes hold the same share of the screen at
-   every width the way a handheld's do, instead of being fixed px that read as
-   half the screen on a phone and a third of it on desktop. */
 .hp-block.theirs {
-  top: 4.5%;
-  left: 3.5%;
-  width: 45%;
+  top: 16px;
+  left: 16px;
   border-radius: 4px 16px 4px 16px;
   /* Each box leaves towards its own edge of the screen. */
   --hp-exit: -130%;
 }
 
 .hp-block.mine {
-  bottom: 5%;
-  right: 3.5%;
-  width: 48%;
+  bottom: 18px;
+  right: 16px;
+  min-width: 222px;
   border-radius: 16px 4px 16px 4px;
   --hp-exit: 130%;
 }
@@ -9944,13 +9907,45 @@ button.primary:disabled {
   .rung-icons {
     flex-basis: 100%;
   }
-  /* The stage itself needs no mobile variant any more: `.stage-field` is a
-     fixed 4:3 box and everything inside it is positioned in percentages or
-     `cqw`, so the phone and desktop compositions are the same picture at two
-     sizes. Only the text inside the HP box, which cannot scale with the field
-     without becoming unreadable, is still tuned here. */
+  .stage-field {
+    height: 220px;
+  }
+  .sprite-holder.theirs {
+    top: 30px;
+    right: 40px;
+    width: 76px;
+    height: 76px;
+  }
+  .sprite-holder.mine {
+    bottom: 22px;
+    left: 24px;
+    width: 108px;
+    height: 108px;
+  }
+  /* The discs follow the measured centres, but their size is px like the
+     holders they sit under. */
+  .stage-base.theirs {
+    top: calc(var(--mon-theirs-y) + 32px);
+    width: 84px;
+    height: 18px;
+  }
+  .stage-base.mine {
+    top: calc(var(--mon-mine-y) + 47px);
+    width: 104px;
+    height: 22px;
+  }
+  .hazard-corner.theirs {
+    top: 56px;
+  }
+  .hazard-corner.mine {
+    bottom: 58px;
+  }
   .hp-block {
+    min-width: 150px;
     padding: 4px 10px 5px;
+  }
+  .hp-block.mine {
+    min-width: 160px;
   }
   .hp-name {
     font-size: 0.78rem;

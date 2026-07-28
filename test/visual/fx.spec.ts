@@ -660,9 +660,7 @@ test('the world layer fills the field and still covers with the scene', async ({
   expect(read.size).toBe('cover');
   expect(read.pos).toBe('50% 50%');
   expect(read.w).toBe(800);
-  // The field is a fixed 4:3 battle screen now, so its height follows its
-  // width rather than being a hardcoded 300px stretched across the column.
-  expect(read.h, 'the world collapsed, so nothing would paint').toBe(600);
+  expect(read.h, 'the world collapsed, so nothing would paint').toBe(300);
 });
 
 test('a critical Earthquake keeps both its flash and its rings', async ({page}, testInfo) => {
@@ -774,17 +772,14 @@ test('multi-hit damage numbers stack instead of piling up', async ({page}, testI
 
   // The first hit must be untouched, so the overwhelmingly common single-hit
   // case renders exactly as it did before this change.
-  // 10% of the 100px holder: a percentage rather than a fixed offset above it,
-  // because at the current sprite size a fixed -14px put the number outside
-  // the field, where `overflow: hidden` clipped it.
-  expect(tops.first.top).toBe('10px');
+  expect(tops.first.top).toBe('-14px');
   expect(tops.first.left).toBe('50px'); // 50% of the 100px holder
 
   // Stacked upward...
-  expect(tops.second.top).toBe('-2px');
-  expect(tops.fourth.top).toBe('-26px');
+  expect(tops.second.top).toBe('-29px');
+  expect(tops.fourth.top).toBe('-59px');
   // ...and fanned alternately, because floatUp travels 26px (further than the
-  // 12px step), so stacking alone would let consecutive numbers cross.
+  // 15px step), so stacking alone would let consecutive numbers cross.
   expect(tops.second.left).toBe('82px');
   expect(tops.third.left).toBe('18px');
 });
@@ -1044,61 +1039,60 @@ test('the battle stage never forces horizontal page scroll', async ({page}, test
   ).toBeLessThanOrEqual(clientWidth);
 });
 
-test('the FX travel variables match the real distance between the two mons', async ({page}, testInfo) => {
-  test.skip(testInfo.project.name.includes('mobile'), 'the variables are in cqw, so one viewport proves both');
-  await page.goto('/');
-  await page.waitForSelector('.mode-card');
+test('the FX travel the real distance between the two mons, at any column width', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'this test resizes the viewport itself');
+  test.slow();
 
   // The bug this guards: `beamShotToTheirs` translated a hardcoded 160px while
   // the gap between the sprite centres was 606px, so every special move was a
-  // dot that died a quarter of the way across the field. The distances are
-  // derived from `--gap-x`/`--gap-y` now, and this asserts those still equal
-  // the geometry the sprite holders are actually laid out at.
-  const geom = await page.evaluate(() => {
-    const host = document.createElement('div');
-    host.className = 'battle-stage';
-    host.style.width = '560px';
-    const field = document.createElement('div');
-    field.className = 'stage-field';
-    const world = document.createElement('div');
-    world.className = 'stage-world';
-    const theirs = document.createElement('div');
-    theirs.className = 'sprite-holder theirs';
-    const mine = document.createElement('div');
-    mine.className = 'sprite-holder mine';
-    world.append(theirs, mine);
-    field.appendChild(world);
-    host.appendChild(field);
-    document.body.appendChild(host);
+  // dot that died a quarter of the way across the field.
+  //
+  // The field is fluid — a fixed height across whatever column it gets — so its
+  // ratio runs from about 2.9:1 on desktop to 1.6:1 on a phone, and NO constant
+  // can be right at both: a `cqw` value tuned for one is wrong for the other,
+  // and px is wrong for everything. `useStageGeometry` measures instead. This
+  // checks the published distance against the real one at a spread of widths.
+  await page.goto('/#/sixoh?config=fast&seed=41');
+  await page.waitForSelector('.offer-card', {timeout: 120_000});
+  for (let i = 0; i < 6; i++) {
+    await page.locator('.offer-card').first().click();
+    await page.waitForTimeout(120);
+  }
+  await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
+  await page.waitForSelector('.hp-bar', {timeout: 120_000});
+  await page.waitForTimeout(1_200);
 
-    const cs = getComputedStyle(field);
-    const fieldBox = field.getBoundingClientRect();
-    const t = theirs.getBoundingClientRect();
-    const m = mine.getBoundingClientRect();
-    const out = {
-      fieldW: fieldBox.width,
-      fieldH: fieldBox.height,
-      // Resolved through a length so `cqw` becomes px we can compare.
-      gapX: parseFloat(cs.getPropertyValue('--gap-x')),
-      gapY: parseFloat(cs.getPropertyValue('--gap-y')),
-      actualX: t.x + t.width / 2 - (m.x + m.width / 2),
-      actualY: m.y + m.height / 2 - (t.y + t.height / 2),
-    };
-    host.remove();
-    return out;
-  });
+  for (const width of [1440, 1100, 800, 600, 390]) {
+    await page.setViewportSize({width, height: 1000});
+    await page.waitForTimeout(350);
 
-  // 4:3, the handheld battle-screen shape.
-  expect(geom.fieldW / geom.fieldH).toBeCloseTo(4 / 3, 2);
+    const geom = await page.evaluate(() => {
+      const field = document.querySelector('.stage-field') as HTMLElement;
+      const theirs = document.querySelector('.sprite-holder.theirs') as HTMLElement;
+      const mine = document.querySelector('.sprite-holder.mine') as HTMLElement;
+      // Offsets, not bounding boxes: the holders are transformed by the FX and
+      // a lunge in flight would otherwise read as a change in the gap.
+      const centre = (el: HTMLElement) => ({
+        x: el.offsetLeft + el.offsetWidth / 2,
+        y: el.offsetTop + el.offsetHeight / 2,
+      });
+      const t = centre(theirs);
+      const m = centre(mine);
+      const cs = getComputedStyle(field);
+      return {
+        fieldW: field.clientWidth,
+        declaredX: parseFloat(cs.getPropertyValue('--gap-x')),
+        declaredY: parseFloat(cs.getPropertyValue('--gap-y')),
+        actualX: t.x - m.x,
+        actualY: m.y - t.y,
+      };
+    });
 
-  // `--gap-x` is authored in cqw (percent of the field's width).
-  const gapXPx = (geom.gapX / 100) * geom.fieldW;
-  const gapYPx = (geom.gapY / 100) * geom.fieldW;
-  expect(gapXPx, 'the beam would stop short of the defender').toBeCloseTo(geom.actualX, 0);
-  expect(gapYPx, 'the beam would arrive above or below the defender').toBeCloseTo(geom.actualY, -1);
-
-  // And the distance is a real crossing of the field, not a twitch.
-  expect(geom.actualX).toBeGreaterThan(geom.fieldW * 0.3);
+    expect(geom.declaredX, `gap-x at ${width}px: the beam would stop short`).toBeCloseTo(geom.actualX, 0);
+    expect(geom.declaredY, `gap-y at ${width}px: the beam would miss vertically`).toBeCloseTo(geom.actualY, 0);
+    // And it is a real crossing of the field, not a twitch.
+    expect(geom.actualX, `the mons are not meaningfully apart at ${width}px`).toBeGreaterThan(geom.fieldW * 0.3);
+  }
 });
 
 test('the idle phase offset does not retime the KO drop', async ({page}, testInfo) => {
