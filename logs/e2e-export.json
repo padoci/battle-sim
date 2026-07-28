@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-27T23:07:03.525Z",
+  "generatedAt": "2026-07-28T14:14:36.272Z",
   "format": "gen9ou",
   "team": {
     "raw": "Great Tusk @ Heavy-Duty Boots\nAbility: Protosynthesis\nTera Type: Water\nEVs: 252 Atk / 4 Def / 252 Spe\nJolly Nature\n- Headlong Rush\n- Ice Spinner\n- Rapid Spin\n- Knock Off\n\nKingambit @ Leftovers\nAbility: Supreme Overlord\nTera Type: Ghost\nEVs: 112 HP / 252 Atk / 144 Spe\nAdamant Nature\n- Swords Dance\n- Kowtow Cleave\n- Sucker Punch\n- Iron Head\n\nDragapult @ Choice Specs\nAbility: Infiltrator\nTera Type: Ghost\nEVs: 252 SpA / 4 SpD / 252 Spe\nTimid Nature\n- Shadow Ball\n- Draco Meteor\n- Flamethrower\n- U-turn\n\nGholdengo @ Air Balloon\nAbility: Good as Gold\nTera Type: Fighting\nEVs: 252 SpA / 4 SpD / 252 Spe\nTimid Nature\n- Make It Rain\n- Shadow Ball\n- Nasty Plot\n- Recover\n\nGliscor @ Toxic Orb\nAbility: Poison Heal\nTera Type: Water\nEVs: 244 HP / 248 SpD / 16 Spe\nCareful Nature\n- Earthquake\n- Knock Off\n- Protect\n- Spikes\n\nSlowking-Galar @ Heavy-Duty Boots\nAbility: Regenerator\nTera Type: Water\nEVs: 248 HP / 8 Def / 252 SpD\nSassy Nature\nIVs: 0 Atk / 0 Spe\n- Chilly Reception\n- Future Sight\n- Sludge Bomb\n- Thunder Wave\n",
@@ -20,11 +20,12 @@
   },
   "overall": {
     "battles": 12,
-    "wins": 4,
-    "losses": 8,
+    "wins": 5,
+    "losses": 7,
     "draws": 0,
-    "winRate": 0.3333333333333333,
-    "verdict": "Rough, leans fragile to Rain HO"
+    "winRate": 0.4166666666666667,
+    "verdict": "Still sampling — 42% over 12 battles, leans fragile to Rain HO so far",
+    "provisional": true
   },
   "pool": [
     {
@@ -48,7 +49,7 @@
       "teamName": "Bulky Offense (Gliscor + Kingambit)",
       "weight": 1,
       "battles": 1,
-      "winRate": 1,
+      "winRate": 0,
       "archetype": "Bulky Offense"
     },
     {
@@ -72,7 +73,7 @@
       "teamName": "Bulky Offense (Kingambit + Great Tusk)",
       "weight": 1,
       "battles": 1,
-      "winRate": 0,
+      "winRate": 1,
       "archetype": "Bulky Offense"
     },
     {
@@ -120,7 +121,7 @@
       "teamName": "Bulky Offense (Meowscarada + Kingambit)",
       "weight": 1,
       "battles": 1,
-      "winRate": 0,
+      "winRate": 1,
       "archetype": "Bulky Offense"
     },
     {
@@ -542,18 +543,18 @@
       "threats": [
         {
           "kind": "ohko",
-          "evidence": "Kingambit Kowtow Cleave vs Dragapult: 150.2%–177.9% (guaranteed OHKO)"
+          "evidence": "Barraskewda Close Combat vs Kingambit: 174.5%–206.0% (guaranteed OHKO)"
         },
         {
-          "kind": "2hko",
-          "evidence": "Ogerpon Knock Off vs Dragapult: 80.1%–94.6% (2HKO)"
+          "kind": "ohko",
+          "evidence": "Great Tusk Headlong Rush vs Slowking-Galar: 119.6%–141.0% (guaranteed OHKO)"
         }
       ],
       "gamePlan": {
         "sentences": [
-          "Lead Dragapult to pressure Pelipper.",
-          "Preserve Kingambit as your check to Ogerpon.",
-          "Watch Ogerpon's Knock Off into Dragapult: don't let that trade happen for free.",
+          "Lead Slowking-Galar to pressure Pelipper.",
+          "Preserve Dragapult as your check to Barraskewda.",
+          "Watch Barraskewda's Close Combat into Kingambit: don't let that trade happen for free.",
           "You're on a clock vs their rain ho: don't let the game go long."
         ]
       },
@@ -564,65 +565,66 @@
           "winRate": 0,
           "earliestFaints": [
             {
+              "speciesId": "slowkinggalar",
+              "faintCount": 1,
+              "meanTurn": 8,
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "kingambit",
+              "faintCount": 1,
+              "meanTurn": 12,
+              "topCause": "greattusk",
+              "chipFaints": 0
+            },
+            {
               "speciesId": "dragapult",
               "faintCount": 1,
-              "meanTurn": 4,
+              "meanTurn": 18,
+              "topCause": "barraskewda",
               "chipFaints": 0
             },
             {
               "speciesId": "greattusk",
               "faintCount": 1,
-              "meanTurn": 6,
-              "topCause": "zapdos",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "kingambit",
-              "faintCount": 1,
               "meanTurn": 19,
-              "topCause": "kingambit",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "gliscor",
-              "faintCount": 1,
-              "meanTurn": 27,
-              "topCause": "ogerpon",
+              "topCause": "barraskewda",
               "chipFaints": 0
             },
             {
               "speciesId": "gholdengo",
               "faintCount": 1,
-              "meanTurn": 29,
-              "topCause": "ogerpon",
+              "meanTurn": 20,
+              "topCause": "barraskewda",
               "chipFaints": 0
             },
             {
-              "speciesId": "slowkinggalar",
+              "speciesId": "gliscor",
               "faintCount": 1,
-              "meanTurn": 31,
+              "meanTurn": 22,
+              "topCause": "barraskewda",
               "chipFaints": 0
             }
           ],
           "mostWork": [
             {
-              "speciesId": "ogerpon",
-              "totalDamageFrac": 1.9266367947770386
+              "speciesId": "barraskewda",
+              "totalDamageFrac": 3.498422712933754
             },
             {
-              "speciesId": "kingambit",
-              "totalDamageFrac": 1.6980244518354275
-            },
-            {
-              "speciesId": "zapdos",
-              "totalDamageFrac": 1
+              "speciesId": "greattusk",
+              "totalDamageFrac": 0.8834688346883468
             },
             {
               "speciesId": "pelipper",
-              "totalDamageFrac": 0.9400630914826498
+              "totalDamageFrac": 0.501577287066246
+            },
+            {
+              "speciesId": "ogerpon",
+              "totalDamageFrac": 0.17886178861788618
             }
           ],
-          "speedRaceWinRate": 0.24242424242424243,
+          "speedRaceWinRate": 0.5217391304347826,
           "carriedBy": []
         }
       ]
@@ -636,18 +638,14 @@
       "threats": [
         {
           "kind": "ohko",
-          "evidence": "Rillaboom Knock Off vs Dragapult: 135.6%–159.6% (guaranteed OHKO)"
-        },
-        {
-          "kind": "ohko",
-          "evidence": "Kingambit Kowtow Cleave vs Dragapult: 150.2%–177.9% (guaranteed OHKO)"
+          "evidence": "Zapdos Hurricane vs Great Tusk: 128.3%–152.0% (guaranteed OHKO)"
         }
       ],
       "gamePlan": {
         "sentences": [
           "Lead Dragapult to pressure Rillaboom.",
-          "Preserve Great Tusk as your check to Kingambit.",
-          "Watch Kingambit's Kowtow Cleave into Dragapult: don't let that trade happen for free."
+          "Preserve Kingambit as your check to Rillaboom.",
+          "Watch Rillaboom's Knock Off into Dragapult: don't let that trade happen for free."
         ]
       },
       "matchups": [
@@ -657,58 +655,62 @@
           "winRate": 0,
           "earliestFaints": [
             {
-              "speciesId": "kingambit",
+              "speciesId": "dragapult",
               "faintCount": 1,
-              "meanTurn": 2,
-              "topCause": "rillaboom",
+              "meanTurn": 17,
+              "topCause": "ogerpon",
               "chipFaints": 0
             },
             {
               "speciesId": "greattusk",
               "faintCount": 1,
-              "meanTurn": 6,
-              "topCause": "kingambit",
+              "meanTurn": 18,
+              "topCause": "ogerpon",
               "chipFaints": 0
             },
             {
-              "speciesId": "dragapult",
+              "speciesId": "kingambit",
               "faintCount": 1,
-              "meanTurn": 7,
-              "topCause": "kingambit",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "gliscor",
-              "faintCount": 1,
-              "meanTurn": 12,
-              "topCause": "kingambit",
+              "meanTurn": 19,
+              "topCause": "ogerpon",
               "chipFaints": 0
             },
             {
               "speciesId": "gholdengo",
               "faintCount": 1,
-              "meanTurn": 13,
-              "topCause": "kingambit",
+              "meanTurn": 20,
+              "topCause": "ogerpon",
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "gliscor",
+              "faintCount": 1,
+              "meanTurn": 22,
+              "topCause": "ogerpon",
               "chipFaints": 0
             },
             {
               "speciesId": "slowkinggalar",
               "faintCount": 1,
-              "meanTurn": 14,
+              "meanTurn": 23,
               "chipFaints": 0
             }
           ],
           "mostWork": [
             {
-              "speciesId": "kingambit",
-              "totalDamageFrac": 4
+              "speciesId": "ogerpon",
+              "totalDamageFrac": 3.888948731758611
+            },
+            {
+              "speciesId": "zapdos",
+              "totalDamageFrac": 0.8264984227129337
             },
             {
               "speciesId": "rillaboom",
-              "totalDamageFrac": 1
+              "totalDamageFrac": 0.4092140921409214
             }
           ],
-          "speedRaceWinRate": 0.8571428571428571,
+          "speedRaceWinRate": 0.391304347826087,
           "carriedBy": []
         }
       ]
@@ -722,14 +724,18 @@
       "threats": [
         {
           "kind": "ohko",
+          "evidence": "Great Tusk Headlong Rush vs Slowking-Galar: 119.6%–141.0% (guaranteed OHKO)"
+        },
+        {
+          "kind": "ohko",
           "evidence": "Zapdos Hurricane vs Great Tusk: 156.9%–184.9% (guaranteed OHKO)"
         }
       ],
       "gamePlan": {
         "sentences": [
-          "Lead Great Tusk to pressure Samurott-Hisui.",
-          "Preserve Dragapult as your check to Samurott-Hisui.",
-          "Watch Samurott-Hisui's Ceaseless Edge into Dragapult: don't let that trade happen for free."
+          "Lead Dragapult to pressure Samurott-Hisui.",
+          "Preserve Gholdengo as your check to Great Tusk.",
+          "Watch Great Tusk's Headlong Rush into Slowking-Galar: don't let that trade happen for free."
         ]
       },
       "matchups": [
@@ -739,64 +745,70 @@
           "winRate": 0,
           "earliestFaints": [
             {
-              "speciesId": "slowkinggalar",
-              "faintCount": 1,
-              "meanTurn": 16,
-              "chipFaints": 0
-            },
-            {
               "speciesId": "greattusk",
               "faintCount": 1,
-              "meanTurn": 17,
-              "topCause": "greattusk",
+              "meanTurn": 3,
+              "topCause": "zapdos",
               "chipFaints": 0
             },
             {
               "speciesId": "gliscor",
               "faintCount": 1,
-              "meanTurn": 26,
-              "topCause": "zapdos",
+              "meanTurn": 15,
+              "topCause": "greattusk",
               "chipFaints": 0
             },
             {
               "speciesId": "gholdengo",
               "faintCount": 1,
-              "meanTurn": 27,
-              "topCause": "zapdos",
+              "meanTurn": 20,
+              "topCause": "greattusk",
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "kingambit",
+              "faintCount": 1,
+              "meanTurn": 23,
+              "topCause": "kingambit",
               "chipFaints": 0
             },
             {
               "speciesId": "dragapult",
               "faintCount": 1,
-              "meanTurn": 27,
-              "chipFaints": 1
+              "meanTurn": 24,
+              "topCause": "kingambit",
+              "chipFaints": 0
             },
             {
-              "speciesId": "kingambit",
+              "speciesId": "slowkinggalar",
               "faintCount": 1,
-              "meanTurn": 27,
-              "chipFaints": 1
+              "meanTurn": 25,
+              "chipFaints": 0
             }
           ],
           "mostWork": [
             {
-              "speciesId": "samurott",
-              "totalDamageFrac": 2.081129303389593
+              "speciesId": "greattusk",
+              "totalDamageFrac": 1.380952380952381
             },
             {
               "speciesId": "zapdos",
-              "totalDamageFrac": 2.0175775613275615
+              "totalDamageFrac": 1.2870662460567823
+            },
+            {
+              "speciesId": "samurott",
+              "totalDamageFrac": 0.9578010065814944
+            },
+            {
+              "speciesId": "kingambit",
+              "totalDamageFrac": 0.8745266001555914
             },
             {
               "speciesId": "clodsire",
-              "totalDamageFrac": 0.3722397476340694
-            },
-            {
-              "speciesId": "greattusk",
-              "totalDamageFrac": 0.10242587601078167
+              "totalDamageFrac": 0.68664563617245
             }
           ],
-          "speedRaceWinRate": 0.3333333333333333,
+          "speedRaceWinRate": 0.6,
           "carriedBy": []
         }
       ]
@@ -805,23 +817,19 @@
       "archetype": "bulky-offense",
       "label": "Bulky Offense",
       "battles": 6,
-      "winRate": 0.3333333333333333,
+      "winRate": 0.5,
       "distinctOpponents": 6,
       "threats": [
         {
           "kind": "ohko",
           "evidence": "Kingambit Kowtow Cleave vs Dragapult: 125.6%–148.3% (guaranteed OHKO)"
-        },
-        {
-          "kind": "ohko",
-          "evidence": "Iron Valiant Close Combat vs Kingambit: 173.4%–204.9% (guaranteed OHKO)"
         }
       ],
       "gamePlan": {
         "sentences": [
-          "Lead Great Tusk to pressure Kingambit.",
-          "Preserve Gholdengo as your check to Iron Valiant.",
-          "Watch Iron Valiant's Close Combat into Kingambit: don't let that trade happen for free."
+          "Lead Dragapult to pressure Kingambit.",
+          "Preserve Great Tusk as your check to Kingambit.",
+          "Watch Kingambit's Kowtow Cleave into Dragapult: don't let that trade happen for free."
         ]
       },
       "matchups": [
@@ -831,138 +839,121 @@
           "winRate": 0,
           "earliestFaints": [
             {
-              "speciesId": "gliscor",
-              "faintCount": 1,
-              "meanTurn": 11,
-              "topCause": "ironvaliant",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "greattusk",
-              "faintCount": 1,
-              "meanTurn": 18,
-              "topCause": "slowking",
-              "chipFaints": 0
-            },
-            {
               "speciesId": "kingambit",
               "faintCount": 1,
-              "meanTurn": 25,
+              "meanTurn": 5,
               "topCause": "kingambit",
               "chipFaints": 0
             },
             {
               "speciesId": "dragapult",
               "faintCount": 1,
-              "meanTurn": 26,
+              "meanTurn": 6,
+              "topCause": "kingambit",
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "greattusk",
+              "faintCount": 1,
+              "meanTurn": 7,
               "topCause": "kingambit",
               "chipFaints": 0
             },
             {
               "speciesId": "gholdengo",
               "faintCount": 1,
-              "meanTurn": 27,
+              "meanTurn": 8,
+              "topCause": "kingambit",
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "gliscor",
+              "faintCount": 1,
+              "meanTurn": 10,
               "topCause": "kingambit",
               "chipFaints": 0
             },
             {
               "speciesId": "slowkinggalar",
               "faintCount": 1,
-              "meanTurn": 28,
+              "meanTurn": 11,
               "chipFaints": 0
             }
           ],
           "mostWork": [
             {
-              "speciesId": "ironvaliant",
-              "totalDamageFrac": 1.125
-            },
-            {
               "speciesId": "kingambit",
-              "totalDamageFrac": 1.0013079941524967
-            },
-            {
-              "speciesId": "kyurem",
-              "totalDamageFrac": 0.5428571428571428
-            },
-            {
-              "speciesId": "slowking",
-              "totalDamageFrac": 0.5148247978436657
-            },
-            {
-              "speciesId": "landorus",
-              "totalDamageFrac": 0.48517520215633425
-            },
-            {
-              "speciesId": "cinderace",
-              "totalDamageFrac": 0.17073170731707318
+              "totalDamageFrac": 5
             }
           ],
-          "speedRaceWinRate": 0.4827586206896552,
+          "speedRaceWinRate": 0.9090909090909091,
           "carriedBy": []
         },
         {
-          "teamName": "Bulky Offense (Kingambit + Great Tusk)",
+          "teamName": "Bulky Offense (Gliscor + Kingambit)",
           "battles": 1,
           "winRate": 0,
           "earliestFaints": [
             {
-              "speciesId": "kingambit",
-              "faintCount": 1,
-              "meanTurn": 9,
-              "topCause": "kingambit",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "gliscor",
-              "faintCount": 1,
-              "meanTurn": 12,
-              "topCause": "gholdengo",
-              "chipFaints": 0
-            },
-            {
               "speciesId": "greattusk",
               "faintCount": 1,
-              "meanTurn": 13,
-              "topCause": "gholdengo",
+              "meanTurn": 5,
+              "topCause": "tinglu",
               "chipFaints": 0
             },
             {
-              "speciesId": "slowkinggalar",
+              "speciesId": "kingambit",
               "faintCount": 1,
-              "meanTurn": 15,
+              "meanTurn": 16,
+              "topCause": "tinglu",
               "chipFaints": 0
             },
             {
               "speciesId": "dragapult",
               "faintCount": 1,
-              "meanTurn": 16,
-              "topCause": "gholdengo",
+              "meanTurn": 32,
+              "topCause": "tinglu",
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "slowkinggalar",
+              "faintCount": 1,
+              "meanTurn": 37,
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "gliscor",
+              "faintCount": 1,
+              "meanTurn": 38,
+              "topCause": "dragapult",
               "chipFaints": 0
             },
             {
               "speciesId": "gholdengo",
               "faintCount": 1,
-              "meanTurn": 17,
-              "topCause": "gholdengo",
-              "chipFaints": 0
+              "meanTurn": 38,
+              "chipFaints": 1
             }
           ],
           "mostWork": [
             {
-              "speciesId": "gholdengo",
-              "totalDamageFrac": 2.7565164788042145
+              "speciesId": "tinglu",
+              "totalDamageFrac": 3.4448279120578498
             },
             {
               "speciesId": "kingambit",
-              "totalDamageFrac": 1.8267045454545454
+              "totalDamageFrac": 0.5067750677506775
             },
             {
-              "speciesId": "greattusk",
-              "totalDamageFrac": 0.5417789757412399
+              "speciesId": "zamazenta",
+              "totalDamageFrac": 0.3875338753387534
+            },
+            {
+              "speciesId": "dragapult",
+              "totalDamageFrac": 0.1875
             }
           ],
-          "speedRaceWinRate": 0.5294117647058824,
+          "speedRaceWinRate": 0.7073170731707317,
           "carriedBy": []
         },
         {
@@ -971,204 +962,71 @@
           "winRate": 0,
           "earliestFaints": [
             {
-              "speciesId": "gholdengo",
-              "faintCount": 1,
-              "meanTurn": 22,
-              "topCause": "kingambit",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "kingambit",
-              "faintCount": 1,
-              "meanTurn": 27,
-              "topCause": "kingambit",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "dragapult",
-              "faintCount": 1,
-              "meanTurn": 28,
-              "topCause": "kingambit",
-              "chipFaints": 0
-            },
-            {
               "speciesId": "greattusk",
               "faintCount": 1,
-              "meanTurn": 29,
-              "topCause": "kingambit",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "gliscor",
-              "faintCount": 1,
-              "meanTurn": 31,
-              "topCause": "kingambit",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "slowkinggalar",
-              "faintCount": 1,
-              "meanTurn": 32,
-              "chipFaints": 0
-            }
-          ],
-          "mostWork": [
-            {
-              "speciesId": "kingambit",
-              "totalDamageFrac": 4.450134770889488
-            },
-            {
-              "speciesId": "landorus",
-              "totalDamageFrac": 0.5498652291105122
-            }
-          ],
-          "speedRaceWinRate": 0.9375,
-          "carriedBy": []
-        },
-        {
-          "teamName": "Bulky Offense (Meowscarada + Kingambit)",
-          "battles": 1,
-          "winRate": 0,
-          "earliestFaints": [
-            {
-              "speciesId": "kingambit",
-              "faintCount": 1,
-              "meanTurn": 11,
+              "meanTurn": 4,
               "topCause": "ragingbolt",
               "chipFaints": 0
             },
             {
-              "speciesId": "greattusk",
+              "speciesId": "kingambit",
               "faintCount": 1,
-              "meanTurn": 19,
+              "meanTurn": 10,
               "topCause": "kingambit",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "gliscor",
-              "faintCount": 1,
-              "meanTurn": 23,
-              "topCause": "meowscarada",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "gholdengo",
-              "faintCount": 1,
-              "meanTurn": 29,
-              "topCause": "meowscarada",
               "chipFaints": 0
             },
             {
               "speciesId": "dragapult",
               "faintCount": 1,
-              "meanTurn": 31,
-              "topCause": "skeledirge",
+              "meanTurn": 11,
+              "topCause": "kingambit",
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "gholdengo",
+              "faintCount": 1,
+              "meanTurn": 15,
+              "topCause": "greattusk",
               "chipFaints": 0
             },
             {
               "speciesId": "slowkinggalar",
               "faintCount": 1,
-              "meanTurn": 37,
+              "meanTurn": 16,
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "gliscor",
+              "faintCount": 1,
+              "meanTurn": 18,
+              "topCause": "greattusk",
               "chipFaints": 0
             }
           ],
           "mostWork": [
             {
-              "speciesId": "meowscarada",
-              "totalDamageFrac": 1.6564459930313589
+              "speciesId": "kingambit",
+              "totalDamageFrac": 1.8162738409718482
+            },
+            {
+              "speciesId": "gholdengo",
+              "totalDamageFrac": 0.9333333333333333
+            },
+            {
+              "speciesId": "greattusk",
+              "totalDamageFrac": 0.8813492063492063
             },
             {
               "speciesId": "ragingbolt",
-              "totalDamageFrac": 1.0400309717382887
+              "totalDamageFrac": 0.6522911051212938
             },
             {
-              "speciesId": "skeledirge",
-              "totalDamageFrac": 1
-            },
-            {
-              "speciesId": "kingambit",
-              "totalDamageFrac": 0.8787061994609164
-            },
-            {
-              "speciesId": "greattusk",
-              "totalDamageFrac": 0.12129380053908356
+              "speciesId": "landorus",
+              "totalDamageFrac": 0.3477088948787062
             }
           ],
-          "speedRaceWinRate": 0.6410256410256411,
+          "speedRaceWinRate": 0.7368421052631579,
           "carriedBy": []
-        },
-        {
-          "teamName": "Bulky Offense (Gliscor + Kingambit)",
-          "battles": 1,
-          "winRate": 1,
-          "earliestFaints": [
-            {
-              "speciesId": "gholdengo",
-              "faintCount": 1,
-              "meanTurn": 15,
-              "topCause": "zamazenta",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "greattusk",
-              "faintCount": 1,
-              "meanTurn": 26,
-              "topCause": "gliscor",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "kingambit",
-              "faintCount": 1,
-              "meanTurn": 36,
-              "topCause": "gliscor",
-              "chipFaints": 0
-            }
-          ],
-          "mostWork": [
-            {
-              "speciesId": "gliscor",
-              "totalDamageFrac": 2.3214898309237935
-            },
-            {
-              "speciesId": "tinglu",
-              "totalDamageFrac": 1.9367475292003593
-            },
-            {
-              "speciesId": "zamazenta",
-              "totalDamageFrac": 0.6452258433390509
-            },
-            {
-              "speciesId": "kingambit",
-              "totalDamageFrac": 0.3841269841269841
-            }
-          ],
-          "speedRaceWinRate": 0.6046511627906976,
-          "carriedBy": [
-            {
-              "speciesId": "dragapult",
-              "damageFracInWins": 2.05431488801054
-            },
-            {
-              "speciesId": "gholdengo",
-              "damageFracInWins": 1.9411515169246072
-            },
-            {
-              "speciesId": "slowking",
-              "damageFracInWins": 0.4115942028985507
-            },
-            {
-              "speciesId": "greattusk",
-              "damageFracInWins": 0.21492527414220022
-            },
-            {
-              "speciesId": "kingambit",
-              "damageFracInWins": 0.20738636363636365
-            },
-            {
-              "speciesId": "gliscor",
-              "damageFracInWins": 0.18181818181818182
-            }
-          ]
         },
         {
           "teamName": "Bulky Offense (Gliscor + Cinderace)",
@@ -1176,44 +1034,170 @@
           "winRate": 1,
           "earliestFaints": [
             {
-              "speciesId": "gliscor",
+              "speciesId": "gholdengo",
               "faintCount": 1,
-              "meanTurn": 23,
-              "topCause": "hoopa",
+              "meanTurn": 6,
+              "topCause": "cinderace",
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "dragapult",
+              "faintCount": 1,
+              "meanTurn": 7,
+              "topCause": "cinderace",
               "chipFaints": 0
             }
           ],
           "mostWork": [
             {
+              "speciesId": "cinderace",
+              "totalDamageFrac": 1.2571428571428571
+            },
+            {
               "speciesId": "zamazenta",
-              "totalDamageFrac": 1.7564130188601947
-            },
-            {
-              "speciesId": "gholdengo",
-              "totalDamageFrac": 0.48579545454545453
-            },
-            {
-              "speciesId": "hoopa",
-              "totalDamageFrac": 0.45738636363636365
-            }
-          ],
-          "speedRaceWinRate": 0.6,
-          "carriedBy": [
-            {
-              "speciesId": "gholdengo",
-              "damageFracInWins": 2.257142857142857
-            },
-            {
-              "speciesId": "dragapult",
-              "damageFracInWins": 1.6125356125356127
+              "totalDamageFrac": 0.7428571428571429
             },
             {
               "speciesId": "gliscor",
-              "damageFracInWins": 0.985022385022385
+              "totalDamageFrac": 0.4254742547425474
+            },
+            {
+              "speciesId": "alomomola",
+              "totalDamageFrac": 0.12466124661246612
+            }
+          ],
+          "speedRaceWinRate": 0.4166666666666667,
+          "carriedBy": [
+            {
+              "speciesId": "kingambit",
+              "damageFracInWins": 4.5820825515947465
+            },
+            {
+              "speciesId": "gholdengo",
+              "damageFracInWins": 1
             },
             {
               "speciesId": "greattusk",
-              "damageFracInWins": 0.23535543047738167
+              "damageFracInWins": 0.15447154471544716
+            }
+          ]
+        },
+        {
+          "teamName": "Bulky Offense (Kingambit + Great Tusk)",
+          "battles": 1,
+          "winRate": 1,
+          "earliestFaints": [
+            {
+              "speciesId": "greattusk",
+              "faintCount": 1,
+              "meanTurn": 4,
+              "topCause": "greattusk",
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "dragapult",
+              "faintCount": 1,
+              "meanTurn": 5,
+              "topCause": "greattusk",
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "gliscor",
+              "faintCount": 1,
+              "meanTurn": 16,
+              "topCause": "gholdengo",
+              "chipFaints": 0
+            }
+          ],
+          "mostWork": [
+            {
+              "speciesId": "greattusk",
+              "totalDamageFrac": 3.6168470418470418
+            },
+            {
+              "speciesId": "gholdengo",
+              "totalDamageFrac": 0.9166358709041637
+            },
+            {
+              "speciesId": "dragapult",
+              "totalDamageFrac": 0.3181818181818182
+            }
+          ],
+          "speedRaceWinRate": 0.23076923076923078,
+          "carriedBy": [
+            {
+              "speciesId": "kingambit",
+              "damageFracInWins": 2.6958289519803715
+            },
+            {
+              "speciesId": "gliscor",
+              "damageFracInWins": 1.3392114792864747
+            },
+            {
+              "speciesId": "greattusk",
+              "damageFracInWins": 0.9649595687331537
+            }
+          ]
+        },
+        {
+          "teamName": "Bulky Offense (Meowscarada + Kingambit)",
+          "battles": 1,
+          "winRate": 1,
+          "earliestFaints": [
+            {
+              "speciesId": "greattusk",
+              "faintCount": 1,
+              "meanTurn": 7,
+              "topCause": "greattusk",
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "kingambit",
+              "faintCount": 1,
+              "meanTurn": 16,
+              "topCause": "skeledirge",
+              "chipFaints": 0
+            }
+          ],
+          "mostWork": [
+            {
+              "speciesId": "kingambit",
+              "totalDamageFrac": 1.5816696980985983
+            },
+            {
+              "speciesId": "greattusk",
+              "totalDamageFrac": 0.31805929919137466
+            },
+            {
+              "speciesId": "meowscarada",
+              "totalDamageFrac": 0.20446846513919684
+            },
+            {
+              "speciesId": "skeledirge",
+              "totalDamageFrac": 0.16802168021680217
+            }
+          ],
+          "speedRaceWinRate": 0.8157894736842105,
+          "carriedBy": [
+            {
+              "speciesId": "kingambit",
+              "damageFracInWins": 3.4521576134365937
+            },
+            {
+              "speciesId": "gliscor",
+              "damageFracInWins": 0.7785878417193255
+            },
+            {
+              "speciesId": "dragapult",
+              "damageFracInWins": 0.6725
+            },
+            {
+              "speciesId": "greattusk",
+              "damageFracInWins": 0.5818194070080862
+            },
+            {
+              "speciesId": "gholdengo",
+              "damageFracInWins": 0.5310737516973805
             }
           ]
         }
@@ -1237,9 +1221,9 @@
       ],
       "gamePlan": {
         "sentences": [
-          "Lead Slowking-Galar to pressure Zamazenta.",
-          "Preserve Great Tusk as your check to Iron Moth.",
-          "Watch Iron Moth's Fiery Dance into Gholdengo: don't let that trade happen for free."
+          "Lead Dragapult to pressure Zamazenta.",
+          "Preserve Slowking-Galar as your check to Zamazenta.",
+          "Watch Zamazenta's Body Press into Kingambit: don't let that trade happen for free."
         ]
       },
       "matchups": [
@@ -1249,123 +1233,96 @@
           "winRate": 0,
           "earliestFaints": [
             {
-              "speciesId": "dragapult",
+              "speciesId": "greattusk",
               "faintCount": 1,
-              "meanTurn": 10,
+              "meanTurn": 3,
               "topCause": "zamazenta",
               "chipFaints": 0
             },
             {
-              "speciesId": "gliscor",
+              "speciesId": "dragapult",
               "faintCount": 1,
-              "meanTurn": 26,
-              "topCause": "ironmoth",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "kingambit",
-              "faintCount": 1,
-              "meanTurn": 28,
-              "topCause": "ironmoth",
+              "meanTurn": 13,
+              "topCause": "corviknight",
               "chipFaints": 0
             },
             {
               "speciesId": "slowkinggalar",
               "faintCount": 1,
+              "meanTurn": 25,
+              "chipFaints": 0
+            },
+            {
+              "speciesId": "gliscor",
+              "faintCount": 1,
               "meanTurn": 29,
+              "topCause": "zamazenta",
               "chipFaints": 0
             },
             {
               "speciesId": "gholdengo",
               "faintCount": 1,
               "meanTurn": 30,
-              "topCause": "ironmoth",
+              "topCause": "zamazenta",
               "chipFaints": 0
             },
             {
-              "speciesId": "greattusk",
+              "speciesId": "kingambit",
               "faintCount": 1,
               "meanTurn": 31,
-              "topCause": "ironmoth",
+              "topCause": "zamazenta",
               "chipFaints": 0
             }
           ],
           "mostWork": [
             {
-              "speciesId": "ironmoth",
-              "totalDamageFrac": 2.6761128891306067
-            },
-            {
               "speciesId": "zamazenta",
-              "totalDamageFrac": 2.3137245092433774
+              "totalDamageFrac": 3.4297709235209237
             },
             {
-              "speciesId": "gliscor",
-              "totalDamageFrac": 0.44715447154471544
+              "speciesId": "ironmoth",
+              "totalDamageFrac": 0.8990536277602524
             },
             {
-              "speciesId": "dragapult",
-              "totalDamageFrac": 0.14363143631436315
+              "speciesId": "tinglu",
+              "totalDamageFrac": 0.7492063492063492
             },
             {
               "speciesId": "corviknight",
-              "totalDamageFrac": 0.07588075880758807
+              "totalDamageFrac": 0.10094637223974763
             }
           ],
-          "speedRaceWinRate": 0.21875,
+          "speedRaceWinRate": 0.34375,
           "carriedBy": []
         },
         {
           "teamName": "Hazard Stack Semi Stall (Ogerpon)",
           "battles": 1,
           "winRate": 1,
-          "earliestFaints": [
-            {
-              "speciesId": "kingambit",
-              "faintCount": 1,
-              "meanTurn": 5,
-              "topCause": "deoxys",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "gholdengo",
-              "faintCount": 1,
-              "meanTurn": 14,
-              "topCause": "ogerpon",
-              "chipFaints": 0
-            }
-          ],
+          "earliestFaints": [],
           "mostWork": [
             {
+              "speciesId": "gholdengo",
+              "totalDamageFrac": 0.9838274932614555
+            },
+            {
               "speciesId": "deoxys",
-              "totalDamageFrac": 1.3249709639953542
-            },
-            {
-              "speciesId": "tinglu",
-              "totalDamageFrac": 0.6349206349206349
-            },
-            {
-              "speciesId": "gliscor",
-              "totalDamageFrac": 0.4555256064690027
+              "totalDamageFrac": 0.5841269841269842
             },
             {
               "speciesId": "ogerpon",
-              "totalDamageFrac": 0.35958188153310106
+              "totalDamageFrac": 0.26666666666666666
             }
           ],
-          "speedRaceWinRate": 0.8285714285714286,
+          "speedRaceWinRate": 0.8823529411764706,
           "carriedBy": [
             {
-              "speciesId": "greattusk",
-              "damageFracInWins": 4.695695343112225
-            },
-            {
               "speciesId": "gholdengo",
-              "damageFracInWins": 0.7587548638132295
+              "damageFracInWins": 4.018456755810842
             },
             {
-              "speciesId": "kingambit",
-              "damageFracInWins": 0.1693121693121693
+              "speciesId": "greattusk",
+              "damageFracInWins": 0.9815432441891585
             }
           ]
         }
@@ -1380,18 +1337,18 @@
       "threats": [
         {
           "kind": "2hko",
-          "evidence": "Corviknight Body Press vs Kingambit: 77.0%–91.1% (2HKO)"
+          "evidence": "Clodsire Earthquake vs Slowking-Galar: 51.9%–61.1% (2HKO)"
         },
         {
-          "kind": "ohko",
-          "evidence": "Gholdengo Shadow Ball vs Dragapult: 87.7%–104.1% (25% chance to OHKO)"
+          "kind": "2hko",
+          "evidence": "Corviknight Body Press vs Kingambit: 77.0%–91.1% (2HKO)"
         }
       ],
       "gamePlan": {
         "sentences": [
-          "Lead Dragapult to pressure Gliscor.",
-          "Preserve Kingambit as your check to Gholdengo.",
-          "Watch Gholdengo's Shadow Ball into Dragapult: don't let that trade happen for free."
+          "Lead Gholdengo to pressure Gliscor.",
+          "Preserve Dragapult as your check to Corviknight.",
+          "Watch Corviknight's Body Press into Kingambit: don't let that trade happen for free."
         ]
       },
       "matchups": [
@@ -1404,65 +1361,37 @@
               "speciesId": "gholdengo",
               "faintCount": 1,
               "meanTurn": 14,
-              "topCause": "gholdengo",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "greattusk",
-              "faintCount": 1,
-              "meanTurn": 20,
-              "topCause": "gholdengo",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "gliscor",
-              "faintCount": 1,
-              "meanTurn": 23,
-              "topCause": "gholdengo",
-              "chipFaints": 0
-            },
-            {
-              "speciesId": "slowkinggalar",
-              "faintCount": 1,
-              "meanTurn": 24,
+              "topCause": "dondozo",
               "chipFaints": 0
             }
           ],
           "mostWork": [
             {
-              "speciesId": "gholdengo",
-              "totalDamageFrac": 2.949488308899262
+              "speciesId": "corviknight",
+              "totalDamageFrac": 1.016891284815813
             },
             {
-              "speciesId": "corviknight",
-              "totalDamageFrac": 0.9583707696915242
+              "speciesId": "clodsire",
+              "totalDamageFrac": 0.653968253968254
+            },
+            {
+              "speciesId": "slowking",
+              "totalDamageFrac": 0.34069400630914826
             },
             {
               "speciesId": "dondozo",
-              "totalDamageFrac": 0.5804416403785488
+              "totalDamageFrac": 0.12698412698412698
             }
           ],
-          "speedRaceWinRate": 0.8780487804878049,
+          "speedRaceWinRate": 1,
           "carriedBy": [
             {
-              "speciesId": "gholdengo",
-              "damageFracInWins": 1.8783068783068781
-            },
-            {
               "speciesId": "dragapult",
-              "damageFracInWins": 1.7056878306878305
+              "damageFracInWins": 2.4543650793650795
             },
             {
-              "speciesId": "greattusk",
-              "damageFracInWins": 1.125
-            },
-            {
-              "speciesId": "kingambit",
-              "damageFracInWins": 0.9999999999999999
-            },
-            {
-              "speciesId": "gliscor",
-              "damageFracInWins": 0.3386243386243386
+              "speciesId": "gholdengo",
+              "damageFracInWins": 2.4166666666666665
             }
           ]
         }
