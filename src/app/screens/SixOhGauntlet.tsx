@@ -34,12 +34,32 @@ function speciesPhase(species: string): number {
   return h % 3200;
 }
 
+/**
+ * `gen5ani` sprites are animated GIFs, which is motion the same way a CSS
+ * keyframe is — and unlike a keyframe there is no way to pause one. Under
+ * reduced motion we ask for the static `gen5` tier instead, which is the
+ * fallback the component already knows how to render.
+ *
+ * This also makes the stage deterministic to screenshot. The visual tests that
+ * opt into reduced motion mask everything moving with the replay clock, but a
+ * looping GIF ignores both that and Playwright's `animations: 'disabled'`;
+ * once the sprites grew to a third of the frame, the frame-to-frame variation
+ * alone was 5-8% of the image against a 3% tolerance, and the shot could never
+ * stabilise.
+ */
+function prefersStillSprites(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
-  const startTier: SpriteTier = knownMissingGen5Ani.has(species) ? 'gen5' : 'gen5ani';
-  const [tier, setTier] = useState<SpriteTier>(startTier);
+  const still = useMemo(prefersStillSprites, []);
+  const best = (): SpriteTier => (still || knownMissingGen5Ani.has(species) ? 'gen5' : 'gen5ani');
+  const [tier, setTier] = useState<SpriteTier>(best);
   useEffect(() => {
-    setTier(knownMissingGen5Ani.has(species) ? 'gen5' : 'gen5ani');
-  }, [species]);
+    setTier(best());
+    // `best` closes over `species` and `still`; both are in the deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [species, still]);
 
   const url =
     tier === 'icon'
@@ -123,9 +143,9 @@ function MessageBox({
   const [page, setPage] = useState(0);
   const [shown, setShown] = useState(0);
   // Typing and page-turning are motion, and this is the one piece of it driven
-  // by JS timers rather than CSS — `animation: none` cannot reach it. Without
-  // this the visual-regression suite (which runs reducedMotion: 'reduce')
-  // would screenshot a different number of revealed characters every run.
+  // by JS timers rather than CSS — `animation: none` cannot reach it, and nor
+  // can Playwright's `animations: 'disabled'`, so a visual test would
+  // screenshot a different number of revealed characters every run.
   const still = useMemo(
     () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
     []
@@ -219,13 +239,16 @@ function hpColor(frac: number): string {
  */
 function useCountTo(target: number, delayMs: number, durationMs: number): number {
   const [shown, setShown] = useState(target);
+  // Counting is motion, and it is driven by rAF rather than CSS, so neither
+  // `animation: none` nor Playwright's `animations: 'disabled'` can reach it.
+  const still = useMemo(prefersStillSprites, []);
   // Always ease from what is currently on screen, so an interrupted drain
   // continues from where it got to rather than snapping back.
   const shownRef = useRef(shown);
   shownRef.current = shown;
   useEffect(() => {
     const from = shownRef.current;
-    if (from === target || durationMs <= 0) {
+    if (still || from === target || durationMs <= 0) {
       setShown(target);
       return;
     }
@@ -244,7 +267,7 @@ function useCountTo(target: number, delayMs: number, durationMs: number): number
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [target, delayMs, durationMs]);
+  }, [still, target, delayMs, durationMs]);
   return shown;
 }
 
