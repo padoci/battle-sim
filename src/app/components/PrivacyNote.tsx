@@ -24,8 +24,8 @@ export function PrivacyNote({className}: {className?: string}) {
         🔒
       </span>
       <span>
-        <strong>Nothing you paste is uploaded.</strong> There&rsquo;s no account and no server —
-        your team is validated and simulated by code running in this browser tab.
+        <strong>Nothing you paste is uploaded.</strong> There&rsquo;s no account and no server,
+        and every battle runs locally in this tab.
       </span>
     </p>
   );
