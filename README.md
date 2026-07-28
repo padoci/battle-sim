@@ -8,7 +8,7 @@ No server. Fully static-hostable. All simulation runs in a web worker in your br
 
 ## Two modes
 
-- **Can you 6-0?** — a draft roguelike. Draft six Pokémon from randomized, usage-weighted offers (easy/normal: pick species then set; hard: pick mon+set bundles), then watch the AI pilot your team through a six-battle gauntlet, cinematically, styled like a classic handheld battle. Win all six to go flawless. Difficulty sets how hard the gauntlet fights back: **easy** starts against weak opponents and ramps up over the six battles, **normal** and **hard** field full-strength opponents throughout. Post-mortem tells you what ended the run — with the calc to back it up.
+- **Can you 6-0?** — a draft roguelike. Draft six Pokémon from randomized, usage-weighted offers, then watch the AI pilot your team through a six-battle gauntlet, cinematically, styled like a classic handheld battle. Win all six to go flawless. Three modes, shown in the UI as **Gym Challenge**, **Normal** and **Hard** (`gymleader` / `easy` / `hard` in the code — `easy` is the one labelled "Normal"): Gym Challenge fields real gym leaders building to a champion finale, Normal starts against weak opponents and ramps up over the six battles, and Hard fields full-strength opponents from rung one. Post-mortem tells you what ended the run — with the calc to back it up.
 - **Test your team** — paste a Showdown export, simulate it against a configurable field of real meta teams, and get a matchup dashboard: best/worst matchups rolled up into archetypes, individual threats with damage ranges, a game plan per matchup, all exportable as JSON or Markdown.
 
 ## How it works
@@ -53,7 +53,7 @@ Three design choices carry the whole thing:
 | [`@pkmn/smogon`](https://github.com/pkmn/smogon) | wire types for data.pkmn.cc |
 | React + Vite + TypeScript | app shell (hand-rolled hash router, no other runtime deps) |
 
-Data comes from [data.pkmn.cc](https://data.pkmn.cc) per format: `/sets/gen9ou.json` (draft pool + pickable sets), `/stats/gen9ou.json` (usage weighting), `/teams/gen9ou.json` (opponent teams), cached client-side in IndexedDB with a ~24h TTL and a GitHub mirror fallback. The opponent pool is augmented with a **vendored pack of real sample teams** (`src/data/vendored-teams.gen9ou.json`, built and validated by `scripts/build-sample-teams.ts`, shipped statically — no runtime fetch, no CORS exposure), currently 10 built-in + 8 vendored = 18 teams.
+Data comes from [data.pkmn.cc](https://data.pkmn.cc) per format: `/sets/gen9ou.json` (draft pool + pickable sets), `/stats/gen9ou.json` (usage weighting), `/teams/gen9ou.json` (opponent teams), cached client-side in IndexedDB with a ~24h TTL and a GitHub mirror fallback. The opponent pool is augmented with **vendored packs of real teams**, built and validated by `scripts/build-sample-teams.ts` and shipped statically — no runtime fetch, no CORS exposure: `src/data/vendored-teams.gen9ou.json` (29) and `src/data/mined-teams.gen9ou.json` (30). Merged with the teams fetched for the format, then deduped and re-validated, that currently lands at **62 teams in the field**.
 
 ## Getting started
 
@@ -61,14 +61,28 @@ Data comes from [data.pkmn.cc](https://data.pkmn.cc) per format: `/sets/gen9ou.j
 npm install
 npm run dev      # the app
 npm test         # the vitest suite (200+ tests), fully offline
-npm run build    # production build (three pages)
+npm run build    # production build (the app only)
 ```
 
 Pages:
 
-- `/` — the app (both modes)
+- `/` — the app (both modes); the only thing a production build emits
 - `/dev.html` — data/engine inspector (draft pool, resolved sets, opponent teams, live TeamValidator checks)
 - `/measure.html?battles=N&config=fast|strong&seed=N` — search performance measurement in the real browser worker
+
+`npm run dev` serves all three. **The two dev tools are deliberately excluded
+from `npm run build`** — `measure.html` takes its battle count and config
+straight from the query string and will run a visitor's CPU flat out for ~20
+minutes, so it must not exist on the deployed site. `public/robots.txt` also
+disallows both, but that only asks crawlers nicely; omitting them from the
+build is what actually makes the URLs 404.
+
+To build them anyway (which `scripts/measure-browser.mjs` needs, since it
+drives the built artifact through `vite preview`):
+
+```bash
+BUILD_TOOLS=1 npm run build
+```
 
 Dev/tuning knobs on the gauntlet: `#/sixoh?seed=123&config=fast&tera=25` (reproducible run / d1 search / eval `TERA_AVAILABLE` override — for watching how Tera timing changes with the weight).
 
@@ -92,7 +106,7 @@ Cloudflare posts each preview URL back onto the PR as a deployment status once i
 ## Scripts
 
 - `npx vite-node scripts/measure.ts` — Node-side search gate numbers (ms/turn, nodes/turn, strength vs baselines) + rendered battle logs into `logs/`
-- `node scripts/measure-browser.mjs` — the same numbers in headless Chromium against the production build (the real gate numbers)
+- `BUILD_TOOLS=1 npm run build && node scripts/measure-browser.mjs` — the same numbers in headless Chromium against the built artifact (the real gate numbers); needs the flag, see above
 - `node scripts/e2e-test-your-team.mjs` — full Playwright walkthrough of Test your team
 - `node scripts/e2e-six-oh.mjs` — full Playwright walkthrough of Can you 6-0?
 - `npm run test:visual` — visual-regression suite (`@playwright/test`, `test/visual/`)
@@ -130,7 +144,7 @@ Built in staged sessions, each ending in a reviewed PR (plan in `HANDOFF.md`):
 | 4 | Can you 6-0?, end to end | ✅ PR #5 |
 | 5 | Visual identity ("lab × arena") + quality floor | ✅ PR #6 |
 | 6 | Feedback rounds: difficulty ladder, retro battle stage, perf + UX fixes | ✅ PRs #7–#11 |
-| 7 | Dev process: CI (tests/e2e/visual regression), per-PR previews, vendored 18-team pool | ✅ PRs #12–#13 |
+| 7 | Dev process: CI (tests/e2e/visual regression), per-PR previews, vendored team pool | ✅ PRs #12–#13 |
 | 8 | Code-split landing (~9 MB → ~150 KB initial JS) | ✅ PR #14 |
 | 9 | Polish (footer/attribution, W-L-D bars, a11y) · what-to-change suggestions · move-typed battle cinematics | ✅ PRs #15–#17 |
 

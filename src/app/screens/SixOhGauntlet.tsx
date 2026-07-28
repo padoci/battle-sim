@@ -5,11 +5,12 @@ import {parseProtocol} from '../../replay/parse';
 import {drainMs, PACE, toBeats, typePlan} from '../../replay/pace';
 import type {FxItem, MonView, SideView} from '../../replay/view';
 import {navigate} from '../router';
+import {useUnloadGuard} from '../useUnloadGuard';
 import {readDevParams} from '../sixoh/devParams';
 import {HIT_DELAY, signatureSlug} from '../sixoh/fx';
 import {BATTLE_SCENES, sceneUrl} from '../sixoh/scenes';
 import {FIELD_CLASSES, useFxRestart} from '../sixoh/useFxRestart';
-import {swapOutDelayMs, useStageSwap} from '../sixoh/useStageSwap';
+import {swapFadeMs, swapOutDelayMs, useStageSwap} from '../sixoh/useStageSwap';
 import {ensureComputed, resetSixOhSession, retryBattle} from '../sixoh/session';
 import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/state';
 import {typeColor} from '../sixoh/typeColors';
@@ -192,11 +193,16 @@ function MessageBox({
   );
 }
 
-/** HP meter colour: green > 50%, yellow > 20%, red below. */
+/** HP meter colour: green > 50%, yellow > 20%, red below.
+ *
+ * Through the tokens rather than repeating their hex values here: these three
+ * are deliberately the same in both themes (they read against the sprites and
+ * the pixel-art field, not the chrome), but a second copy in JS would be
+ * invisible to any future change to them. */
 function hpColor(frac: number): string {
-  if (frac > 0.5) return '#48c451';
-  if (frac > 0.2) return '#f6c343';
-  return '#e83c2e';
+  if (frac > 0.5) return 'var(--hp-high)';
+  if (frac > 0.2) return 'var(--hp-mid)';
+  return 'var(--hp-low)';
 }
 
 /**
@@ -519,7 +525,7 @@ function BattleStage({
   speedOverride?: number;
   onDone: () => void;
   /** Start the dip out, timed to finish as the run advances. */
-  onSwapOut: () => void;
+  onSwapOut: (fadeMs?: number) => void;
 }) {
   const teams = useMemo(() => [team, opponentSets] as [PokemonSet[], PokemonSet[]], [team, opponentSets]);
   const playback = usePlayback(teams, beats, onDone, {streamDone, battleKey, speedOverride});
@@ -726,7 +732,10 @@ function BattleStage({
   useEffect(() => {
     if (!hasWinner || !streamDone) return;
     const winBeatMs = PACE.win / Math.max(speed, 0.1);
-    const timer = setTimeout(onSwapOut, swapOutDelayMs(winBeatMs));
+    // The dip's duration travels with it: at speed the beat is shorter than
+    // the full fade, and a CSS transition still running when the rung
+    // advances springs back from partial opacity instead of passing through.
+    const timer = setTimeout(() => onSwapOut(swapFadeMs(winBeatMs)), swapOutDelayMs(winBeatMs));
     return () => clearTimeout(timer);
   }, [hasWinner, streamDone, speed, onSwapOut]);
 
@@ -977,7 +986,7 @@ export function SixOhGauntlet() {
   // would not touch it and `transition: none` would snap straight to opacity
   // 0: a blank flash, strictly worse than the hard cut it replaces. Same
   // reasoning that already skips the intro for these users.
-  const {swapClass, beginSwapOut} = useStageSwap(index, !reducedMotion);
+  const {swapClass, beginSwapOut, swapStyle} = useStageSwap(index, !reducedMotion);
   const handleIntroDone = useCallback(() => setIntroDoneFor(index), [index]);
 
   useEffect(() => {
@@ -997,6 +1006,8 @@ export function SixOhGauntlet() {
   // redirect — that would trap the user in a result↔gauntlet loop; show a
   // terminal panel instead (below).
   const wasFinishedOnMount = useRef(state.phase === 'finished');
+  // A live run is memory-only: reloading lands on "No run in progress".
+  useUnloadGuard(state.phase !== 'draft' && state.phase !== 'finished');
   useEffect(() => {
     if (state.phase === 'finished' && !wasFinishedOnMount.current) navigate('sixoh-result');
   }, [state.phase]);
@@ -1026,9 +1037,21 @@ export function SixOhGauntlet() {
     : undefined;
   const beats = useMemo(() => {
     if (!log?.length) return undefined;
-    return toBeats(parseProtocol(log, ['Your', 'The opposing'], {dialogue: true, trainer: foeTitle}));
-  }, [log, foeTitle]);
-  const hasBeats = !!beats?.length;
+    try {
+      return toBeats(
+        parseProtocol(log, ['Your', 'The opposing'], {dialogue: true, trainer: foeTitle})
+      );
+    } catch (error) {
+      // This runs on the render path once per streamed decision, so a parse
+      // throw here white-screens a live battle via the ErrorBoundary. The
+      // parser is guarded against every malformed line we know of; this is
+      // the backstop for the ones we don't (e.g. a @pkmn/sim bump changing a
+      // line's shape). Losing the animation beats degrades to the static
+      // result card, which is a far better outcome than losing the screen.
+      console.error('replay parse failed; falling back to a static result', error);
+      return undefined;
+    }
+  }, [log, foeTitle]);  const hasBeats = !!beats?.length;
 
   useEffect(() => {
     if (battle?.phase === 'ready') dispatch({type: 'REPLAY_STARTED', index});
@@ -1102,12 +1125,12 @@ export function SixOhGauntlet() {
       </aside>
 
       <section className="gauntlet-main">
-        <h2 className="battle-title">
+        <h1 className="battle-title">
           {state.opponents[index]?.avatarKey && (
             <TrainerPortrait avatarKey={state.opponents[index].avatarKey!} className="title-portrait" />
           )}
           Battle {index + 1} of {state.opponents.length} vs {state.opponents[index]?.name}
-        </h2>
+        </h1>
 
         {/* A prefetched next rung can error while this on-screen rung is
             still fine (still computing, or replaying a win) - only treat the
@@ -1118,7 +1141,7 @@ export function SixOhGauntlet() {
             it. Wraps all three branches, not just the frame: the stage also
             renders the log, meta row and controls, and wrapping only the
             frame would leave those popping out at full opacity. */}
-        <div className={swapClass}>
+        <div className={swapClass} style={swapStyle}>
         {(!state.error || state.errorIndex !== index) &&
           !introDone &&
           battle &&

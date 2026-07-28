@@ -22,9 +22,40 @@ export interface SimClient {
   terminate(): void;
 }
 
+/**
+ * Minimal surface of `Worker` this client actually uses. Declaring it lets a
+ * test drive the client with a fake, since vitest's node environment can't
+ * instantiate a real module worker.
+ */
+export interface SimWorkerLike {
+  postMessage(message: WorkerRequest): void;
+  terminate(): void;
+  onmessage: ((event: MessageEvent<WorkerResponse>) => void) | null;
+  onerror: ((event: ErrorEvent) => void) | null;
+  onmessageerror: (() => void) | null;
+}
+
+export interface SimClientOptions {
+  /** Injected for tests; production uses the real module worker. */
+  makeWorker?: () => SimWorkerLike;
+  /**
+   * Reject a run after this long with NO message of any kind for it. Deliberately
+   * an idle deadline, not wall-clock: a legitimate STRONG batch takes minutes,
+   * but silence means the worker is wedged and nothing will ever settle the
+   * promise. Same reasoning as the stall-timeout in data/fetch.ts.
+   */
+  idleTimeoutMs?: number;
+}
+
+/** No progress at all for this long means the worker is wedged, not slow. */
+export const DEFAULT_IDLE_TIMEOUT_MS = 120_000;
+
 /** Main-thread wrapper around the long-lived simulation worker. */
-export function createSimClient(): SimClient {
-  const worker = new Worker(new URL('./sim.worker.ts', import.meta.url), {type: 'module'});
+export function createSimClient(options: SimClientOptions = {}): SimClient {
+  const idleTimeoutMs = options.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS;
+  const worker: SimWorkerLike = options.makeWorker
+    ? options.makeWorker()
+    : (new Worker(new URL('./sim.worker.ts', import.meta.url), {type: 'module'}) as unknown as SimWorkerLike);
   let nextId = 1;
   let inFlightId: number | null = null;
   // Set once the worker dies (failed to load, threw uncaught, or sent an
@@ -43,22 +74,50 @@ export function createSimClient(): SimClient {
   // `ready` would log an unhandled-rejection warning.
   ready.catch(() => {});
 
-  const pending = new Map<
-    number,
-    {
-      resolve: (value: RunOutcome) => void;
-      reject: (error: Error) => void;
-      onProgress?: (done: number, total: number, result: BattleResult) => void;
-      onChunk?: (jobIndex: number, logLines: string[], meta: {decisions: number; turn: number}) => void;
-    }
-  >();
+  interface PendingRun {
+    resolve: (value: RunOutcome) => void;
+    reject: (error: Error) => void;
+    onProgress?: (done: number, total: number, result: BattleResult) => void;
+    onChunk?: (jobIndex: number, logLines: string[], meta: {decisions: number; turn: number}) => void;
+    idleTimer?: ReturnType<typeof setTimeout>;
+  }
+
+  const pending = new Map<number, PendingRun>();
+
+  /** Settle-and-forget: clears the idle timer so a settled run can't fire one. */
+  function settle(id: number): PendingRun | undefined {
+    const job = pending.get(id);
+    if (!job) return undefined;
+    if (job.idleTimer !== undefined) clearTimeout(job.idleTimer);
+    pending.delete(id);
+    if (inFlightId === id) inFlightId = null;
+    return job;
+  }
+
+  /** Restart the silence clock — any message about a run proves it's alive. */
+  function touch(id: number) {
+    const job = pending.get(id);
+    if (!job || idleTimeoutMs <= 0) return;
+    if (job.idleTimer !== undefined) clearTimeout(job.idleTimer);
+    job.idleTimer = setTimeout(() => {
+      settle(id)?.reject(
+        new Error(
+          `sim worker stopped responding: no progress for ${Math.round(idleTimeoutMs / 1000)}s`
+        )
+      );
+    }, idleTimeoutMs);
+  }
 
   function fail(error: Error) {
     if (fatalError) return;
     fatalError = error;
     readyReject(error);
     inFlightId = null;
-    for (const job of pending.values()) job.reject(error);
+    for (const [id, job] of pending) {
+      if (job.idleTimer !== undefined) clearTimeout(job.idleTimer);
+      pending.delete(id);
+      job.reject(error);
+    }
     pending.clear();
   }
 
@@ -79,16 +138,16 @@ export function createSimClient(): SimClient {
     const job = pending.get(message.id);
     if (!job) return;
     if (message.type === 'chunk') {
+      touch(message.id);
       job.onChunk?.(message.jobIndex, message.logLines, {decisions: message.decisions, turn: message.turn});
     } else if (message.type === 'progress') {
+      touch(message.id);
       job.onProgress?.(message.done, message.total, message.result);
     } else if (message.type === 'done') {
-      pending.delete(message.id);
-      if (inFlightId === message.id) inFlightId = null;
+      settle(message.id);
       job.resolve({results: message.results, totalMs: message.totalMs, aborted: !!message.aborted});
     } else if (message.type === 'error') {
-      pending.delete(message.id);
-      if (inFlightId === message.id) inFlightId = null;
+      settle(message.id);
       job.reject(new Error(message.message));
     }
   };
@@ -101,16 +160,24 @@ export function createSimClient(): SimClient {
       inFlightId = id;
       return new Promise((resolve, reject) => {
         pending.set(id, {resolve, reject, onProgress, onChunk});
+        touch(id);
         worker.postMessage({type: 'run', id, jobs} satisfies WorkerRequest);
       });
     },
     cancel() {
-      if (inFlightId !== null) {
-        worker.postMessage({type: 'abort', id: inFlightId} satisfies WorkerRequest);
+      // Abort every run still in flight, not just the newest: `inFlightId`
+      // alone silently leaves an older run running when two overlap.
+      for (const id of pending.keys()) {
+        worker.postMessage({type: 'abort', id} satisfies WorkerRequest);
       }
     },
     terminate() {
       worker.terminate();
+      // A terminated worker will never answer, so every pending run must be
+      // settled here or its promise hangs forever. resetSixOhSession() calls
+      // terminate() on every "Draft again", which used to strand whatever
+      // rung was mid-flight — including its .catch(RUN_ERROR) handler.
+      fail(new Error('sim worker was terminated'));
     },
   };
 }

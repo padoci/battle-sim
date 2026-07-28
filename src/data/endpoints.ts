@@ -12,9 +12,25 @@ export const PRIMARY_BASE = 'https://data.pkmn.cc';
  */
 export const MIRROR_BASE = 'https://raw.githubusercontent.com/pkmn/smogon/main/data';
 
-/** Logical cache key for a resource — shared by primary and mirror URLs. */
+/** Path for a resource — shared by primary and mirror URLs. */
 export function resourceKey(resource: Resource, format: string): string {
   return `${resource}/${format}.json`;
+}
+
+/**
+ * Bumping this orphans every cached entry. Do it whenever what counts as a
+ * VALID payload changes — otherwise a user who cached a wrong-shaped body
+ * before the shape check existed keeps being served it for a full TTL, with
+ * no in-app way to clear it. v2: shape validation introduced.
+ */
+export const CACHE_SCHEMA = 'v2';
+
+/**
+ * Logical cache key. Separate from `resourceKey` because that one is also the
+ * URL path — a version prefix there would 404.
+ */
+export function cacheKey(resource: Resource, format: string): string {
+  return `${CACHE_SCHEMA}/${resourceKey(resource, format)}`;
 }
 
 /** URLs to try in order for a resource. */

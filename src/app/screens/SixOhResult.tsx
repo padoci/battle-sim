@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import {Icons} from '@pkmn/img';
 import {gen9} from '../../data/gen';
 import {buildPostMortem} from '../../analysis/postmortem';
@@ -33,6 +33,7 @@ function RosterIcons({sets, className, tiled}: {sets: PokemonSet[]; className?: 
 export function SixOhResult() {
   const state = useSixOhState();
   const dispatch = useSixOhDispatch();
+  const [copied, setCopied] = useState(false);
 
   const postMortem = useMemo(() => {
     if (state.phase !== 'finished' || !state.team || !state.outcome) return undefined;
@@ -68,6 +69,34 @@ export function SixOhResult() {
   // The game that ended an eliminated run: the last played loss.
   const killerIndex =
     state.outcome === 'eliminated' && played.length ? played[played.length - 1].index : undefined;
+
+  // A finished run is the shareable thing — a record, six mons, and whatever
+  // ended it — and it had nowhere to go. The run is reproducible from its
+  // seed, so the link replays this exact gauntlet instead of pointing at the
+  // front page. Reuses the current hash query the way restartAs does, which
+  // keeps the seed without threading it through state.
+  const copySummary = () => {
+    const params = new URLSearchParams(location.hash.split('?')[1] ?? '');
+    params.set('mode', state.mode);
+    const url = `${location.origin}${location.pathname}#/sixoh?${params.toString()}`;
+    const ending =
+      killerIndex === undefined
+        ? 'Flawless — all six.'
+        : `Ended by ${state.opponents[killerIndex]?.name} on rung ${killerIndex + 1}.`;
+    const text = [
+      `battle-sim · Can you 6-0? (${MODE_LABELS[state.mode]}) — ${postMortem.record}`,
+      ending,
+      (state.team ?? []).map(set => set.species).join(' · '),
+      url,
+    ].join('\n');
+    navigator.clipboard?.writeText(text).then(
+      () => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+      },
+      () => setCopied(false)
+    );
+  };
 
   return (
     <main className="arena result-screen">
@@ -126,6 +155,7 @@ export function SixOhResult() {
           {state.mode === 'easy' && (
             <button onClick={() => restartAs('hard')}>Step up to {MODE_LABELS.hard}</button>
           )}
+          <button onClick={copySummary}>{copied ? 'Copied' : 'Copy result'}</button>
         </div>
       </div>
     </main>

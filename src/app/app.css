@@ -55,6 +55,8 @@
 
   --ring: var(--signal);
 
+  color-scheme: light;
+
   --r-s: 7px;
   --r-m: 10px;
   --r-l: 14px;
@@ -106,6 +108,87 @@
   --type-dark: #705746;
   --type-steel: #b7b7ce;
   --type-fairy: #d685ad;
+}
+
+/* ============================================================
+   Dark mode.
+
+   An override of the token block, not a second stylesheet: the chrome already
+   routes through these custom properties, so the surfaces, ink and lines flip
+   here and every screen follows.
+
+   What deliberately does NOT flip: the 18 type colours, the HP thresholds and
+   the Okabe-Ito W-L-D colours. Those are functional — they encode meaning, are
+   colourblind-safe as chosen, and match the sprites and pixel-art fields they
+   sit beside. The move FX keep their own literals for the same reason: fire is
+   orange in both themes.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    /* Surfaces: the same lilac, walked down into the dark rather than
+       neutral grey, so the brand survives the flip. */
+    --paper: #14101f;
+    --paper-2: #191428;
+    --paper-3: #1f1930;
+    --surface: #221b35;
+    --surface-2: #2a2141;
+    --surface-3: #1f1930;
+    --panel-lilac: #261e3c;
+    --on-accent: #ffffff;
+    --line: #322a4a;
+    --line-2: #3d3358;
+
+    /* Ink inverts; the muted steps keep their spacing so hierarchy holds. */
+    --ink: #ece7f8;
+    --ink-2: #cfc6e6;
+    --muted: #a79dc2;
+    --muted-2: #8479a3;
+    --ghost: #635a80;
+
+    /* The violet has to lift off a dark ground rather than sit on white. */
+    --signal: #a487f5;
+    --signal-2: #b9a6f5;
+    --signal-deep: #8a5cf0;
+    --signal-soft: #2a2141;
+    --signal-bright: #cbbcfa;
+    --signal-disabled: #4a4068;
+    --signal-glow: rgba(164, 135, 245, 0.4);
+
+    --mat-top: #201a33;
+    --mat-bottom: #171226;
+    --mat-line: rgba(164, 135, 245, 0.08);
+
+    /* Status: keep the hue, drop the tinted paper to something that reads as
+       a panel rather than a highlighter on dark. */
+    --danger: #f0907c;
+    --danger-bg: #2e1d1f;
+    --danger-line: #4a2b2b;
+    --good: #6fce9f;
+    --good-line: #274437;
+
+    --code-bg: #100c1d;
+    --code-text: #c9bef0;
+    --code-caret: #8479a3;
+
+    --boost-up-bg: #1d3a2c;
+    --boost-up-text: #8fe0b4;
+    --boost-down-bg: #3a221d;
+    --boost-down-text: #f0a08c;
+
+    /* Shadows do nothing on a dark ground unless they get deeper. */
+    --shadow-card: 0 6px 18px rgba(0, 0, 0, 0.5);
+    --shadow-lift: 0 12px 28px rgba(0, 0, 0, 0.58);
+    --shadow-hard: 4px 4px 0 rgba(164, 135, 245, 0.22);
+  }
+
+  /* Sprites and print art are drawn for a light ground; a touch less glare
+     without washing them out. */
+  .card-art,
+  .stage-sprite {
+    filter: brightness(0.94);
+  }
 }
 
 /* ---- Base ---- */
@@ -191,7 +274,12 @@ h3 {
   border: 0;
   color: inherit;
   font: inherit;
-  padding: 0;
+  /* Real buttons, not inline text links, so the 24x24 minimum target size
+     applies to them (WCAG 2.2 AA 2.5.8). They rendered 111x17 and 72x17. */
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.25rem;
   text-decoration: underline;
   cursor: pointer;
 }
@@ -292,6 +380,65 @@ h3 {
   color: var(--signal);
 }
 
+/* ---- The landing page's stage still ----
+
+   Reuses the arena's own classes (see StagePreview), so it can't drift from
+   the real thing. All this adds is the framing the landing needs: a width the
+   hero can sit inside, and a scale that keeps the 300px field's proportions on
+   a phone. Nothing here restyles the stage itself. */
+.stage-preview {
+  width: 100%;
+  max-width: 620px;
+  margin: 0.25rem auto 2.25rem;
+  border-radius: var(--r-l);
+  overflow: hidden;
+  box-shadow: var(--shadow-lift);
+  /* The field is a fixed 300px tall; below ~620px the stage would letterbox,
+     so shrink the whole vignette instead of reflowing its absolute children. */
+  transform-origin: top center;
+}
+
+/* The stage's own frame already draws a border; the landing wants it to read
+   as one object with the hero, not as a panel inside a panel. */
+.stage-preview .battle-stage {
+  margin: 0;
+}
+
+/* main.landing centres its children, and that leaked into the message box —
+   which is left-aligned on the real stage. The point of this vignette is that
+   it looks like the thing, so it takes the stage's alignment, not the hero's. */
+.stage-preview {
+  text-align: left;
+}
+
+/* Decoration, not a control: nothing in here should look clickable or catch a
+   pointer aimed at the mode cards below. */
+.stage-preview,
+.stage-preview * {
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 680px) {
+  .stage-preview {
+    max-width: 100%;
+  }
+  /* Keep the two mons and their HP boxes in proportion rather than letting the
+     absolute positions crowd on a narrow field. */
+  .stage-preview .stage-field {
+    height: 232px;
+  }
+  .stage-preview .sprite-holder {
+    width: 84px;
+    height: 84px;
+  }
+  .stage-preview .message-box {
+    font-size: 0.85rem;
+    min-height: 2.6em;
+    padding: 10px 13px;
+  }
+}
+
 /* ---- Lab screens ---- */
 main.screen,
 main.landing {
@@ -319,7 +466,7 @@ main.landing {
   text-align: center;
   max-width: 100%;
   padding: 3rem 1.5rem 3.5rem;
-  background: radial-gradient(ellipse at 50% 0%, var(--surface-2), #e9e1f6);
+  background: radial-gradient(ellipse at 50% 0%, var(--surface-2), var(--paper));
 }
 
 /* Data-dense screens (the dashboard) get more room on desktop. */
@@ -552,6 +699,159 @@ main.screen.wide {
   outline: 2px solid var(--signal-2);
 }
 
+/* ---- Get in touch ----
+   A composer, not a form: it builds a mailto and hands it to the reader's own
+   email app (see ContactPanel). Styled to sit inside .footer-panel, which
+   already owns the surface and border. */
+.contact-panel {
+  text-align: left;
+}
+
+.contact-field {
+  display: block;
+  margin: 0.75rem 0;
+}
+
+.contact-field > span {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.contact-field select {
+  font: inherit;
+  min-height: 32px;
+  width: 100%;
+  max-width: 22rem;
+  padding: 0 0.45rem;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  color: var(--ink-2);
+}
+
+.contact-message {
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  color: var(--ink);
+  resize: vertical;
+}
+
+.contact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0.5rem;
+}
+
+/* An anchor, so it gets the browser's own link affordances (open in a new
+   window, copy address) rather than a button that only works on click.
+   Scoped through .footer-panel: the panel's own `a` rule is (0,1,1) and would
+   otherwise win, painting link-coloured underlined text on the violet fill. */
+.footer-panel .contact-send {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 0.85rem;
+  border-radius: var(--r-pill);
+  background: var(--signal);
+  color: var(--on-accent);
+  text-decoration: none;
+  font-size: 0.78rem;
+}
+
+.footer-panel .contact-send:hover {
+  background: var(--signal-deep);
+  color: var(--on-accent);
+}
+
+.contact-copy {
+  min-height: 34px;
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: 0.74rem;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  /* The address is long; never let it push the footer sideways. */
+  overflow-wrap: anywhere;
+}
+
+.contact-copy:hover {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.contact-note {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+/* Must sit after the base rule above, not up with the other dark overrides:
+   both are (0,2,0), so the later one wins and an override declared earlier in
+   the file would silently do nothing.
+
+   --signal is the *lightened* violet in dark mode — it exists to read as text
+   on the dark ground, so white on top of it only reaches 2.9:1. Flip the
+   fill's ink dark instead: 6.5:1, and it still reads as the primary action. */
+@media (prefers-color-scheme: dark) {
+  .footer-panel .contact-send {
+    color: var(--paper);
+  }
+
+  .footer-panel .contact-send:hover {
+    background: var(--signal-bright);
+    color: var(--paper);
+  }
+}
+
+/* The reassurance beside a paste box. Quiet by design — a competitive team is
+   hours of work and pasting it somewhere new is a fair thing to pause over, but
+   a loud banner would read as protesting too much. */
+.privacy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  max-width: 46rem;
+  margin: 0.5rem 0 0.9rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--good-line);
+  border-radius: var(--r-m);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.privacy-note strong {
+  color: var(--ink);
+}
+
+.privacy-note-mark {
+  flex: none;
+  line-height: 1.3;
+}
+
+/* Beside the "add an opponent" box, where it's a reminder rather than the
+   first thing anyone reads. */
+.privacy-note.compact {
+  margin: 0.35rem 0 0.6rem;
+  font-size: 0.76rem;
+  padding: 0.4rem 0.6rem;
+}
+
 .problems {
   color: var(--danger);
   background: var(--danger-bg);
@@ -560,6 +860,11 @@ main.screen.wide {
   padding: 0.6rem 1rem;
   margin: 0.75rem 0;
   list-style-position: inside;
+  /* These messages quote the user's own team back at them, and a nickname is
+     one unbroken token. Without this a long one is unwrappable and takes the
+     whole page sideways with it — at 375px a 150-char nickname overflowed by
+     1244px. */
+  overflow-wrap: anywhere;
 }
 
 .import-status {
@@ -739,6 +1044,72 @@ button.primary:disabled {
   margin-top: 0.5rem;
 }
 
+/* Bulk selection for the field. Isolating one archetype by hand was ~55
+   clicks, on the screen that asks you to weight matchups. */
+/* With the field expanded the page runs to ~4800px on desktop and ~10000px on
+   mobile, and Run sat at the very bottom of it — browse the pool, then scroll
+   all the way back to start. Pin it while the table is open. */
+.run-controls-stuck {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: var(--paper-2);
+  border-top: 1px solid var(--line);
+  margin-top: 0.5rem;
+  padding: 0.75rem 0;
+}
+
+.pool-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0.6rem;
+}
+
+.pool-tools-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  margin-right: 0.1rem;
+}
+
+.pool-tools button {
+  min-height: 28px;
+  padding: 0 0.6rem;
+  font-size: 0.78rem;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.pool-tools button:hover {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.pool-only {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.pool-only select {
+  font: inherit;
+  min-height: 28px;
+  padding: 0 0.4rem;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  color: var(--ink-2);
+}
+
 .pool-table {
   width: 100%;
   border-collapse: separate;
@@ -885,7 +1256,7 @@ button.primary:disabled {
 
 .run-controls {
   margin-top: 1rem;
-  background: linear-gradient(158deg, #fff, var(--surface-2));
+  background: linear-gradient(158deg, var(--surface), var(--surface-2));
   border: 1px solid var(--line-2);
   border-radius: var(--r-l);
   padding: 1.4rem 1.5rem;
@@ -913,7 +1284,7 @@ button.primary:disabled {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
   border: 3px solid var(--signal);
   box-shadow: 0 2px 6px rgba(91, 52, 214, 0.4);
   cursor: pointer;
@@ -923,7 +1294,7 @@ button.primary:disabled {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
   border: 3px solid var(--signal);
   box-shadow: 0 2px 6px rgba(91, 52, 214, 0.4);
   cursor: pointer;
@@ -1139,7 +1510,7 @@ button.primary:disabled {
 
 .matchup-column:first-child .matchup-body {
   background: var(--danger-bg);
-  border-top-color: #f4e7e3;
+  border-top-color: var(--danger-line);
 }
 
 .threats {
@@ -1255,7 +1626,7 @@ button.primary:disabled {
 
 .pm-read {
   padding: 5px 0;
-  border-top: 1px dashed #eadff7;
+  border-top: 1px dashed var(--line-2);
 }
 
 .pm-read:first-of-type {
@@ -1383,7 +1754,12 @@ button.primary:disabled {
   transition: transform 0.18s ease, box-shadow 0.18s ease;
   animation: none;
   width: 158px;
-  margin-left: -56px;
+  /* Overlap the frame, not the contents. At -56px each card hid 25-45% of the
+     one beneath it — including the right-hand end of the item and Tera lines —
+     so five of six options were unreadable until hovered, and the screen asks
+     you to compare six. The rotation still reads as a hand; only the bite out
+     of the neighbour is gone. */
+  margin-left: -16px;
 }
 
 .offer-grid.bundles .offer-card:first-child {
@@ -1480,7 +1856,7 @@ button.primary:disabled {
      to the border box (the gradient frame itself). */
   border: 4px solid transparent;
   border-radius: var(--r-m);
-  background: linear-gradient(#fdfbff, var(--panel-lilac)) padding-box, var(--gem-border) border-box;
+  background: linear-gradient(var(--surface), var(--panel-lilac)) padding-box, var(--gem-border) border-box;
   padding: 7px 7px 8px;
   font: inherit;
   cursor: pointer;
@@ -1526,7 +1902,7 @@ button.primary:disabled {
   align-items: stretch;
   border-width: 5px;
   border-radius: var(--r-l);
-  background: linear-gradient(#fdfbff, #efe7fa) padding-box,
+  background: linear-gradient(var(--surface), var(--panel-lilac)) padding-box,
     linear-gradient(150deg, #f7d02c, var(--signal-2) 48%, var(--signal)) border-box;
   padding: 0;
   overflow: hidden;
@@ -1611,7 +1987,7 @@ button.primary:disabled {
   align-items: center;
   gap: 0.5rem;
   padding: 0.2rem 0;
-  border-bottom: 1px solid #f0e9f8;
+  border-bottom: 1px solid var(--line);
   color: var(--ink-2);
 }
 
@@ -1635,7 +2011,7 @@ button.primary:disabled {
 
 /* The last meta line (item · nature · Tera) reads as the card's footer strip. */
 .set-meta:last-of-type {
-  background: #f3ebfb;
+  background: var(--surface-2);
   padding: 7px 11px 8px;
   margin-top: 4px;
 }
@@ -2237,7 +2613,10 @@ button.primary:disabled {
    intro renders only the frame, so stacking them would overlap a 300px
    viewport with a roughly 700px column. */
 .stage-swap {
-  transition: opacity 0.35s ease;
+  /* Duration comes from the stage, which knows the beat: at speed the beat is
+     shorter than the full fade, and a transition still running when the rung
+     advances springs back from partial opacity instead of passing through. */
+  transition: opacity var(--swap-fade, 350ms) ease;
 }
 
 .stage-swap.swapping {
@@ -9210,7 +9589,7 @@ button.primary:disabled {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
   border: 3px solid var(--signal);
   box-shadow: 0 2px 6px rgba(91, 52, 214, 0.4);
   cursor: pointer;
@@ -9220,7 +9599,7 @@ button.primary:disabled {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
   border: 3px solid var(--signal);
   cursor: pointer;
 }
@@ -9417,10 +9796,12 @@ button.primary:disabled {
 .game-name {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* Archetype names run long by construction. Truncating them to "Grassy
+     Terrai…" inside a 615px card in a 1440px viewport hid the one thing the
+     row is for; two lines cost less than the ellipsis did. */
+  overflow-wrap: anywhere;
   font-size: 0.88rem;
+  line-height: 1.3;
   color: var(--ink);
 }
 
@@ -9513,8 +9894,14 @@ button.primary:disabled {
   .matchup-columns {
     grid-template-columns: 1fr;
   }
-  /* A fan needs width it doesn't have on narrow screens — flatten to a
-     wrapping grid, no rotation/overlap. */
+}
+
+/* A fan needs width it doesn't have on narrow screens — flatten to a wrapping
+   grid, no rotation/overlap. Six barely-overlapping cards are wider than six
+   heavily-overlapping ones, so this now has to take over earlier than it did.
+   The grid is the better layout anyway: every card fully legible at a glance,
+   no hovering required. */
+@media (max-width: 1000px) {
   .offer-grid.bundles {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

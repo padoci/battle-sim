@@ -1,4 +1,5 @@
 import {Component, type ErrorInfo, type ReactNode} from 'react';
+import {isPreloadError, STALE_BUILD_MESSAGE} from './preloadError';
 
 interface Props {
   children: ReactNode;
@@ -24,18 +25,24 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private reset = () => {
-    // Back to the landing route, then remount the tree fresh.
-    location.hash = '';
+    // '#/' rather than '': clearing an ALREADY-empty hash fires no hashchange,
+    // so useRoute never updates, the same screen re-renders, and the button
+    // appears to do nothing. '#/' parses to landing either way.
+    location.hash = '#/';
     this.setState({error: undefined});
   };
 
   render(): ReactNode {
     if (!this.state.error) return this.props.children;
+    // A stale lazy chunk after a redeploy is the one error with a real
+    // explanation and a real fix, so say so instead of showing the raw
+    // "Failed to fetch dynamically imported module" string.
+    const stale = isPreloadError(this.state.error);
     return (
       <main className="screen">
         <div className="empty-state">
-          <p>Something went wrong on this screen.</p>
-          <p className="hint mono">{this.state.error.message}</p>
+          <p>{stale ? STALE_BUILD_MESSAGE : 'Something went wrong on this screen.'}</p>
+          {!stale && <p className="hint mono">{this.state.error.message}</p>}
           <div className="result-actions">
             <button className="primary" onClick={() => location.reload()}>
               Reload

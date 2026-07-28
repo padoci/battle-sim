@@ -1,5 +1,5 @@
 import type {PokemonSet} from '../data/types';
-import {randomSeed} from '../engine/rng';
+import {seedFromInts} from '../engine/rng';
 import {FAST} from '../search/config';
 import type {BattleJob, BattleResult} from '../search/runner';
 import type {SimClient} from '../worker/client';
@@ -50,6 +50,11 @@ export class BulkRunner {
     private readonly searchSeed: number = Math.floor(Math.random() * 2 ** 31)
   ) {}
 
+  /** The seed this whole run derives from — surface it so a run is replayable. */
+  get seed(): number {
+    return this.searchSeed;
+  }
+
   /** Live per-battle wall-clock EMA; 0 before the first battle completes. */
   get msPerBattle(): number {
     return this.emaMsPerBattle;
@@ -62,7 +67,16 @@ export class BulkRunner {
       const index = this.battleIndex++;
       return {
         teams: [this.userTeam, team] as BattleJob['teams'],
-        battleSeed: randomSeed(),
+        // Derived from the run seed rather than Math.random(): a bulk run is
+        // otherwise unreproducible from its config, so a user reporting "my
+        // team went 12-88" hands over a result nobody can replay. The mixing
+        // constants just decorrelate the four 16-bit words.
+        battleSeed: seedFromInts(
+          (this.searchSeed + index * 7919) & 0xffff,
+          (this.searchSeed * 31 + index * 104729) & 0xffff,
+          (this.searchSeed * 131 + index * 15485863) & 0xffff,
+          (this.searchSeed * 8191 + index * 2038074743) & 0xffff
+        ),
         searchSeed: this.searchSeed + index * 7919,
         policies: [
           {kind: 'search', config: FAST},

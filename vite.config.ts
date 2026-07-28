@@ -26,8 +26,23 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        dev: resolve(__dirname, 'dev.html'),
-        measure: resolve(__dirname, 'measure.html'),
+        // dev.html (data/engine inspector) and measure.html (search perf
+        // harness) are developer tools, and a production build must not ship
+        // them: measure.html takes `?battles=N&config=strong` straight from
+        // the query string and will run a visitor's CPU flat out for ~20
+        // minutes. public/robots.txt keeps them out of search results, but
+        // that only asks crawlers nicely — it doesn't make the URLs 404.
+        //
+        // `npm run dev` serves them regardless (the dev server doesn't use
+        // rollupOptions.input), so the local workflow is unchanged. Only a
+        // built artifact needs the flag:
+        //   BUILD_TOOLS=1 npm run build
+        ...(process.env.BUILD_TOOLS
+          ? {
+              dev: resolve(__dirname, 'dev.html'),
+              measure: resolve(__dirname, 'measure.html'),
+            }
+          : {}),
       },
     },
   },
