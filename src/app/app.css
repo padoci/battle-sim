@@ -3194,8 +3194,8 @@ button.primary:disabled {
    dot that appeared at the caster's mouth and vanished.
 
    `- 50%` keeps the element centred on the target the same way the 0% frame
-   centres it on the caster; the percentage resolves against the bolt, the
-   `cqw` against the field. */
+   centres it on the caster: the percentage resolves against the bolt itself,
+   the gap against the field (measured, see useStageGeometry). */
 @keyframes beamShotToTheirs {
   0% { transform: translate(-50%, -50%) scale(0.4); opacity: 1; }
   80% { opacity: 1; }
@@ -9011,18 +9011,30 @@ button.primary:disabled {
   animation-name: ballTossTheirs;
 }
 
-/* In `cqw` for the same reason as the beam: the toss should cover the same
-   share of the field on a phone as on desktop. Each ball arcs in from its own
-   trainer's side of the screen. */
+/* Fractions of the measured gap, like every other travel distance here, so
+   each ball arcs in from its own trainer's side by the same share of the field
+   at any width.
+
+   These were briefly in `cqw`, which was correct only while `.stage-field` was
+   a query container. The field went back to a fluid width and lost its
+   `container-type`, at which point `cqw` silently fell back to the VIEWPORT:
+   at a 1440px window `-21cqw` is -302px rather than the ~-120px intended, and
+   it rescaled with the browser window instead of the stage. */
 @keyframes ballTossMine {
-  0% { transform: translate(-21cqw, -12.5cqw) rotate(-260deg) scale(0.75); }
-  55% { transform: translate(-50%, -5.4cqw) rotate(0deg) scale(1); }
+  0% {
+    transform: translate(calc(var(--gap-x) * -0.2), calc(var(--gap-y) * -0.8))
+      rotate(-260deg) scale(0.75);
+  }
+  55% { transform: translate(-50%, calc(var(--gap-y) * -0.34)) rotate(0deg) scale(1); }
   100% { transform: translate(-50%, 0) rotate(0deg) scale(1); opacity: 0; }
 }
 
 @keyframes ballTossTheirs {
-  0% { transform: translate(16cqw, -12.5cqw) rotate(260deg) scale(0.75); }
-  55% { transform: translate(-50%, -5.4cqw) rotate(0deg) scale(1); }
+  0% {
+    transform: translate(calc(var(--gap-x) * 0.15), calc(var(--gap-y) * -0.8))
+      rotate(260deg) scale(0.75);
+  }
+  55% { transform: translate(-50%, calc(var(--gap-y) * -0.34)) rotate(0deg) scale(1); }
   100% { transform: translate(-50%, 0) rotate(0deg) scale(1); opacity: 0; }
 }
 
