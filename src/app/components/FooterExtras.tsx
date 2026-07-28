@@ -13,8 +13,6 @@ const AI_POLICY_PARAGRAPHS = [
 
 const GAZA_APPEAL_URL = 'https://www.unicef.org.uk/donate/children-in-gaza-crisis-appeal/';
 
-const SOURCE_URL = 'https://github.com/padoci/battle-sim';
-
 /** Footer's third row: AI usage disclosure + donations note, both expandable. */
 export function FooterExtras() {
   const [policyOpen, setPolicyOpen] = useState(false);
@@ -67,34 +65,8 @@ export function FooterExtras() {
       {dataOpen && (
         <div className="footer-panel mono" role="region" aria-label="Your data">
           <p>
-            Your team never leaves this browser. There is no account, no sign-in, and no server
-            to send it to &mdash; the whole site is static files, and every Pok&eacute;mon you
-            paste is parsed, validated and simulated by code running in this tab (in a web
-            worker, which is why your browser stays responsive while it runs).
-          </p>
-          <p>
-            The only things fetched over the network are public reference data: battle sets and
-            usage stats from data.pkmn.cc, and sprites and card art from Pok&eacute;mon
-            Showdown and TCGdex. Those are plain GET requests for public files &mdash; none of
-            them carry anything about your team. Team icons come from a single shared sprite
-            sheet, so not even the names of the Pok&eacute;mon you use appear in a URL.
-          </p>
-          <p>
-            There is no analytics, no tracking, no telemetry and no third-party script of any
-            kind. Nothing is written to a cookie.
-          </p>
-          <p>
-            What is kept on your own device: the team in the paste box and your playback speed
-            (browser local storage, so they survive a reload), and a ~24h cache of the public
-            battle data above (IndexedDB). Clearing this site&rsquo;s data removes all of it.
-          </p>
-          <p>
-            You don&rsquo;t have to take our word for any of this &mdash; the source is public
-            at{' '}
-            <a href={SOURCE_URL} target="_blank" rel="noreferrer">
-              github.com/padoci/battle-sim
-            </a>
-            .
+            Your team never leaves this browser. There is no account and no server, and every
+            battle runs locally in this tab.
           </p>
         </div>
       )}
