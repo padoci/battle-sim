@@ -15,11 +15,20 @@ const SPEED_KEY = 'battlesim.playbackSpeed';
 /** Fixed (not speed-scaled) settle pause before the very first beat plays —
  * just enough for the stage to mount, not a paced beat. */
 const KICKOFF_MS = 80;
-/** Fixed (not speed-scaled) gap between beats still inside the pre-turn-1
- * preamble (the two turn-0 lead switch-ins): short and constant regardless
- * of playback speed, so both leads land close together instead of the
- * second one lagging the paced `PACE.switch` wait behind the first. */
-const LEAD_IN_GAP_MS = 150;
+/* The turn-0 lead send-outs used to get a fixed, un-speed-scaled 150ms each
+   instead of their paced duration, so both leads would land close together.
+   That was reasonable while a send-out had nothing to say. It stopped being
+   reasonable once the textbox spoke: "Go! Dragapult!" held for 159ms and
+   "Gym Leader Maylene sent out Lucario!" for 140ms, against ~1460ms for the
+   identical event mid-battle — a tenfold cliff between the opening and the
+   rest of the same battle. 150ms is also below `typePlan`'s floor, so the
+   opening lines were the only ones in the game that never typed out.
+
+   They are paced like every other beat now: one page each (there is nothing
+   to recall at turn 0), so PACE.switch rather than the 1450ms a mid-battle
+   switch takes with its recall page. Still quicker than mid-battle, but by a
+   gradient rather than a cliff — and sequential, which is the order the
+   handheld games send out in anyway. */
 
 /** Slider position (0..1) <-> speed, log-mapped so the 0.5x-3x band most
  * users live in owns the middle of the track and 1x sits near center. */
@@ -177,10 +186,7 @@ export function usePlayback(
     // want different words (the turn prompt); otherwise the box speaks exactly
     // the lines this beat added.
     setCaption(applied.caption ?? applied.state.logLines.slice(spokenBefore));
-    // Still in the pre-turn-1 preamble (typically the two turn-0 lead
-    // switch-ins): a short fixed gap instead of the full paced beat duration,
-    // so both leads land close together at any speed.
-    const delay = applied.state.turn === 0 ? LEAD_IN_GAP_MS : beat.durationMs / speedRef.current;
+    const delay = beat.durationMs / speedRef.current;
     setBeatMs(delay);
     timerRef.current = setTimeout(step, delay);
   }, [finish]);
@@ -234,9 +240,7 @@ export function usePlayback(
     const pendingBeat = beatsRef.current?.[indexRef.current - 1];
     if (!pendingBeat) return;
     clearTimeout(timerRef.current);
-    // Still in the turn-0 preamble: its gap is fixed, not speed-scaled (see
-    // step()) — leave it alone rather than re-arming at the paced duration.
-    const delay = viewRef.current?.turn === 0 ? LEAD_IN_GAP_MS : pendingBeat.durationMs / speed;
+    const delay = pendingBeat.durationMs / speed;
     timerRef.current = setTimeout(step, delay);
   }, [speed, step]);
 
