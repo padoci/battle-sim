@@ -22,7 +22,19 @@ export interface MoveTags {
 
 export type ReplayEvent =
   | {kind: 'turn'; turn: number}
-  | {kind: 'switch'; ref: Ref; species: string; hp: number; maxhp: number; drag: boolean; logText: string}
+  | {
+      kind: 'switch';
+      ref: Ref;
+      species: string;
+      hp: number;
+      maxhp: number;
+      drag: boolean;
+      logText: string;
+      /** Battle-dialogue only: the "X, come back!" page shown before the
+       *  send-out line. Absent when nothing was on the field, when the mon
+       *  leaving fainted, or in the neutral analysis voice. */
+      recallText?: string;
+    }
   | {kind: 'move'; ref: Ref; move: string; target?: Ref; tags: MoveTags; logText: string}
   | {kind: 'damage'; ref: Ref; hp: number; maxhp: number; from?: string; sourceMove?: {ref: Ref; move: string}; logText: string}
   | {kind: 'heal'; ref: Ref; hp: number; maxhp: number; from?: string; logText: string}
@@ -72,20 +84,68 @@ const NOTE_KINDS = new Set([
 const label = (ref: Ref, names: [string, string]) => `${names[ref.side]} ${ref.name}`;
 
 /**
+ * How the parsed lines should read.
+ *
+ * The analysis path (highlights, post-mortems) wants neutral prose about a
+ * game that already happened. The battle stage wants what the handheld games
+ * put in the textbox while it is happening — "Go! Dragapult!", not "Your
+ * Dragapult switched in!". Same events either way; only the sentences differ.
+ */
+export interface Voice {
+  dialogue?: boolean;
+  /** The opposing trainer's display name, for send-out and recall lines. */
+  trainer?: string;
+}
+
+/** The mon's own name, unprefixed for the player's side and "The opposing X"
+ * for the foe's — the battle-textbox subject, as against `label`'s
+ * possessive-position "Your X" which only reads correctly in prose. */
+const actor = (ref: Ref, names: [string, string], voice: Voice) =>
+  voice.dialogue ? (ref.side === 0 ? ref.name : `The opposing ${ref.name}`) : label(ref, names);
+
+/** Full stat names: the protocol's three-letter keys are fine for the HP-box
+ * chip but read as debug output in a sentence. */
+const STAT_NAMES: Record<string, string> = {
+  atk: 'Attack',
+  def: 'Defense',
+  spa: 'Sp. Atk',
+  spd: 'Sp. Def',
+  spe: 'Speed',
+  accuracy: 'accuracy',
+  evasion: 'evasiveness',
+};
+
+/** The games grade stat changes by size rather than printing the number. */
+function boostPhrase(stat: string, delta: number): string {
+  const name = STAT_NAMES[stat] ?? stat;
+  const size = Math.abs(delta);
+  const rose = size >= 3 ? 'rose drastically' : size === 2 ? 'sharply rose' : 'rose';
+  const fell = size >= 3 ? 'severely fell' : size === 2 ? 'harshly fell' : 'fell';
+  return `${name} ${delta > 0 ? rose : fell}!`;
+}
+
+/**
  * Clean human text for a "note" protocol line, or null to drop it (never leak
  * the raw protocol string). Covers the common OU cases; `[silent]` lines and
  * anything unmapped are dropped by the caller.
  */
-function noteLogText(kind: string, parts: string[], names: [string, string]): string | null {
+function noteLogText(
+  kind: string,
+  parts: string[],
+  names: [string, string],
+  voice: Voice
+): string | null {
   const ref = parseRef(parts[2] ?? '');
   if (!ref) return null;
-  const who = label(ref, names);
+  const who = actor(ref, names, voice);
   const effect = (parts[3] ?? '').replace(/^(ability|move|item): /, '');
   switch (kind) {
     case '-ability':
-      return effect ? `${who}'s ${effect}!` : null;
+      return effect ? (voice.dialogue ? `${who}'s ${effect} activated!` : `${who}'s ${effect}!`) : null;
     case '-activate':
-      return /^ability: /.test(parts[3] ?? '') && effect ? `${who}'s ${effect}!` : null;
+      return /^ability: /.test(parts[3] ?? '') && effect
+        ? voice.dialogue ? `${who}'s ${effect} activated!` : `${who}'s ${effect}!`
+        : null;
     case '-item':
       return effect ? `${who}'s ${effect} was revealed!` : null;
     case '-enditem':
@@ -101,9 +161,17 @@ function noteLogText(kind: string, parts: string[], names: [string, string]): st
   }
 }
 
-export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P2']): ReplayEvent[] {
+export function parseProtocol(
+  log: string[],
+  names: [string, string] = ['P1', 'P2'],
+  voice: Voice = {}
+): ReplayEvent[] {
   const events: ReplayEvent[] = [];
   let pendingMove: {ref: Ref; move: string; eventIndex: number} | undefined;
+  // Who is on the field per side, so a switch can say goodbye to the mon it
+  // replaces. Cleared on a faint: a knocked-out Pokemon is not recalled, and
+  // the games say nothing before sending out the next one.
+  const active: [string | undefined, string | undefined] = [undefined, undefined];
 
   const tagPending = (tag: keyof MoveTags) => {
     if (!pendingMove) return;
@@ -141,9 +209,26 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
         if (!ref) break;
         const species = (parts[3] ?? '').split(',')[0] || ref.name;
         const {hp, maxhp} = parseHp(parts[4] ?? '100/100');
+        const leaving = active[ref.side];
+        active[ref.side] = ref.name;
+        const foe = voice.trainer ?? 'The opponent';
+        const logText = voice.dialogue
+          ? kind === 'drag'
+            ? `${actor(ref, names, voice)} was dragged out!`
+            : ref.side === 0
+              ? `Go! ${ref.name}!`
+              : `${foe} sent out ${ref.name}!`
+          : `${label(ref, names)} ${kind === 'drag' ? 'was dragged in' : 'switched in'}!`;
+        // Spoken before the send-out line, as its own textbox page.
+        const recallText =
+          voice.dialogue && kind === 'switch' && leaving
+            ? ref.side === 0
+              ? `${leaving}, come back!`
+              : `${foe} withdrew ${leaving}!`
+            : undefined;
         events.push({
           kind: 'switch', ref, species, hp, maxhp: maxhp || hp, drag: kind === 'drag',
-          logText: `${label(ref, names)} ${kind === 'drag' ? 'was dragged in' : 'switched in'}!`,
+          logText, recallText,
         });
         break;
       }
@@ -153,7 +238,7 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
         const target = parts[4] ? parseRef(parts[4]) : undefined;
         events.push({
           kind: 'move', ref, move: parts[3], target, tags: {},
-          logText: `${label(ref, names)} used ${parts[3]}!`,
+          logText: `${actor(ref, names, voice)} used ${parts[3]}!`,
         });
         pendingMove = {ref, move: parts[3], eventIndex: events.length - 1};
         break;
@@ -169,7 +254,7 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
             : undefined;
         events.push({
           kind: 'damage', ref, hp, maxhp, from, sourceMove,
-          logText: from ? `${label(ref, names)} was hurt by ${from.replace(/^(move|item|ability): /, '')}!` : '',
+          logText: from ? `${actor(ref, names, voice)} was hurt by ${from.replace(/^(move|item|ability): /, '')}!` : '',
         });
         break;
       }
@@ -180,26 +265,35 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
         const from = parts.find(p => p.startsWith('[from]'))?.replace('[from] ', '');
         events.push({
           kind: 'heal', ref, hp, maxhp, from,
-          logText: `${label(ref, names)} restored HP.`,
+          logText: voice.dialogue
+            ? `${actor(ref, names, voice)} had its HP restored!`
+            : `${label(ref, names)} restored HP.`,
         });
         break;
       }
       case 'faint': {
         const ref = parseRef(parts[2]);
         if (!ref) break;
-        events.push({kind: 'faint', ref, logText: `${label(ref, names)} fainted!`});
+        active[ref.side] = undefined;
+        events.push({kind: 'faint', ref, logText: `${actor(ref, names, voice)} fainted!`});
         break;
       }
       case '-status': {
         const ref = parseRef(parts[2]);
         if (!ref) break;
-        events.push({kind: 'status', ref, status: parts[3], logText: `${label(ref, names)} is now ${parts[3]}!`});
+        events.push({
+          kind: 'status', ref, status: parts[3],
+          logText: `${actor(ref, names, voice)} is now ${parts[3]}!`,
+        });
         break;
       }
       case '-curestatus': {
         const ref = parseRef(parts[2]);
         if (!ref) break;
-        events.push({kind: 'curestatus', ref, status: parts[3], logText: `${label(ref, names)} was cured of ${parts[3]}.`});
+        events.push({
+          kind: 'curestatus', ref, status: parts[3],
+          logText: `${actor(ref, names, voice)} was cured of ${parts[3]}.`,
+        });
         break;
       }
       case '-boost':
@@ -209,7 +303,9 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
         const delta = (kind === '-boost' ? 1 : -1) * Number(parts[4]);
         events.push({
           kind: 'boost', ref, stat: parts[3], delta,
-          logText: `${label(ref, names)}: ${delta > 0 ? '+' : ''}${delta} ${parts[3]}`,
+          logText: voice.dialogue
+            ? `${actor(ref, names, voice)}'s ${boostPhrase(parts[3], delta)}`
+            : `${label(ref, names)}: ${delta > 0 ? '+' : ''}${delta} ${parts[3]}`,
         });
         break;
       }
@@ -237,21 +333,32 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
         const effect = parts[3].replace(/^move: /, '');
         events.push({
           kind: 'side', side, effect, start: kind === '-sidestart',
-          logText: `${effect} ${kind === '-sidestart' ? `went up on ${names[side]} side` : `faded on ${names[side]} side`}.`,
+          // "Your side" only parses as prose; the games name the team.
+          logText: voice.dialogue
+            ? `${effect} ${kind === '-sidestart' ? 'was scattered around' : 'disappeared from around'} ${
+                side === 0 ? 'your team' : 'the opposing team'
+              }!`
+            : `${effect} ${kind === '-sidestart' ? `went up on ${names[side]} side` : `faded on ${names[side]} side`}.`,
         });
         break;
       }
       case '-terastallize': {
         const ref = parseRef(parts[2]);
         if (!ref) break;
-        events.push({kind: 'tera', ref, teraType: parts[3], logText: `${label(ref, names)} TERASTALLIZED into ${parts[3]}!`});
+        events.push({
+          kind: 'tera', ref, teraType: parts[3],
+          logText: `${actor(ref, names, voice)} TERASTALLIZED into ${parts[3]}!`,
+        });
         break;
       }
       case 'cant': {
         const ref = parseRef(parts[2]);
         if (!ref) break;
         pendingMove = undefined;
-        events.push({kind: 'cant', ref, reason: parts[3], logText: `${label(ref, names)} can't move (${parts[3]})!`});
+        events.push({
+          kind: 'cant', ref, reason: parts[3],
+          logText: `${actor(ref, names, voice)} can't move (${parts[3]})!`,
+        });
         break;
       }
       case '-crit':
@@ -287,7 +394,7 @@ export function parseProtocol(log: string[], names: [string, string] = ['P1', 'P
         // protocol string. `[silent]` lines are display-suppressed by Showdown
         // (this also hides the upstream `fallenundefined` Supreme Overlord line);
         // otherwise use a clean translation if we have one, else drop the text.
-        const logText = parts.includes('[silent]') ? '' : noteLogText(kind, parts, names) ?? '';
+        const logText = parts.includes('[silent]') ? '' : noteLogText(kind, parts, names, voice) ?? '';
         events.push({kind: 'note', text: NOTE_KINDS.has(kind) ? kind : `unknown:${kind}`, logText});
       }
     }

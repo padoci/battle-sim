@@ -46,6 +46,11 @@ export interface FxItem {
   /** The move's exact name ("Knock Off") — drives the small curated set of
    *  signature per-move overrides (SIGNATURE_MOVES in SixOhGauntlet.tsx). */
   move?: string;
+  /** `float` only: the size of the HP change as a fraction of max HP (always
+   *  positive). The bar drains at a constant rate rather than in a fixed time,
+   *  the way the handheld games do, so it needs the magnitude and not just the
+   *  rounded percentage in `text`. */
+  delta?: number;
   /** `impact` only: a critical hit — drives the extra screen-flash treatment. */
   crit?: boolean;
   /** `impact` only: how the type chart read this hit. Scales the SHARED
@@ -110,7 +115,10 @@ function findMon(side: SideView, name: string, species?: string): MonView | unde
 }
 
 /** Apply one beat, returning the next state plus the FX it triggers. */
-export function applyBeat(state: ViewState, beat: Beat): {state: ViewState; fx: FxItem[]} {
+export function applyBeat(
+  state: ViewState,
+  beat: Beat
+): {state: ViewState; fx: FxItem[]; caption?: string[]} {
   // Deep-enough clone of the mutable parts.
   const next: ViewState = {
     ...state,
@@ -125,19 +133,37 @@ export function applyBeat(state: ViewState, beat: Beat): {state: ViewState; fx: 
   };
   const fx: FxItem[] = [];
 
+  // What the message box should say, when that differs from what belongs in
+  // the scrolling log. Only the turn marker uses this so far: the log wants
+  // "Turn 7" as a scannable divider, while the textbox wants the prompt the
+  // handheld games sit on between turns.
+  let caption: string[] | undefined;
+
   for (const event of beat.events) {
-    if ('logText' in event && event.logText) next.logLines.push(event.logText);
+    // `switch` pushes its own lines, so the recall page can precede the
+    // send-out one.
+    if (event.kind !== 'switch' && 'logText' in event && event.logText) {
+      next.logLines.push(event.logText);
+    }
     switch (event.kind) {
-      case 'turn':
+      case 'turn': {
         next.turn = event.turn;
         next.logLines.push(`Turn ${event.turn}`);
+        const mine = next.sides[0];
+        const active = mine.activeIndex !== undefined ? mine.mons[mine.activeIndex] : undefined;
+        if (active && !active.fainted) caption = [`What will ${active.species} do?`];
         break;
+      }
       case 'switch': {
         const side = next.sides[event.ref.side];
         // Captured before activeIndex moves on — the mon leaving the field,
         // if any (undefined at turn-0 lead placement, or a fainted mon that
         // already dropped off-stage with its own faint animation).
         const outgoing = side.activeIndex !== undefined ? side.mons[side.activeIndex] : undefined;
+        // "Dragapult, come back!" then "Go! Fezandipiti!", two textbox pages
+        // in that order — the log used to jump straight to the arrival.
+        if (event.recallText && outgoing && !outgoing.fainted) next.logLines.push(event.recallText);
+        if (event.logText) next.logLines.push(event.logText);
         let mon = findMon(side, event.ref.name, event.species);
         if (!mon) {
           mon = {name: event.ref.name, species: event.species, hp: event.hp, maxhp: event.maxhp, fainted: false, boosts: {}};
@@ -211,7 +237,9 @@ export function applyBeat(state: ViewState, beat: Beat): {state: ViewState; fx: 
         if (event.maxhp > 0) mon.maxhp = Math.max(mon.maxhp, event.maxhp);
         const after = mon.maxhp > 1 ? mon.hp / mon.maxhp : 0;
         const delta = Math.round((before - after) * 100);
-        if (delta > 0) fx.push({type: 'float', side: event.ref.side, text: `−${delta}%`});
+        if (delta > 0) {
+          fx.push({type: 'float', side: event.ref.side, text: `−${delta}%`, delta: before - after});
+        }
         break;
       }
       case 'heal': {
@@ -219,8 +247,11 @@ export function applyBeat(state: ViewState, beat: Beat): {state: ViewState; fx: 
         if (!mon) break;
         const before = mon.hp / mon.maxhp;
         mon.hp = event.hp;
-        const delta = Math.round((event.hp / mon.maxhp - before) * 100);
-        if (delta > 0) fx.push({type: 'float', side: event.ref.side, text: `+${delta}%`});
+        const after = event.hp / mon.maxhp;
+        const delta = Math.round((after - before) * 100);
+        if (delta > 0) {
+          fx.push({type: 'float', side: event.ref.side, text: `+${delta}%`, delta: after - before});
+        }
         break;
       }
       case 'faint': {
@@ -281,7 +312,7 @@ export function applyBeat(state: ViewState, beat: Beat): {state: ViewState; fx: 
         break;
     }
   }
-  return {state: next, fx};
+  return {state: next, fx, caption};
 }
 
 /** Fold every remaining beat with no waits (instant / skip-to-result). */

@@ -94,3 +94,92 @@ describe('parseProtocol on a real battle log', () => {
     expect(immune.length).toBeGreaterThan(0);
   });
 });
+
+describe('battle-dialogue voice', () => {
+  const spoken = parseProtocol(log, ['Your', 'The opposing'], {
+    dialogue: true,
+    trainer: 'Gym Leader Maylene',
+  });
+  const line = (event: {logText?: string}) => event.logText ?? '';
+
+  it('sends Pokemon out the way the games do, not the way a log does', () => {
+    const switches = spoken.filter(e => e.kind === 'switch');
+    expect(switches.length).toBeGreaterThan(2);
+    // Drags (Dragon Tail, Whirlwind) are not send-outs and read differently.
+    const sent = switches.filter(e => e.kind === 'switch' && !e.drag);
+    const mine = sent.filter(e => e.kind === 'switch' && e.ref.side === 0);
+    const theirs = sent.filter(e => e.kind === 'switch' && e.ref.side === 1);
+    expect(mine.length).toBeGreaterThan(0);
+    expect(theirs.length).toBeGreaterThan(0);
+    for (const event of mine) expect(line(event)).toMatch(/^Go! .+!$/);
+    for (const event of theirs) expect(line(event)).toMatch(/^Gym Leader Maylene sent out .+!$/);
+    // The phrasing this replaced.
+    for (const event of switches) expect(line(event)).not.toContain('switched in');
+    const dragged = switches.filter(e => e.kind === 'switch' && e.drag);
+    for (const event of dragged) expect(line(event)).toMatch(/was dragged out!$/);
+  });
+
+  it('recalls the Pokemon it replaces, but not the lead and not a corpse', () => {
+    const switches = spoken.filter(e => e.kind === 'switch');
+    // The very first send-out on each side has nothing to recall.
+    const leads = switches.slice(0, 2);
+    for (const event of leads) {
+      expect(event.kind === 'switch' && event.recallText).toBeUndefined();
+    }
+    const recalls = switches.filter(e => e.kind === 'switch' && e.recallText);
+    expect(recalls.length).toBeGreaterThan(0);
+    for (const event of recalls) {
+      if (event.kind !== 'switch') continue;
+      expect(event.recallText).toMatch(
+        event.ref.side === 0 ? /^.+, come back!$/ : /^Gym Leader Maylene withdrew .+!$/
+      );
+    }
+
+    // A knocked-out Pokemon is never recalled: every faint is followed by a
+    // replacement switch on that side with no recall page.
+    for (let i = 0; i < spoken.length; i++) {
+      const event = spoken[i];
+      if (event.kind !== 'faint') continue;
+      const next = spoken.slice(i + 1).find(e => e.kind === 'switch' && e.ref.side === event.ref.side);
+      if (next && next.kind === 'switch') expect(next.recallText).toBeUndefined();
+    }
+  });
+
+  it('drops the possessive "Your" prefix that only reads in prose', () => {
+    for (const event of spoken) {
+      if (!('logText' in event) || !event.logText) continue;
+      expect(event.logText).not.toMatch(/\bYour\b/);
+    }
+    const faints = spoken.filter(e => e.kind === 'faint');
+    expect(faints.length).toBeGreaterThan(0);
+    for (const event of faints) {
+      expect(line(event)).toMatch(
+        event.kind === 'faint' && event.ref.side === 0
+          ? /^(?!The opposing).+ fainted!$/
+          : /^The opposing .+ fainted!$/
+      );
+    }
+  });
+
+  it('describes stat changes in words instead of printing the raw delta', () => {
+    const boosts = spoken.filter(e => e.kind === 'boost');
+    expect(boosts.length).toBeGreaterThan(0);
+    for (const event of boosts) {
+      if (event.kind !== 'boost') continue;
+      expect(line(event)).not.toMatch(/[+-]\d/);
+      expect(line(event)).toMatch(/(rose|fell)( drastically| sharply| harshly| severely)?!$/);
+      expect(line(event)).not.toMatch(/\b(atk|spa|spd|spe|def)\b/);
+    }
+  });
+
+  it('leaves the neutral analysis voice alone', () => {
+    const analysis = parseProtocol(log, ['You', 'The opponent']);
+    const switches = analysis.filter(e => e.kind === 'switch');
+    expect(switches.length).toBeGreaterThan(2);
+    for (const event of switches) {
+      if (event.kind !== 'switch') continue;
+      expect(line(event)).toContain(event.drag ? 'was dragged in' : 'switched in');
+      expect(event.recallText).toBeUndefined();
+    }
+  });
+});

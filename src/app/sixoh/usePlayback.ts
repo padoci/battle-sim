@@ -66,6 +66,9 @@ export interface Playback {
    * Empty after a skip (the box then falls back to the last log line).
    */
   caption: string[];
+  /** The current beat's paced duration in ms, already divided by speed — the
+   * budget the message box divides between its pages. */
+  beatMs: number;
   speed: PlaybackSpeed;
   setSpeed: (speed: PlaybackSpeed) => void;
   /** Playback has consumed every known beat but the stream is still
@@ -105,6 +108,7 @@ export function usePlayback(
   const [fx, setFx] = useState<FxItem[]>([]);
   const [fxKey, setFxKey] = useState(0);
   const [caption, setCaption] = useState<string[]>([]);
+  const [beatMs, setBeatMs] = useState(1000);
   const [done, setDone] = useState(false);
   const [waiting, setWaiting] = useState(false);
   const indexRef = useRef(0);
@@ -169,11 +173,15 @@ export function usePlayback(
     setView(applied.state);
     setFx(applied.fx);
     setFxKey(k => k + 1);
-    setCaption(applied.state.logLines.slice(spokenBefore));
+    // `applied.caption` overrides only where the textbox and the scrolling log
+    // want different words (the turn prompt); otherwise the box speaks exactly
+    // the lines this beat added.
+    setCaption(applied.caption ?? applied.state.logLines.slice(spokenBefore));
     // Still in the pre-turn-1 preamble (typically the two turn-0 lead
     // switch-ins): a short fixed gap instead of the full paced beat duration,
     // so both leads land close together at any speed.
     const delay = applied.state.turn === 0 ? LEAD_IN_GAP_MS : beat.durationMs / speedRef.current;
+    setBeatMs(delay);
     timerRef.current = setTimeout(step, delay);
   }, [finish]);
 
@@ -245,6 +253,7 @@ export function usePlayback(
     fx,
     fxKey,
     caption,
+    beatMs,
     speed,
     setSpeed,
     waiting,

@@ -144,17 +144,24 @@ async function splitProbe(page: import('@playwright/test').Page, holderClass: st
     field.className = 'stage-field';
     const holder = document.createElement('div');
     holder.className = cls;
+    // Mirrors the real tree: SpriteWithFallback always wraps the image in
+    // `.sprite-idle`, and the KO drop now rides that wrapper.
+    const idle = document.createElement('span');
+    idle.className = 'sprite-idle';
     const img = document.createElement('img');
     img.className = 'stage-sprite';
-    holder.appendChild(img);
+    idle.appendChild(img);
+    holder.appendChild(idle);
     field.appendChild(holder);
     host.appendChild(field);
     document.body.appendChild(host);
     const out = {
       holderAnim: getComputedStyle(holder).animationName,
+      idleAnim: getComputedStyle(idle).animationName,
       spriteAnim: getComputedStyle(img).animationName,
       // What the burst is multiplied by. `none` means it keeps its own colour.
       holderFilter: getComputedStyle(holder).filter,
+      holderOverflow: getComputedStyle(holder).overflowY,
     };
     host.remove();
     return out;
@@ -653,7 +660,9 @@ test('the world layer fills the field and still covers with the scene', async ({
   expect(read.size).toBe('cover');
   expect(read.pos).toBe('50% 50%');
   expect(read.w).toBe(800);
-  expect(read.h, 'the world collapsed, so nothing would paint').toBe(300);
+  // The field is a fixed 4:3 battle screen now, so its height follows its
+  // width rather than being a hardcoded 300px stretched across the column.
+  expect(read.h, 'the world collapsed, so nothing would paint').toBe(600);
 });
 
 test('a critical Earthquake keeps both its flash and its rings', async ({page}, testInfo) => {
@@ -765,14 +774,17 @@ test('multi-hit damage numbers stack instead of piling up', async ({page}, testI
 
   // The first hit must be untouched, so the overwhelmingly common single-hit
   // case renders exactly as it did before this change.
-  expect(tops.first.top).toBe('-14px');
+  // 10% of the 100px holder: a percentage rather than a fixed offset above it,
+  // because at the current sprite size a fixed -14px put the number outside
+  // the field, where `overflow: hidden` clipped it.
+  expect(tops.first.top).toBe('10px');
   expect(tops.first.left).toBe('50px'); // 50% of the 100px holder
 
   // Stacked upward...
-  expect(tops.second.top).toBe('-29px');
-  expect(tops.fourth.top).toBe('-59px');
+  expect(tops.second.top).toBe('-2px');
+  expect(tops.fourth.top).toBe('-26px');
   // ...and fanned alternately, because floatUp travels 26px (further than the
-  // 15px step), so stacking alone would let consecutive numbers cross.
+  // 12px step), so stacking alone would let consecutive numbers cross.
   expect(tops.second.left).toBe('82px');
   expect(tops.third.left).toBe('18px');
 });
@@ -954,14 +966,19 @@ test('the KO animates instead of vanishing', async ({page}, testInfo) => {
   await page.waitForSelector('.mode-card');
 
   const ko = await splitProbe(page, 'sprite-holder theirs faint-drop');
-  expect(ko.holderAnim, 'the holder should drop').toBe('faintDrop');
-  expect(ko.spriteAnim, 'the sprite should fade out').toBe('faintFade');
+  // The drop rides the wrapper, not the holder: the holder has to stay put so
+  // its bottom edge (which sits on the base) can clip the sprite away.
+  expect(ko.idleAnim, 'the sprite should drop out of the battle').toBe('faintDrop');
+  expect(ko.holderOverflow, 'without a clip the sprite slides over open field').toBe('hidden');
+  // A brief white-out, and emphatically NOT a fade: a knockout that dissolves
+  // in mid-air reads as vanishing rather than dropping.
+  expect(ko.spriteAnim).toBe('faintWhiteout');
 
-  // .faint-drop, .lead-in and .switch-pop are all (0,1,0) and source order is
-  // the only thing that makes the drop win. A hazard KO on a mon that just
-  // switched in genuinely carries both classes.
+  // A hazard KO on a mon that just switched in genuinely carries both classes.
+  // They no longer compete: the entrance owns the holder, the drop owns the
+  // wrapper, so both play instead of source order picking a winner.
   const both = await splitProbe(page, 'sprite-holder theirs faint-drop lead-in');
-  expect(both.holderAnim, 'an entrance animation outranked the KO').toBe('faintDrop');
+  expect(both.idleAnim, 'an entrance animation outranked the KO').toBe('faintDrop');
 });
 
 test('reduced motion suppresses the KO animation', async ({page}, testInfo) => {
@@ -972,6 +989,7 @@ test('reduced motion suppresses the KO animation', async ({page}, testInfo) => {
 
   const ko = await splitProbe(page, 'sprite-holder theirs faint-drop');
   expect(ko.holderAnim).toBe('none');
+  expect(ko.idleAnim, 'the drop moved to the wrapper and needs its own entry').toBe('none');
   expect(ko.spriteAnim).toBe('none');
 
   const dust = await page.evaluate(() => {
@@ -1024,4 +1042,61 @@ test('the battle stage never forces horizontal page scroll', async ({page}, test
     scrollWidth,
     `document scrolls ${scrollWidth - clientWidth}px wider than the ${clientWidth}px viewport`
   ).toBeLessThanOrEqual(clientWidth);
+});
+
+test('the FX travel variables match the real distance between the two mons', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'the variables are in cqw, so one viewport proves both');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  // The bug this guards: `beamShotToTheirs` translated a hardcoded 160px while
+  // the gap between the sprite centres was 606px, so every special move was a
+  // dot that died a quarter of the way across the field. The distances are
+  // derived from `--gap-x`/`--gap-y` now, and this asserts those still equal
+  // the geometry the sprite holders are actually laid out at.
+  const geom = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    host.style.width = '560px';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    const world = document.createElement('div');
+    world.className = 'stage-world';
+    const theirs = document.createElement('div');
+    theirs.className = 'sprite-holder theirs';
+    const mine = document.createElement('div');
+    mine.className = 'sprite-holder mine';
+    world.append(theirs, mine);
+    field.appendChild(world);
+    host.appendChild(field);
+    document.body.appendChild(host);
+
+    const cs = getComputedStyle(field);
+    const fieldBox = field.getBoundingClientRect();
+    const t = theirs.getBoundingClientRect();
+    const m = mine.getBoundingClientRect();
+    const out = {
+      fieldW: fieldBox.width,
+      fieldH: fieldBox.height,
+      // Resolved through a length so `cqw` becomes px we can compare.
+      gapX: parseFloat(cs.getPropertyValue('--gap-x')),
+      gapY: parseFloat(cs.getPropertyValue('--gap-y')),
+      actualX: t.x + t.width / 2 - (m.x + m.width / 2),
+      actualY: m.y + m.height / 2 - (t.y + t.height / 2),
+    };
+    host.remove();
+    return out;
+  });
+
+  // 4:3, the handheld battle-screen shape.
+  expect(geom.fieldW / geom.fieldH).toBeCloseTo(4 / 3, 2);
+
+  // `--gap-x` is authored in cqw (percent of the field's width).
+  const gapXPx = (geom.gapX / 100) * geom.fieldW;
+  const gapYPx = (geom.gapY / 100) * geom.fieldW;
+  expect(gapXPx, 'the beam would stop short of the defender').toBeCloseTo(geom.actualX, 0);
+  expect(gapYPx, 'the beam would arrive above or below the defender').toBeCloseTo(geom.actualY, -1);
+
+  // And the distance is a real crossing of the field, not a twitch.
+  expect(geom.actualX).toBeGreaterThan(geom.fieldW * 0.3);
 });
