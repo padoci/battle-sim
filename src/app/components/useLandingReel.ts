@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
-import {parseProtocol, type ReplayEvent} from '../../replay/parse';
-import {toBeats} from '../../replay/pace';
+import {type ReplayEvent} from '../../replay/parse';
+import {landingReelBeats} from '../../data/landingReel';
 
 /**
  * Replays a real battle on the landing page, at the same pace the gauntlet
@@ -96,7 +96,7 @@ interface Reel {
 }
 
 function buildReel(log: string[]): Reel {
-  const beats = toBeats(parseProtocol(log, ['Your', 'The opposing']));
+  const beats = landingReelBeats(log);
   const frames: ReelFrame[] = [];
   const holds: number[] = [];
   // Start from the first switch-in pair rather than the poster, so the loop

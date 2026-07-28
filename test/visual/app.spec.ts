@@ -43,6 +43,16 @@ test('Gen 5 battle stage — chrome + sprites', async ({page}, testInfo) => {
   // CI runner — keep the tripled budget.
   test.slow();
 
+  // Opt in explicitly, the way fx.spec.ts does. The global
+  // `use.reducedMotion: 'reduce'` in playwright.config.ts does not reach these
+  // tests — the sibling tests that assert the attack FX are ACTIVE pass, which
+  // they could not if it did. Without it the sprites render as `gen5ani`
+  // animated GIFs, and neither `animations: 'disabled'` nor any mask can
+  // freeze a GIF: consecutive screenshot attempts differed by 5-8% of the
+  // image against a 3% tolerance, so the shot never stabilised and the test
+  // timed out rather than failing on anything real. It only started biting
+  // when the stage geometry grew the sprites from ~13% to ~33% of the frame.
+  await page.emulateMedia({reducedMotion: 'reduce'});
   await page.goto('/#/sixoh?config=fast&seed=41');
   await page.locator('.mode-toggle button', {hasText: 'Normal'}).click();
   await page.waitForTimeout(200);
@@ -63,6 +73,20 @@ test('Gen 5 battle stage — chrome + sprites', async ({page}, testInfo) => {
   // Both mons take one beat each to switch in — give the second one time to
   // land so the screenshot isn't a coin flip on which side has rendered yet.
   await page.waitForTimeout(1_500);
+  // ...and wait for their images to actually be decoded. The sprites are the
+  // largest unmasked thing in this shot, and they are fetched from Showdown's
+  // CDN, so a screenshot taken while one is still in flight differs from the
+  // next by more than the whole tolerance — `toHaveScreenshot` then burns its
+  // stability window comparing a half-painted field against a painted one and
+  // times out rather than failing on a real difference.
+  await page.waitForFunction(
+    () => {
+      const imgs = [...document.querySelectorAll('.stage-sprite')] as HTMLImageElement[];
+      return imgs.length >= 2 && imgs.every(i => i.complete && i.naturalWidth > 0);
+    },
+    undefined,
+    {timeout: 30_000}
+  );
 
   // .battle-stage is now just the dark-bezel viewport (field + message box);
   // the log/meta/playback live below it in normal page flow. Everything that

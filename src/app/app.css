@@ -2163,7 +2163,11 @@ button.primary:disabled {
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 1.4rem;
   width: 100%;
-  max-width: 1180px;
+  /* Sized to the battle screen rather than the page: the stage is now a fixed
+     4:3 viewport (see .stage-field), so a 1180px arena left it marooned in the
+     middle of an empty column. 220 rail + 1.4rem gap + 576 frame + 3rem
+     padding. */
+  max-width: 870px;
   margin: 0 auto;
   padding: 1.5rem;
 }
@@ -2279,6 +2283,21 @@ button.primary:disabled {
   padding: 8px;
   background: linear-gradient(#2c2350, #1b1436);
   box-shadow: 0 14px 34px rgba(60, 40, 120, 0.3);
+  /* 560 field + 2x8 padding. Capped rather than fluid so the field can hold a
+     handheld 4:3 shape: stretched across a full desktop column it was 2.91:1,
+     which pushed the two Pokemon into opposite corners of a letterbox with
+     600px of empty ground between them. Centres once the column is wider. */
+  width: min(100%, 576px);
+  margin-inline: auto;
+}
+
+/* The rows under the frame (field strip, team icons, log, speed) line up with
+   the frame rather than spanning the whole column, so the battle reads as one
+   object instead of a narrow screen floating over full-width chrome. */
+.battle-title,
+.battle-below {
+  width: min(100%, 576px);
+  margin-inline: auto;
 }
 
 .battle-stage {
@@ -2294,12 +2313,46 @@ button.primary:disabled {
    lower-right (see .hp-block below for the box placement). */
 .stage-field {
   position: relative;
-  height: 300px;
+  /* 4:3, the handheld battle-screen shape, instead of the old fixed 300px
+     height stretched to whatever the column happened to be. Every position
+     inside the field is a percentage and every FX distance is in `cqw`, so
+     the whole scene scales as one piece from a phone up to the 560px cap and
+     the desktop and mobile compositions are identical. */
+  aspect-ratio: 4 / 3;
+  /* Makes the field the query container the FX measure against. `inline-size`
+     and not `size`: the aspect ratio is fixed, so 1cqh is always 0.75cqw and
+     one axis is enough — and `size` would need the height to not depend on
+     content, which `aspect-ratio` only satisfies by side effect. */
+  container-type: inline-size;
   /* Fallback shown until the scene PNG lands (preloaded during the draft, so
      rarely, but a cold cache on a slow line still hits it). Roughly the mean
      of the four scenes — all of which are green or tan, none blue. */
   background: #a1b88d center/cover;
   overflow: hidden;
+
+  /* ---- Stage geometry, in one place ----
+     The two sprite centres, as percentages of the field, and the distance
+     between them. Every travel distance in the FX below (beam shots, ball
+     tosses, lunges, recoils) is derived from these instead of being a px
+     constant, which is what left `beamShotToTheirs` covering 160px of a 606px
+     gap on desktop while reading correctly on mobile. */
+  --mon-theirs-x: 68%;
+  --mon-theirs-y: 30%;
+  --mon-mine-x: 28%;
+  --mon-mine-y: 65.3%;
+  /* theirs-x − mine-x, in container units. */
+  --gap-x: 40cqw;
+  /* (mine-y − theirs-y) of the HEIGHT, converted to cqw at the fixed 4:3
+     ratio: 35.3% × 0.75 = 26.5%. */
+  --gap-y: 26.5cqw;
+  /* How far an attacker dashes: a quarter of the way to the defender for a
+     contact move, a tenth for a setup/status move that never leaves its own
+     half. Fractions of the gap rather than fixed px, so the dash always covers
+     the same visible share of the field. */
+  --lunge-x: calc(var(--gap-x) * 0.24);
+  --lunge-y: calc(var(--gap-y) * 0.24);
+  --lunge-soft-x: calc(var(--gap-x) * 0.1);
+  --lunge-soft-y: calc(var(--gap-y) * 0.1);
 }
 
 /* Everything a camera may move, separated from the chrome that must not.
@@ -2319,25 +2372,68 @@ button.primary:disabled {
   background: center/cover;
 }
 
-.ground-shadow {
+/* The platform each side stands on.
+
+   Gen 5 draws a distinct textured disc under each Pokemon and it is what makes
+   the field read as ground receding into the distance. What was here before
+   was a blurred black ellipse — a contact shadow with no platform under it —
+   so both mons looked pasted onto a flat photo.
+
+   Placed off the shared sprite-centre variables in `.stage-field` rather than
+   its own px offsets, so a base can never drift away from the mon standing on
+   it. Semi-transparent on purpose: the four scenes range from meadow green to
+   cave brown to beach sand, and an opaque disc that suits one clashes with
+   the rest. */
+.stage-base {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.32), transparent 70%);
   pointer-events: none;
+  /* Behind the sprite holders, which sit at z-index 1. */
+  z-index: 0;
+  transform: translate(-50%, -50%);
+  background:
+    /* lit upper face */
+    radial-gradient(ellipse at 50% 32%, rgba(242, 232, 192, 0.5), rgba(242, 232, 192, 0) 56%),
+    /* body, raised rim, and a soft edge so it beds into the scene */
+    radial-gradient(
+      ellipse at 50% 50%,
+      rgba(126, 108, 70, 0.5) 0 54%,
+      rgba(154, 134, 88, 0.58) 54% 71%,
+      rgba(84, 70, 42, 0.52) 71% 86%,
+      rgba(84, 70, 42, 0) 91%
+    );
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-.ground-shadow.theirs {
-  top: 140px;
-  right: 78px;
-  width: 118px;
-  height: 24px;
+/* Contact shadow where the mon meets the disc, so it stands ON the base
+   instead of hovering over it. */
+.stage-base::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  width: 62%;
+  height: 36%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0) 70%);
 }
 
-.ground-shadow.mine {
-  bottom: 28px;
-  left: 56px;
-  width: 146px;
-  height: 30px;
+.stage-base.theirs {
+  left: var(--mon-theirs-x);
+  /* Each holder's feet: its centre plus half its height (30% of the width is
+     40% of the height at 4:3), less a couple of points so the disc reads as
+     ground the mon stands on rather than a ring around its ankles. */
+  top: calc(var(--mon-theirs-y) + 18%);
+  width: 29%;
+  height: 8%;
+}
+
+.stage-base.mine {
+  left: var(--mon-mine-x);
+  top: calc(var(--mon-mine-y) + 25%);
+  width: 39%;
+  height: 10.5%;
 }
 
 /* Weather and terrain washes.
@@ -2649,14 +2745,15 @@ button.primary:disabled {
   pointer-events: none;
 }
 
+/* Tucked just under each side's HP box (see .hp-block.theirs/.mine). */
 .hazard-corner.theirs {
-  top: 78px;
-  left: 16px;
+  top: 24%;
+  left: 3.5%;
 }
 
 .hazard-corner.mine {
-  bottom: 84px;
-  right: 16px;
+  bottom: 24%;
+  right: 3.5%;
 }
 
 /* Each side's sprite, placed diagonally on the field — opponent front
@@ -2668,18 +2765,30 @@ button.primary:disabled {
   z-index: 1;
 }
 
+/* Sized as a fraction of the field, not in px: the foe used to be 104px in an
+   874px field (12% of the width) where a handheld battle reads at roughly a
+   third. Percentages also mean one set of numbers covers every viewport, so
+   the mobile block below no longer needs to restate them.
+
+   `aspect-ratio` rather than a matching height percentage — a percentage
+   height would resolve against the field's HEIGHT and skew the box. */
+/* Deliberately smaller than the share a Gen 5 sprite holds of its screen.
+   Gen 5 sprites are 96x96 canvases with the Pokemon centred inside built-in
+   padding; Showdown's are trimmed tight to the artwork, so the same nominal
+   fraction renders visibly larger here. 30/40 lands the drawn mon at roughly
+   the size a padded 37%/50% canvas would. */
 .sprite-holder.theirs {
-  top: 48px;
-  right: 84px;
-  width: 104px;
-  height: 104px;
+  top: 10%;
+  right: 17%;
+  width: 30%;
+  aspect-ratio: 1;
 }
 
 .sprite-holder.mine {
-  bottom: 38px;
-  left: 58px;
-  width: 148px;
-  height: 148px;
+  bottom: 8%;
+  left: 8%;
+  width: 40%;
+  aspect-ratio: 1;
 }
 
 .stage-sprite {
@@ -2720,6 +2829,12 @@ button.primary:disabled {
 
 .sprite-idle.breathing {
   animation: spriteIdle 3.2s ease-in-out infinite;
+  /* The per-species phase offset, so the two mons on the field never breathe
+     in lockstep. Scoped to this rule rather than set inline on the element:
+     inline styles outrank every stylesheet rule, so an inline delay also
+     retimed the KO drop that shares this wrapper. Declared AFTER the shorthand
+     above, which would otherwise reset it to 0. */
+  animation-delay: var(--idle-phase, 0ms);
 }
 
 @keyframes spriteIdle {
@@ -2730,8 +2845,9 @@ button.primary:disabled {
 /* Hold the breath while something is happening: a mon calmly breathing
    through its own knockout reads badly, and freezing the loop makes the hit
    land harder for free. */
+/* `.faint-drop` is deliberately absent: it drives its own animation on this
+   same wrapper (see faintDrop), so pausing here would freeze the knockout. */
 .impact .sprite-idle,
-.faint-drop .sprite-idle,
 .dodge .sprite-idle,
 .blocked .sprite-idle {
   animation-play-state: paused;
@@ -2833,11 +2949,11 @@ button.primary:disabled {
 
 /* A bigger, snappier attack lunge — darts in ~42px and returns. */
 @keyframes lungeRight {
-  35% { transform: translate(42px, -16px); }
+  35% { transform: translate(var(--lunge-x), calc(-1 * var(--lunge-y))); }
 }
 
 @keyframes lungeLeft {
-  35% { transform: translate(-42px, 16px); }
+  35% { transform: translate(calc(-1 * var(--lunge-x)), var(--lunge-y)); }
 }
 
 /* Getting hit: recoil + white flash + a shake, so a hit actually lands.
@@ -2930,6 +3046,58 @@ button.primary:disabled {
   animation-delay: var(--fx-hit-delay, 0s);
 }
 
+/* ---- The hit, at field scale ----
+
+   Every other effect in this file is an ~80px decal drawn inside a sprite
+   holder, which is why an ordinary hit used to leave the field itself
+   completely still: Gen 5's move animations own the whole screen. These two
+   are the cheap, generic version of that — a type-coloured wash over the
+   entire field on any damaging hit, plus a short jolt for contact moves.
+
+   Both wait for `--fx-strike-delay` (set inline per beat, mirroring the
+   holder's `--fx-hit-delay`) because custom properties do not inherit upward
+   from the holder to the field. */
+/* A real element, not `.stage-field::after`: `crit-flash` already owns that
+   pseudo-element at the same (0,1,0) specificity and a critical hit sets both
+   classes in the same beat, so one would silently swallow the other — the
+   exact collision the weather and terrain layers were split up to avoid.
+   Remounted by its React key each beat, which restarts the animation without
+   needing a place in FIELD_CLASSES. */
+.strike-layer {
+  position: absolute;
+  inset: 0;
+  /* Ties with .hp-block and sits earlier in the DOM, so the wash covers the
+     field and the Pokemon but never washes out the HP readouts. */
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse at var(--fx-strike-x, 50%) var(--fx-strike-y, 50%),
+    var(--fx-strike-color, rgba(255, 232, 160, 0.9)) 0%,
+    rgba(255, 255, 255, 0) 62%
+  );
+  animation: strikeFlash 0.46s ease-out var(--fx-strike-delay, 0s);
+}
+
+@keyframes strikeFlash {
+  0% { opacity: 0; }
+  18% { opacity: 0.62; }
+  100% { opacity: 0; }
+}
+
+/* Contact moves land with a jolt the whole screen feels. Deliberately a
+   third of the KO shake's travel: a knockout still has to read as bigger
+   than a Bullet Punch. */
+.strike-jolt {
+  animation: strikeJolt 0.34s ease-out var(--fx-strike-delay, 0s);
+}
+
+@keyframes strikeJolt {
+  20% { transform: translate(-2px, 1px); }
+  50% { transform: translate(2px, -1px); }
+  75% { transform: translate(-1px, 0); }
+}
+
 /* Hit spark: a burst over the struck sprite (no extra DOM — pseudo-element).
    Colored by the incoming move's type via --fx-color (yellow-white default). */
 .impact::after {
@@ -3009,11 +3177,11 @@ button.primary:disabled {
 }
 
 @keyframes lungeRightSoft {
-  35% { transform: translate(18px, -7px); }
+  35% { transform: translate(var(--lunge-soft-x), calc(-1 * var(--lunge-soft-y))); }
 }
 
 @keyframes lungeLeftSoft {
-  35% { transform: translate(-18px, 7px); }
+  35% { transform: translate(calc(-1 * var(--lunge-soft-x)), var(--lunge-soft-y)); }
 }
 
 /* Special moves: a small colored bolt launches from the caster toward the
@@ -3045,16 +3213,32 @@ button.primary:disabled {
   animation: beamShotToMine 0.34s ease-in;
 }
 
+/* The bolt has to land ON the defender, so it travels the real distance
+   between the two sprite centres rather than a px constant. The old
+   `160px, -90px` was tuned against a narrow field: once the desktop stage was
+   874px wide the gap between the mons was 606px, so the bolt covered 26% of
+   it and faded out over empty ground. Every special move in the game was a
+   dot that appeared at the caster's mouth and vanished.
+
+   `- 50%` keeps the element centred on the target the same way the 0% frame
+   centres it on the caster; the percentage resolves against the bolt, the
+   `cqw` against the field. */
 @keyframes beamShotToTheirs {
   0% { transform: translate(-50%, -50%) scale(0.4); opacity: 1; }
   80% { opacity: 1; }
-  100% { transform: translate(160px, -90px) scale(0.6); opacity: 0; }
+  100% {
+    transform: translate(calc(var(--gap-x) - 50%), calc(-1 * var(--gap-y) - 50%)) scale(0.6);
+    opacity: 0;
+  }
 }
 
 @keyframes beamShotToMine {
   0% { transform: translate(-50%, -50%) scale(0.4); opacity: 1; }
   80% { opacity: 1; }
-  100% { transform: translate(-160px, 90px) scale(0.6); opacity: 0; }
+  100% {
+    transform: translate(calc(-1 * var(--gap-x) - 50%), calc(var(--gap-y) - 50%)) scale(0.6);
+    opacity: 0;
+  }
 }
 
 /* Physical/contact moves: a short type-colored speed-streak trailing the
@@ -8816,8 +9000,12 @@ button.primary:disabled {
 /* Incoming mon: delayed so its ball lands first (backwards-fill keeps it
    hidden through the delay). Shared by mid-battle switch-ins and the
    post-intro send-out window (.lead-in). */
+/* `--fx-switch-delay` holds the arrival back until the textbox has finished
+   saying goodbye to the outgoing Pokemon (see switchDelay in
+   SixOhGauntlet.tsx). Absent on a lead send-out, where the 0.25s default is
+   just the beat's own settle. */
 .switch-pop {
-  animation: switchPop 0.35s ease-out 0.25s backwards;
+  animation: switchPop 0.35s ease-out var(--fx-switch-delay, 0.25s) backwards;
 }
 
 .lead-in {
@@ -8843,22 +9031,25 @@ button.primary:disabled {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   pointer-events: none;
   z-index: 2;
-  animation: ballTossMine 0.5s ease-out forwards;
+  animation: ballTossMine 0.5s ease-out var(--fx-switch-delay, 0s) forwards;
 }
 
 .sprite-holder.theirs .switch-ball {
   animation-name: ballTossTheirs;
 }
 
+/* In `cqw` for the same reason as the beam: the toss should cover the same
+   share of the field on a phone as on desktop. Each ball arcs in from its own
+   trainer's side of the screen. */
 @keyframes ballTossMine {
-  0% { transform: translate(-120px, -70px) rotate(-260deg) scale(0.75); }
-  55% { transform: translate(-50%, -30px) rotate(0deg) scale(1); }
+  0% { transform: translate(-21cqw, -12.5cqw) rotate(-260deg) scale(0.75); }
+  55% { transform: translate(-50%, -5.4cqw) rotate(0deg) scale(1); }
   100% { transform: translate(-50%, 0) rotate(0deg) scale(1); opacity: 0; }
 }
 
 @keyframes ballTossTheirs {
-  0% { transform: translate(90px, -70px) rotate(260deg) scale(0.75); }
-  55% { transform: translate(-50%, -30px) rotate(0deg) scale(1); }
+  0% { transform: translate(16cqw, -12.5cqw) rotate(260deg) scale(0.75); }
+  55% { transform: translate(-50%, -5.4cqw) rotate(0deg) scale(1); }
   100% { transform: translate(-50%, 0) rotate(0deg) scale(1); opacity: 0; }
 }
 
@@ -8930,35 +9121,60 @@ button.primary:disabled {
    just switched in, which at 5x lands inside the 450ms just-arrived window),
    so moving this rule above them would silently turn the KO into a pop-in. */
 .faint-drop {
+  /* Clips the sprite at the base line as it slides. The holder itself no
+     longer moves, which also means a mon that switched in and was knocked out
+     in the same beat keeps its entrance animation instead of one silently
+     replacing the other. */
+  overflow: hidden;
+}
+
+.faint-drop .sprite-idle {
   animation: faintDrop 0.75s cubic-bezier(0.4, 0, 0.85, 0.5) forwards;
 }
 
+/* Straight down and out of sight, no topple and no fade: the handheld games
+   slide a fainted sprite vertically until the edge of its base clips it away.
+   What was here before rotated 9 degrees and dissolved to transparent, which
+   read as the Pokemon evaporating in mid-air rather than dropping out of the
+   battle.
+
+   Driven on `.sprite-idle` (the wrapper) rather than the holder, because the
+   clipping has to happen in a box that ISN'T moving — `overflow: hidden` on
+   the holder does nothing if the holder is what translates. The holder's
+   bottom edge sits on the base line, so it is exactly the right clip.
+   `translateY(100%)` is the wrapper's own height, so the sprite clears the
+   base at any field size. */
 @keyframes faintDrop {
-  0% { transform: translateY(0) rotate(0deg); }
-  14% { transform: translateY(-7px) rotate(-2deg); }
-  100% { transform: translateY(52px) rotate(9deg); }
+  0% { transform: translateY(0); }
+  14% { transform: translateY(-6%); }
+  100% { transform: translateY(100%); }
 }
 
-/* Filter and opacity only, never a transform: `.sprite-fallback` carries a
-   load-bearing `scale(1.7)` that an animated transform here would stomp for
-   the full 0.75s (same constraint as `.impact`). */
+/* A brief white-out on the flinch and nothing after it. The sprite must NOT
+   fade: it leaves by sliding behind the base (see faintDrop), and a dissolve
+   on top of that turned a knockout into a vanishing act. Filter only, never a
+   transform — `.sprite-fallback` carries a load-bearing `scale(1.7)` that an
+   animated transform here would stomp (same constraint as `.impact`). */
 .faint-drop .stage-sprite,
 .faint-drop .sprite-fallback {
-  animation: faintFade 0.75s ease-in forwards;
+  animation: faintWhiteout 0.3s ease-out;
 }
 
-@keyframes faintFade {
-  0% { filter: none; opacity: 1; }
-  14% { filter: brightness(2.2) saturate(0.25); opacity: 1; }
-  100% { filter: grayscale(1) brightness(0.55); opacity: 0; }
+@keyframes faintWhiteout {
+  0% { filter: none; }
+  30% { filter: brightness(2.2) saturate(0.25); }
+  100% { filter: none; }
 }
 
 /* A puff kicked up where it lands. `::after` is free on a KO beat: the burst
    that owns it belongs to `.impact`, and a faint is always its own beat. */
+/* Inside the holder, not hanging 6px below it: `.faint-drop` now clips its
+   overflow so the sprite can slide behind the base, and anything outside the
+   box goes with it. */
 .faint-drop::after {
   content: '';
   position: absolute;
-  bottom: -6px;
+  bottom: 2px;
   left: 50%;
   width: 76px;
   height: 20px;
@@ -8986,7 +9202,11 @@ button.primary:disabled {
      computes to a plain -14px / 50%. */
   --fx-float-index: 0;
   --fx-float-dx: 0px;
-  top: calc(-14px - var(--fx-float-index) * 15px);
+  /* A percentage of the holder, not a fixed -14px above it. The holder used to
+     be 104px and the number sat just over the mon's head; at the current size
+     the same offset put it outside the field, where `overflow: hidden` clipped
+     it against the top edge. */
+  top: calc(10% - var(--fx-float-index) * 12px);
   left: calc(50% + var(--fx-float-dx));
   transform: translateX(-50%);
   font-family: var(--font-mono);
@@ -9024,24 +9244,56 @@ button.primary:disabled {
 .hp-block {
   position: absolute;
   z-index: 2;
-  min-width: 206px;
+  /* Width now comes from .theirs/.mine as a share of the field; this is only
+     the floor that keeps the name + level + bar legible on a small phone. */
+  min-width: 150px;
   background: #f7f4ea;
   border: 3px solid #33526b;
   box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.28);
   padding: 6px 14px 7px;
 }
 
+/* Percentages of the field, so the boxes hold the same share of the screen at
+   every width the way a handheld's do, instead of being fixed px that read as
+   half the screen on a phone and a third of it on desktop. */
 .hp-block.theirs {
-  top: 16px;
-  left: 16px;
+  top: 4.5%;
+  left: 3.5%;
+  width: 45%;
   border-radius: 4px 16px 4px 16px;
+  /* Each box leaves towards its own edge of the screen. */
+  --hp-exit: -130%;
 }
 
 .hp-block.mine {
-  bottom: 18px;
-  right: 16px;
-  min-width: 222px;
+  bottom: 5%;
+  right: 3.5%;
+  width: 48%;
   border-radius: 16px 4px 16px 4px;
+  --hp-exit: 130%;
+}
+
+/* ---- The box travels with its Pokemon ----
+
+   A switch used to repaint the box in place: the name, level and HP jumped to
+   the arriving mon while the outgoing sprite was still playing its recall, so
+   for a third of a second the field showed one Pokemon under another's HP.
+   Now the old box slides out on the recall and the new one slides in behind
+   the switch-in pop, whose 0.25s delay these are matched to. */
+.hp-block.hp-out {
+  animation: hpBoxOut 0.3s ease-in forwards;
+}
+
+.hp-block.hp-in {
+  animation: hpBoxIn 0.35s ease-out var(--fx-switch-delay, 0.25s) backwards;
+}
+
+@keyframes hpBoxOut {
+  to { transform: translateX(var(--hp-exit)); opacity: 0; }
+}
+
+@keyframes hpBoxIn {
+  from { transform: translateX(var(--hp-exit)); opacity: 0; }
 }
 
 .hp-head {
@@ -9101,7 +9353,15 @@ button.primary:disabled {
   /* `background` is in the transition too: the colour used to snap from green
      to yellow to red on the frame the width changed, which read as a glitch
      rather than as a bar draining through the danger zones. */
-  transition: width 0.4s ease, background 0.4s ease;
+  /* `--hp-drain` is set per beat from the size of the HP change (see `drainMs`
+     in replay/pace.ts), so the bar falls at a constant rate the way a handheld
+     one does: a 5% chip is a twitch, a 90% hit is a full second of watching it
+     go. The fallback covers every beat that is not an HP change. `linear`, not
+     `ease`: a constant rate is the whole point, and easing put most of the
+     travel in the middle and made big and small hits converge again. */
+  transition:
+    width var(--hp-drain, 0.4s) linear,
+    background var(--hp-drain, 0.4s) linear;
   transition-delay: var(--fx-hit-delay, 0s);
 }
 
@@ -9229,6 +9489,10 @@ button.primary:disabled {
 /* On-stage message textbox — attached directly under the field inside the
    dark bezel, cream with a thick top border, speaking the current beat. */
 .message-box {
+  position: relative;
+  /* Two lines, always. The box types one page at a time now, so a height that
+     tracked the text would jump on every keystroke and again on every page
+     turn — the field above it would visibly shift. */
   min-height: 2.9em;
   background: #f7f4ea;
   color: #33323a;
@@ -9238,6 +9502,48 @@ button.primary:disabled {
   font-weight: 600;
   font-size: 1rem;
   line-height: 1.4;
+}
+
+/* Reserves the second line's height so a one-line page and a two-line page
+   occupy the same box. */
+.message-line {
+  min-height: 2.8em;
+  white-space: pre-wrap;
+}
+
+/* The "there is more to read" prompt, in the corner the handheld games put
+   it. Purely decorative: the full text of every page is already in the
+   box's `sr-only` copy. */
+.message-more {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 7px solid #33526b;
+  animation: messageMore 0.9s steps(1, end) infinite;
+}
+
+@keyframes messageMore {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+
+/* Visually hidden, still announced. The typed-out line is aria-hidden, so
+   this is what a screen reader actually reads: the whole beat at once,
+   rather than a sentence re-announced on every revealed character. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Battle log — a light inset panel of scrolling play-by-play. */
@@ -9638,51 +9944,19 @@ button.primary:disabled {
   .rung-icons {
     flex-basis: 100%;
   }
-  .stage-field {
-    height: 220px;
-  }
-  .sprite-holder.theirs {
-    top: 30px;
-    right: 40px;
-    width: 76px;
-    height: 76px;
-  }
-  .sprite-holder.mine {
-    bottom: 22px;
-    left: 24px;
-    width: 108px;
-    height: 108px;
-  }
-  .ground-shadow.theirs {
-    top: 92px;
-    right: 36px;
-    width: 76px;
-    height: 16px;
-  }
-  .ground-shadow.mine {
-    bottom: 18px;
-    left: 22px;
-    width: 96px;
-    height: 20px;
-  }
-  .hazard-corner.theirs {
-    top: 56px;
-  }
-  .hazard-corner.mine {
-    bottom: 58px;
-  }
+  /* The stage itself needs no mobile variant any more: `.stage-field` is a
+     fixed 4:3 box and everything inside it is positioned in percentages or
+     `cqw`, so the phone and desktop compositions are the same picture at two
+     sizes. Only the text inside the HP box, which cannot scale with the field
+     without becoming unreadable, is still tuned here. */
   .hp-block {
-    min-width: 150px;
     padding: 4px 10px 5px;
-  }
-  .hp-block.mine {
-    min-width: 160px;
   }
   .hp-name {
     font-size: 0.78rem;
   }
   .hp-bar {
-    min-width: 70px;
+    min-width: 60px;
   }
   /* Wrapped (see .stage-meta): centre the rows and give the wrapped line a
      little breathing room instead of leaving them pinned to the edges. */
@@ -9737,8 +10011,13 @@ button.primary:disabled {
   .fx-status.lunge-left .sprite-fallback,
   .tera-flash,
   .faint-drop,
+  /* The drop moved onto the wrapper (see faintDrop), and `.faint-drop
+     .sprite-idle` at (0,2,0) outranks `.sprite-idle.breathing` below, so it
+     needs its own entry or the knockout still slides. */
+  .faint-drop .sprite-idle,
   .faint-drop .stage-sprite,
   .faint-drop .sprite-fallback,
+  .strike-jolt,
   .sprite-idle.breathing,
   .hp-block.critical .hp-fill,
   .dodge,
@@ -9749,6 +10028,7 @@ button.primary:disabled {
   .switch-pop,
   .switch-out,
   .lead-in,
+  .hp-block.hp-in,
   .intro-trainer.enter,
   .intro-trainer.leave,
   .fx-status.lunge-right,
@@ -9765,6 +10045,9 @@ button.primary:disabled {
      than losing the beat. */
   .win-glow,
   .crit-flash,
+  /* The blinking prompt is a flashing element; the pages still turn, they
+     just do it without the flicker. */
+  .message-more,
   .earthquake-shake,
   .stealth-rock-fall,
   .spikes-fall,
@@ -9779,6 +10062,11 @@ button.primary:disabled {
      park them invisible anyway, and hiding them is the honest expression. */
   .switch-ball,
   .fx-eff,
+  .strike-layer,
+  /* Not `animation: none` like the rest of the motion above: this box starts
+     fully opaque and only the animation takes it away, so merely stopping it
+     would park the departing Pokemon's HP box on top of the arriving one. */
+  .hp-block.hp-out,
   .faint-drop::after,
   .blocked::after,
   /* The on-field condition effects are all motion (drifting embers, crackle,

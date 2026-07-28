@@ -144,17 +144,24 @@ async function splitProbe(page: import('@playwright/test').Page, holderClass: st
     field.className = 'stage-field';
     const holder = document.createElement('div');
     holder.className = cls;
+    // Mirrors the real tree: SpriteWithFallback always wraps the image in
+    // `.sprite-idle`, and the KO drop now rides that wrapper.
+    const idle = document.createElement('span');
+    idle.className = 'sprite-idle';
     const img = document.createElement('img');
     img.className = 'stage-sprite';
-    holder.appendChild(img);
+    idle.appendChild(img);
+    holder.appendChild(idle);
     field.appendChild(holder);
     host.appendChild(field);
     document.body.appendChild(host);
     const out = {
       holderAnim: getComputedStyle(holder).animationName,
+      idleAnim: getComputedStyle(idle).animationName,
       spriteAnim: getComputedStyle(img).animationName,
       // What the burst is multiplied by. `none` means it keeps its own colour.
       holderFilter: getComputedStyle(holder).filter,
+      holderOverflow: getComputedStyle(holder).overflowY,
     };
     host.remove();
     return out;
@@ -653,7 +660,9 @@ test('the world layer fills the field and still covers with the scene', async ({
   expect(read.size).toBe('cover');
   expect(read.pos).toBe('50% 50%');
   expect(read.w).toBe(800);
-  expect(read.h, 'the world collapsed, so nothing would paint').toBe(300);
+  // The field is a fixed 4:3 battle screen now, so its height follows its
+  // width rather than being a hardcoded 300px stretched across the column.
+  expect(read.h, 'the world collapsed, so nothing would paint').toBe(600);
 });
 
 test('a critical Earthquake keeps both its flash and its rings', async ({page}, testInfo) => {
@@ -765,14 +774,17 @@ test('multi-hit damage numbers stack instead of piling up', async ({page}, testI
 
   // The first hit must be untouched, so the overwhelmingly common single-hit
   // case renders exactly as it did before this change.
-  expect(tops.first.top).toBe('-14px');
+  // 10% of the 100px holder: a percentage rather than a fixed offset above it,
+  // because at the current sprite size a fixed -14px put the number outside
+  // the field, where `overflow: hidden` clipped it.
+  expect(tops.first.top).toBe('10px');
   expect(tops.first.left).toBe('50px'); // 50% of the 100px holder
 
   // Stacked upward...
-  expect(tops.second.top).toBe('-29px');
-  expect(tops.fourth.top).toBe('-59px');
+  expect(tops.second.top).toBe('-2px');
+  expect(tops.fourth.top).toBe('-26px');
   // ...and fanned alternately, because floatUp travels 26px (further than the
-  // 15px step), so stacking alone would let consecutive numbers cross.
+  // 12px step), so stacking alone would let consecutive numbers cross.
   expect(tops.second.left).toBe('82px');
   expect(tops.third.left).toBe('18px');
 });
@@ -954,14 +966,19 @@ test('the KO animates instead of vanishing', async ({page}, testInfo) => {
   await page.waitForSelector('.mode-card');
 
   const ko = await splitProbe(page, 'sprite-holder theirs faint-drop');
-  expect(ko.holderAnim, 'the holder should drop').toBe('faintDrop');
-  expect(ko.spriteAnim, 'the sprite should fade out').toBe('faintFade');
+  // The drop rides the wrapper, not the holder: the holder has to stay put so
+  // its bottom edge (which sits on the base) can clip the sprite away.
+  expect(ko.idleAnim, 'the sprite should drop out of the battle').toBe('faintDrop');
+  expect(ko.holderOverflow, 'without a clip the sprite slides over open field').toBe('hidden');
+  // A brief white-out, and emphatically NOT a fade: a knockout that dissolves
+  // in mid-air reads as vanishing rather than dropping.
+  expect(ko.spriteAnim).toBe('faintWhiteout');
 
-  // .faint-drop, .lead-in and .switch-pop are all (0,1,0) and source order is
-  // the only thing that makes the drop win. A hazard KO on a mon that just
-  // switched in genuinely carries both classes.
+  // A hazard KO on a mon that just switched in genuinely carries both classes.
+  // They no longer compete: the entrance owns the holder, the drop owns the
+  // wrapper, so both play instead of source order picking a winner.
   const both = await splitProbe(page, 'sprite-holder theirs faint-drop lead-in');
-  expect(both.holderAnim, 'an entrance animation outranked the KO').toBe('faintDrop');
+  expect(both.idleAnim, 'an entrance animation outranked the KO').toBe('faintDrop');
 });
 
 test('reduced motion suppresses the KO animation', async ({page}, testInfo) => {
@@ -972,6 +989,7 @@ test('reduced motion suppresses the KO animation', async ({page}, testInfo) => {
 
   const ko = await splitProbe(page, 'sprite-holder theirs faint-drop');
   expect(ko.holderAnim).toBe('none');
+  expect(ko.idleAnim, 'the drop moved to the wrapper and needs its own entry').toBe('none');
   expect(ko.spriteAnim).toBe('none');
 
   const dust = await page.evaluate(() => {
@@ -1024,4 +1042,217 @@ test('the battle stage never forces horizontal page scroll', async ({page}, test
     scrollWidth,
     `document scrolls ${scrollWidth - clientWidth}px wider than the ${clientWidth}px viewport`
   ).toBeLessThanOrEqual(clientWidth);
+});
+
+test('the FX travel variables match the real distance between the two mons', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'the variables are in cqw, so one viewport proves both');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  // The bug this guards: `beamShotToTheirs` translated a hardcoded 160px while
+  // the gap between the sprite centres was 606px, so every special move was a
+  // dot that died a quarter of the way across the field. The distances are
+  // derived from `--gap-x`/`--gap-y` now, and this asserts those still equal
+  // the geometry the sprite holders are actually laid out at.
+  const geom = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'battle-stage';
+    host.style.width = '560px';
+    const field = document.createElement('div');
+    field.className = 'stage-field';
+    const world = document.createElement('div');
+    world.className = 'stage-world';
+    const theirs = document.createElement('div');
+    theirs.className = 'sprite-holder theirs';
+    const mine = document.createElement('div');
+    mine.className = 'sprite-holder mine';
+    world.append(theirs, mine);
+    field.appendChild(world);
+    host.appendChild(field);
+    document.body.appendChild(host);
+
+    const cs = getComputedStyle(field);
+    const fieldBox = field.getBoundingClientRect();
+    const t = theirs.getBoundingClientRect();
+    const m = mine.getBoundingClientRect();
+    const out = {
+      fieldW: fieldBox.width,
+      fieldH: fieldBox.height,
+      // Resolved through a length so `cqw` becomes px we can compare.
+      gapX: parseFloat(cs.getPropertyValue('--gap-x')),
+      gapY: parseFloat(cs.getPropertyValue('--gap-y')),
+      actualX: t.x + t.width / 2 - (m.x + m.width / 2),
+      actualY: m.y + m.height / 2 - (t.y + t.height / 2),
+    };
+    host.remove();
+    return out;
+  });
+
+  // 4:3, the handheld battle-screen shape.
+  expect(geom.fieldW / geom.fieldH).toBeCloseTo(4 / 3, 2);
+
+  // `--gap-x` is authored in cqw (percent of the field's width).
+  const gapXPx = (geom.gapX / 100) * geom.fieldW;
+  const gapYPx = (geom.gapY / 100) * geom.fieldW;
+  expect(gapXPx, 'the beam would stop short of the defender').toBeCloseTo(geom.actualX, 0);
+  expect(gapYPx, 'the beam would arrive above or below the defender').toBeCloseTo(geom.actualY, -1);
+
+  // And the distance is a real crossing of the field, not a twitch.
+  expect(geom.actualX).toBeGreaterThan(geom.fieldW * 0.3);
+});
+
+test('the idle phase offset does not retime the KO drop', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  // The bug this guards: the per-species breathing phase used to be an inline
+  // `animation-delay` on `.sprite-idle`. Inline styles outrank every
+  // stylesheet rule, so it also applied to the KO drop that shares this
+  // wrapper — and a negative delay longer than faintDrop's 0.75s, with
+  // `fill: forwards`, starts the animation past its own end. The fainting
+  // sprite teleported off the field instead of sliding, for every species
+  // whose hashed phase exceeded 750ms (most of them).
+  const read = await page.evaluate(() => {
+    const mk = (cls: string, phase: string) => {
+      const host = document.createElement('div');
+      host.className = 'battle-stage';
+      const field = document.createElement('div');
+      field.className = 'stage-field';
+      const holder = document.createElement('div');
+      holder.className = 'sprite-holder theirs faint-drop';
+      const idle = document.createElement('span');
+      idle.className = cls;
+      idle.style.setProperty('--idle-phase', phase);
+      holder.appendChild(idle);
+      field.appendChild(holder);
+      host.appendChild(field);
+      document.body.appendChild(host);
+      const cs = getComputedStyle(idle);
+      const out = {name: cs.animationName, delay: cs.animationDelay, fill: cs.animationFillMode};
+      host.remove();
+      return out;
+    };
+    // A breathing (static-sprite) mon and an animated-gif one, both with a
+    // phase far beyond the drop's duration.
+    return {
+      breathing: mk('sprite-idle breathing', '-2798ms'),
+      animated: mk('sprite-idle', '-2798ms'),
+      // The phase must still reach the breathing loop when nothing else is
+      // happening, or the two mons on the field breathe in lockstep.
+      idleOnly: (() => {
+        const host = document.createElement('div');
+        host.className = 'battle-stage';
+        const el = document.createElement('span');
+        el.className = 'sprite-idle breathing';
+        el.style.setProperty('--idle-phase', '-2798ms');
+        host.appendChild(el);
+        document.body.appendChild(host);
+        const cs = getComputedStyle(el);
+        const out = {name: cs.animationName, delay: cs.animationDelay};
+        host.remove();
+        return out;
+      })(),
+    };
+  });
+
+  for (const [which, v] of Object.entries({breathing: read.breathing, animated: read.animated})) {
+    expect(v.name, `${which}: the KO drop should own the wrapper`).toBe('faintDrop');
+    // The drop must start at its beginning. Anything negative fast-forwards it.
+    expect(
+      parseFloat(v.delay),
+      `${which}: the breathing phase leaked onto the KO drop (${v.delay})`
+    ).toBe(0);
+  }
+
+  // ...and the offset still does its real job.
+  expect(read.idleOnly.name).toBe('spriteIdle');
+  expect(parseFloat(read.idleOnly.delay)).toBeLessThan(0);
+
+  // The rules above are only half the guard: an inline style outranks all of
+  // them, so the component must not set `animation-delay` on this element at
+  // all. Asserted against the real stage, because that is where the
+  // regression would actually live.
+  await page.goto('/#/sixoh?config=fast&seed=41&speed=30');
+  await page.waitForSelector('.offer-card', {timeout: 120_000});
+  for (let i = 0; i < 6; i++) {
+    await page.locator('.offer-card').first().click();
+    await page.waitForTimeout(120);
+  }
+  await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
+  await page.waitForSelector('.hp-bar', {timeout: 120_000});
+
+  const live = await page.evaluate(() => {
+    const wrappers = [...document.querySelectorAll('.sprite-idle')] as HTMLElement[];
+    return wrappers.map(w => ({
+      cls: w.className,
+      inlineDelay: w.style.animationDelay,
+      phase: w.style.getPropertyValue('--idle-phase'),
+      computedDelay: getComputedStyle(w).animationDelay,
+    }));
+  });
+  expect(live.length, 'expected sprites on the field').toBeGreaterThan(0);
+  for (const w of live) {
+    expect(
+      w.inlineDelay,
+      `inline animation-delay on ${w.cls} would outrank the KO drop's own timing`
+    ).toBe('');
+    expect(w.phase, 'the per-species phase should ride a custom property').not.toBe('');
+  }
+});
+
+test('the HP readout counts down with its own bar', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'the readout is viewport-independent');
+  test.slow();
+
+  // The bar's width is a CSS transition; the number beside it is text that
+  // React sets the instant the beat applies. They used to disagree by as much
+  // as 100 percentage points for over a second — on a knockout the box read
+  // "0 / 317" while the bar was still full and the hit had not landed, giving
+  // the result away before the animation could. Widening the drain to a
+  // constant RATE (drainMs) made a pre-existing 400ms glitch three times worse.
+  await page.goto('/#/sixoh?config=fast&seed=41');
+  await page.waitForSelector('.offer-card', {timeout: 120_000});
+  for (let i = 0; i < 6; i++) {
+    await page.locator('.offer-card').first().click();
+    await page.waitForTimeout(120);
+  }
+  await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
+  await page.waitForSelector('.hp-bar', {timeout: 120_000});
+
+  await page.evaluate(() => {
+    (window as unknown as {__gaps: number[]}).__gaps = [];
+    const gaps = (window as unknown as {__gaps: number[]}).__gaps;
+    const tick = () => {
+      for (const b of document.querySelectorAll('.hp-block')) {
+        // The departing box is mid-slide with its own frozen values.
+        if (b.className.includes('hp-out')) continue;
+        const fill = b.querySelector('.hp-fill');
+        const track = b.querySelector('.hp-bar');
+        if (!fill || !track) continue;
+        const trackW = track.getBoundingClientRect().width;
+        if (!trackW) continue;
+        const shown = (fill.getBoundingClientRect().width / trackW) * 100;
+        const num = b.querySelector('.hp-numeric')?.textContent ?? '';
+        const lab = b.querySelector('.hp-label')?.textContent ?? '';
+        const mNum = num.match(/(\d+)\s*\/\s*(\d+)/);
+        const mLab = lab.match(/(\d+)%/);
+        const claimed = mNum ? (Number(mNum[1]) / Number(mNum[2])) * 100 : mLab ? Number(mLab[1]) : null;
+        if (claimed !== null) gaps.push(Math.abs(shown - claimed));
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+
+  await page.waitForTimeout(25_000);
+  const gaps: number[] = await page.evaluate(
+    () => (window as unknown as {__gaps: number[]}).__gaps
+  );
+
+  expect(gaps.length, 'expected HP samples across several beats').toBeGreaterThan(500);
+  const worst = Math.max(...gaps);
+  // A few points of slack for rounding and for the transition and the rAF
+  // counter landing on different sides of a frame.
+  expect(worst, 'the HP number and its bar told different stories').toBeLessThan(12);
 });

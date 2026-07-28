@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState, type CSSProperties} f
 import {Icons, Sprites} from '@pkmn/img';
 import type {PokemonSet} from '../../data/types';
 import {parseProtocol} from '../../replay/parse';
-import {PACE, toBeats} from '../../replay/pace';
+import {drainMs, PACE, toBeats, typePlan} from '../../replay/pace';
 import type {FxItem, MonView, SideView} from '../../replay/view';
 import {navigate} from '../router';
 import {useUnloadGuard} from '../useUnloadGuard';
@@ -34,12 +34,32 @@ function speciesPhase(species: string): number {
   return h % 3200;
 }
 
+/**
+ * `gen5ani` sprites are animated GIFs, which is motion the same way a CSS
+ * keyframe is — and unlike a keyframe there is no way to pause one. Under
+ * reduced motion we ask for the static `gen5` tier instead, which is the
+ * fallback the component already knows how to render.
+ *
+ * This also makes the stage deterministic to screenshot. The visual tests that
+ * opt into reduced motion mask everything moving with the replay clock, but a
+ * looping GIF ignores both that and Playwright's `animations: 'disabled'`;
+ * once the sprites grew to a third of the frame, the frame-to-frame variation
+ * alone was 5-8% of the image against a 3% tolerance, and the shot could never
+ * stabilise.
+ */
+function prefersStillSprites(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
-  const startTier: SpriteTier = knownMissingGen5Ani.has(species) ? 'gen5' : 'gen5ani';
-  const [tier, setTier] = useState<SpriteTier>(startTier);
+  const still = useMemo(prefersStillSprites, []);
+  const best = (): SpriteTier => (still || knownMissingGen5Ani.has(species) ? 'gen5' : 'gen5ani');
+  const [tier, setTier] = useState<SpriteTier>(best);
   useEffect(() => {
-    setTier(knownMissingGen5Ani.has(species) ? 'gen5' : 'gen5ani');
-  }, [species]);
+    setTier(best());
+    // `best` closes over `species` and `still`; both are in the deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [species, still]);
 
   const url =
     tier === 'icon'
@@ -78,10 +98,118 @@ function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
   return (
     <span
       className={animated ? 'sprite-idle' : 'sprite-idle breathing'}
-      style={{animationDelay: `-${speciesPhase(species)}ms`}}
+      // A custom property, NOT an inline `animation-delay`. Inline styles beat
+      // every stylesheet rule, so a bare delay here applied to whatever
+      // animation this wrapper happened to be running — including the KO drop,
+      // which also lives on this element. A negative delay longer than
+      // faintDrop's 0.75s starts it past its own end, and `fill: forwards`
+      // then pins it there: the fainting sprite teleported off the field
+      // instead of sliding, for every species whose phase exceeded 750ms.
+      style={{'--idle-phase': `-${speciesPhase(species)}ms`} as CSSProperties}
     >
       {inner}
     </span>
+  );
+}
+
+
+/**
+ * The on-stage textbox.
+ *
+ * Speaks one line at a time, typing it out and holding it, then moving on:
+ * the handheld games never print "Hariyama used Bullet Punch!" and "It's
+ * super effective!" on the same page, and never print either of them
+ * instantly. `beat.durationMs` is sized to fit `pageCount` pages (see
+ * PAGE_MS in replay/pace.ts), so the pages divide the beat evenly and the
+ * last one is still readable when the next beat arrives.
+ *
+ * Its own component so the per-character re-render stays inside this box and
+ * never re-renders the stage.
+ */
+function MessageBox({
+  lines,
+  beatKey,
+  beatMs,
+  speed,
+}: {
+  lines: string[];
+  /** Changes once per beat; restarts the page sequence. */
+  beatKey: number;
+  /** The current beat's full paced duration, already divided by speed. */
+  beatMs: number;
+  speed: number;
+}) {
+  const pages = lines.length ? lines : [''];
+  const [page, setPage] = useState(0);
+  const [shown, setShown] = useState(0);
+  // Typing and page-turning are motion, and this is the one piece of it driven
+  // by JS timers rather than CSS — `animation: none` cannot reach it, and nor
+  // can Playwright's `animations: 'disabled'`, so a visual test would
+  // screenshot a different number of revealed characters every run.
+  const still = useMemo(
+    () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
+    []
+  );
+
+  const index = Math.min(page, pages.length - 1);
+  const text = pages[index] ?? '';
+  const perPage = Math.max(1, beatMs) / pages.length;
+  // `perPage` is NOT floored to a minimum: clamping it upward is what let the
+  // reveal budget exceed the beat that had to contain it. See typePlan.
+  const plan = typePlan(perPage, text.length, speed);
+  const typing = !still && !plan.instant && shown < text.length;
+  const visible = still || plan.instant ? text : text.slice(0, shown);
+
+  useEffect(() => {
+    setPage(0);
+    setShown(0);
+  }, [beatKey]);
+
+  // Reveal on a single interval rather than a timeout per character: at 18ms a
+  // 40-character line would otherwise be 40 renders in 700ms. Anything faster
+  // than a frame reveals several glyphs per tick instead of ticking faster.
+  useEffect(() => {
+    if (!typing) return;
+    const {tick, step} = plan;
+    const timer = setInterval(() => setShown(n => Math.min(text.length, n + step)), tick);
+    return () => clearInterval(timer);
+  }, [typing, text, plan.tick, plan.step]);
+
+  // Hold the finished page, then turn to the next one.
+  useEffect(() => {
+    if (still || typing || index >= pages.length - 1) return;
+    const timer = setTimeout(() => {
+      setPage(p => p + 1);
+      setShown(0);
+      // Whatever is left of the page after typing, so the quantised reveal
+      // can never push the turn past the end of the beat.
+    }, plan.holdMs);
+    return () => clearTimeout(timer);
+  }, [still, typing, index, pages.length, plan.holdMs]);
+
+  // Reduced motion: no typing, no page turns, no blinking prompt — the whole
+  // beat is simply printed, which is also what keeps the visual-regression
+  // screenshots byte-identical between runs.
+  if (still) {
+    return (
+      <div className="message-box" role="status" aria-live="polite">
+        <div className="message-line">{pages.join(' ')}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="message-box" role="status" aria-live="polite">
+      {/* The visible, typed-out page. */}
+      <div className="message-line" aria-hidden="true">
+        {visible}
+      </div>
+      {/* Screen readers get every page of the beat at once and unclipped —
+          a half-typed sentence re-announced on each keystroke would be
+          unusable. */}
+      <span className="sr-only">{pages.join(' ')}</span>
+      {!typing && index < pages.length - 1 && <span className="message-more" aria-hidden="true" />}
+    </div>
   );
 }
 
@@ -97,15 +225,91 @@ function hpColor(frac: number): string {
   return 'var(--hp-low)';
 }
 
-function HpBar({mon, side, hitDelay}: {mon: MonView; side: 'theirs' | 'mine'; hitDelay?: string}) {
+/**
+ * Count a displayed number toward a new target the way the bar next to it
+ * drains: after the same delay, over the same duration, on the same linear
+ * curve.
+ *
+ * The bar's width is a CSS transition, but the readout beside it is text and
+ * React sets it the instant the beat applies. Measured over a minute of live
+ * battle that left the two disagreeing 21 times, by as much as 100 percentage
+ * points for 1.1s — on a knockout the box read "0 / 317" while the bar was
+ * still full and the hit had not even landed, which gave the result away
+ * before the animation could.
+ */
+function useCountTo(target: number, delayMs: number, durationMs: number): number {
+  const [shown, setShown] = useState(target);
+  // Counting is motion, and it is driven by rAF rather than CSS, so neither
+  // `animation: none` nor Playwright's `animations: 'disabled'` can reach it.
+  const still = useMemo(prefersStillSprites, []);
+  // Always ease from what is currently on screen, so an interrupted drain
+  // continues from where it got to rather than snapping back.
+  const shownRef = useRef(shown);
+  shownRef.current = shown;
+  useEffect(() => {
+    const from = shownRef.current;
+    if (still || from === target || durationMs <= 0) {
+      setShown(target);
+      return;
+    }
+    let raf = 0;
+    let start = 0;
+    const step = (now: number) => {
+      if (!start) start = now;
+      const elapsed = now - start - delayMs;
+      if (elapsed < 0) {
+        raf = requestAnimationFrame(step);
+        return;
+      }
+      const p = Math.min(1, elapsed / durationMs);
+      setShown(Math.round(from + (target - from) * p));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [still, target, delayMs, durationMs]);
+  return shown;
+}
+
+function HpBar({
+  mon,
+  side,
+  hitDelay,
+  drain,
+  motion,
+  switchDelay,
+}: {
+  mon: MonView;
+  side: 'theirs' | 'mine';
+  hitDelay?: string;
+  /** Milliseconds this beat's HP change should take to drain, from `drainMs`. */
+  drain?: number;
+  /** How long the arriving box waits, so it lands with its Pokemon rather than
+   * at the top of a beat that is still saying goodbye to the last one. */
+  switchDelay?: string;
+  /** Slides the box off with the Pokemon leaving, or in with the one arriving.
+   * The handheld games move the box with its owner; this used to snap to the
+   * incoming mon's name and HP while the outgoing sprite was still on screen. */
+  motion?: 'in' | 'out';
+}) {
   const frac = mon.maxhp > 0 ? mon.hp / mon.maxhp : 0;
+  // The bar's own width and colour stay on the CSS transition; only the text
+  // beside them needs counting, and both run linear over the same window.
+  const shownHp = useCountTo(mon.hp, parseFloat(hitDelay ?? '0') * 1000, drain ?? 0);
+  const shownFrac = mon.maxhp > 0 ? shownHp / mon.maxhp : 0;
   // Matches hpColor's red threshold, so the pulse starts exactly when the bar
-  // turns red rather than at some second, invisible cutoff.
-  const critical = frac > 0 && frac <= 0.2;
+  // turns red rather than at some second, invisible cutoff. Driven by the
+  // counted value so the klaxon starts as the bar arrives in the red, not as
+  // the beat that will eventually take it there begins.
+  const critical = shownFrac > 0 && shownFrac <= 0.2;
+  const blockStyle: Record<string, string> = {};
+  if (hitDelay) blockStyle['--fx-hit-delay'] = hitDelay;
+  if (drain !== undefined) blockStyle['--hp-drain'] = `${drain}ms`;
+  if (switchDelay) blockStyle['--fx-switch-delay'] = switchDelay;
   return (
     <div
-      className={`hp-block ${side}${critical ? ' critical' : ''}`}
-      style={hitDelay ? ({'--fx-hit-delay': hitDelay} as CSSProperties) : undefined}
+      className={`hp-block ${side}${critical ? ' critical' : ''}${motion ? ` hp-${motion}` : ''}`}
+      style={blockStyle as CSSProperties}
     >
       <div className="hp-head">
         <span className="hp-name">{mon.species}</span>
@@ -133,9 +337,9 @@ function HpBar({mon, side, hitDelay}: {mon: MonView; side: 'theirs' | 'mine'; hi
       </div>
       {/* The real games never show the opponent's exact HP — only the player's box gets a numeric readout. */}
       {side === 'mine' ? (
-        <span className="mono hp-numeric">{Math.max(0, mon.hp)} / {mon.maxhp}</span>
+        <span className="mono hp-numeric">{Math.max(0, shownHp)} / {mon.maxhp}</span>
       ) : (
-        <span className="mono hp-label">{Math.round(frac * 100)}%</span>
+        <span className="mono hp-label">{Math.round(shownFrac * 100)}%</span>
       )}
     </div>
   );
@@ -208,6 +412,22 @@ function introTitle(opponent: GauntletOpponent, mode: DraftMode): string {
   if (opponent.badge?.includes('Champion')) return `Champion ${opponent.name}`;
   if (mode === 'gymleader') return `Gym Leader ${opponent.name}`;
   return opponent.name;
+}
+
+/**
+ * What the battle textbox calls the opponent.
+ *
+ * `introTitle` is right for a one-off "X wants to battle!" banner, but outside
+ * Gym Leader mode `opponent.name` is a team archetype — "Hazard Stack Bulky
+ * Offense (Iron Moth + Dragonite)" — and a textbox that says that before every
+ * single send-out is unreadable, and wraps past the two lines the box has.
+ * Those modes have no trainer identity to use instead (avatarKey is unset, see
+ * sixoh/state.ts), so the generic form is the honest one.
+ */
+function foeSpokenName(opponent: GauntletOpponent, mode: DraftMode): string {
+  if (opponent.badge?.includes('Champion')) return `Champion ${opponent.name}`;
+  if (mode === 'gymleader') return `Gym Leader ${opponent.name}`;
+  return 'The opponent';
 }
 
 /**
@@ -332,7 +552,7 @@ function BattleStage({
 }) {
   const teams = useMemo(() => [team, opponentSets] as [PokemonSet[], PokemonSet[]], [team, opponentSets]);
   const playback = usePlayback(teams, beats, onDone, {streamDone, battleKey, speedOverride});
-  const {view, fx, fxKey, caption, speed, setSpeed} = playback;
+  const {view, fx, fxKey, caption, beatMs, speed, setSpeed} = playback;
 
   const active = (side: 0 | 1): MonView | undefined => {
     const s = view.sides[side];
@@ -373,7 +593,24 @@ function BattleStage({
    * per hit, and taking only the first threw the rest away: Bullet Seed landing
    * four times looked exactly like it landing once. */
   const floatsFor = (side: 0 | 1) => fx.filter(f => f.side === side && f.type === 'float');
+  /** How long this side's bar should take to drain this beat: proportional to
+   * the size of the change, so a chip and a near-KO no longer look identical.
+   * Multi-hit moves land several floats but the bar only moves once, so the
+   * magnitudes add up. Undefined when nothing changed, which leaves the CSS
+   * default in place. */
+  const drainFor = (side: 0 | 1): number | undefined => {
+    const total = floatsFor(side).reduce((sum, f) => sum + Math.abs(f.delta ?? 0), 0);
+    return total > 0 ? drainMs(total, speed) : undefined;
+  };
   const outgoingFor = (side: 0 | 1) => fxFor(side, 'switch')?.outgoingSpecies;
+  /** The departing mon's own view row, so its HP box can leave with it instead
+   * of the box snapping to the arriving mon's name while the old sprite is
+   * still recalling. `applyBeat` only rewrites the INCOMING mon's hp, so this
+   * row still holds the values it had on the field. */
+  const outgoingMon = (side: 0 | 1): MonView | undefined => {
+    const species = outgoingFor(side);
+    return species ? view.sides[side].mons.find(m => m.species === species) : undefined;
+  };
 
   // Category + move-type flavor for a side's FX this beat: the category picks
   // the animation style (contact spark / beam / self-glow), the type colors it
@@ -417,9 +654,28 @@ function BattleStage({
    * switch-ins alike. */
   const showBall = (side: 0 | 1) =>
     ((side === 0 ? mineJustIn : theirsJustIn) || !!fxFor(side, 'switch')) && !fxFor(side, 'faint');
+  /**
+   * How long the arriving Pokemon waits before it pops in.
+   *
+   * A switch speaks twice — "Dragapult, come back!" then "Go! Fezandipiti!" —
+   * and the arrival belongs to the second page. Without this the recall beam,
+   * the ball toss and the new sprite all fired at the top of the beat, so the
+   * field showed the incoming mon while the box was still saying goodbye to
+   * the outgoing one.
+   *
+   * Multiplied back up by `fxRate` because useFxRestart sets `playbackRate` on
+   * the restarted animations, which compresses delay and duration together —
+   * without the pre-compensation the wait would be divided by the speed twice.
+   */
+  const switchDelay = (side: 0 | 1): string | undefined =>
+    outgoingFor(side) ? `${((beatMs / 2) * fxRate) / 1000}s` : undefined;
   const holderStyle = (side: 0 | 1): CSSProperties | undefined => {
+    const style: Record<string, string> = {};
     const color = fxFlavor(side).color;
-    return color ? ({'--fx-color': color} as CSSProperties) : undefined;
+    if (color) style['--fx-color'] = color;
+    const delay = switchDelay(side);
+    if (delay) style['--fx-switch-delay'] = delay;
+    return Object.keys(style).length ? (style as CSSProperties) : undefined;
   };
   /** Later hits of a multi-hit move stagger in time and stack upward, so four
    * numbers read as four hits instead of one illegible pile. The first is left
@@ -462,6 +718,35 @@ function BattleStage({
   // so the field gets told separately. A faint is its own beat, so no wait.
   const cameraDelay = fx.some(f => f.type === 'faint') ? undefined : hitDelay(pushSide ?? 1);
 
+  // The whole-field reaction to a hit: a type-coloured wash centred on whoever
+  // got hit, plus a jolt for contact moves. Gen 5 answers every attack at
+  // screen scale; without this the field itself only ever moved on a KO or a
+  // crit, and everything else was an 80px decal inside a sprite box.
+  const struck = fx.find(f => f.type === 'impact');
+  const strikeSide = struck?.side;
+  const strikeDelay = strikeSide === undefined ? undefined : hitDelay(strikeSide);
+  // Contact moves only, and never alongside a camera push or a KO shake: those
+  // are the bigger emphasis and both would fight this for the field's single
+  // `animation` channel.
+  const jolt =
+    struck !== undefined &&
+    fxFlavor(strikeSide as 0 | 1).category === 'fx-physical' &&
+    pushSide === undefined &&
+    !fx.some(f => f.type === 'faint');
+  const strikeStyle: CSSProperties = {};
+  if (cameraDelay) (strikeStyle as Record<string, string>)['--fx-camera-delay'] = cameraDelay;
+  if (strikeDelay) (strikeStyle as Record<string, string>)['--fx-strike-delay'] = strikeDelay;
+  if (strikeSide !== undefined) {
+    // Centre the wash on the mon that was hit, using the same geometry
+    // variables the field defines for the sprite positions.
+    (strikeStyle as Record<string, string>)['--fx-strike-x'] =
+      strikeSide === 0 ? 'var(--mon-mine-x)' : 'var(--mon-theirs-x)';
+    (strikeStyle as Record<string, string>)['--fx-strike-y'] =
+      strikeSide === 0 ? 'var(--mon-mine-y)' : 'var(--mon-theirs-y)';
+    const color = fxFlavor(strikeSide).color;
+    if (color) (strikeStyle as Record<string, string>)['--fx-strike-color'] = color;
+  }
+
   // Start the dip out so it finishes exactly as the run advances. Gated on the
   // stream being finished: playback can park ON the win beat while the search
   // is still landing, and fading there would hold a dark stage for as long as
@@ -469,11 +754,11 @@ function BattleStage({
   const hasWinner = view.winner !== undefined;
   useEffect(() => {
     if (!hasWinner || !streamDone) return;
-    const beatMs = PACE.win / Math.max(speed, 0.1);
+    const winBeatMs = PACE.win / Math.max(speed, 0.1);
     // The dip's duration travels with it: at speed the beat is shorter than
     // the full fade, and a CSS transition still running when the rung
     // advances springs back from partial opacity instead of passing through.
-    const timer = setTimeout(() => onSwapOut(swapFadeMs(beatMs)), swapOutDelayMs(beatMs));
+    const timer = setTimeout(() => onSwapOut(swapFadeMs(winBeatMs)), swapOutDelayMs(winBeatMs));
     return () => clearTimeout(timer);
   }, [hasWinner, streamDone, speed, onSwapOut]);
 
@@ -498,6 +783,7 @@ function BattleStage({
     fx.some(f => f.type === 'lunge' && f.move === 'Defog') && 'defog-sweep',
     fx.some(f => f.type === 'lunge' && f.move === 'Toxic Spikes') && 'toxic-spikes-fall',
     fx.some(f => f.type === 'lunge' && f.move === 'Sticky Web') && 'sticky-web-spread',
+    jolt && 'strike-jolt',
   ]
     .filter(Boolean)
     .join(' ');
@@ -525,7 +811,7 @@ function BattleStage({
           <div
             ref={fieldRef}
             className={fieldClasses}
-            style={cameraDelay ? ({'--fx-camera-delay': cameraDelay} as CSSProperties) : undefined}
+            style={strikeStyle}
           >
             <HazardCorner side={1} hazards={view.sides[1].hazards} />
             <HazardCorner side={0} hazards={view.sides[0].hazards} />
@@ -534,8 +820,8 @@ function BattleStage({
                 hazard glyphs stay outside it, since chrome should hold still
                 while the world leans. */}
             <div className="stage-world" style={{backgroundImage: `url(${sceneUrl(scene.file)})`}}>
-            <span className="ground-shadow theirs" />
-            <span className="ground-shadow mine" />
+            <span className="stage-base theirs" />
+            <span className="stage-base mine" />
 
             {outgoingFor(1) && (
               <div key={`t-out-${outgoingFor(1)}`} className="sprite-holder theirs switch-out">
@@ -611,15 +897,47 @@ function BattleStage({
             )}
             </div>
 
-            {theirs && <HpBar mon={theirs} side="theirs" hitDelay={hitDelay(1)} />}
-            {mine && <HpBar mon={mine} side="mine" hitDelay={hitDelay(0)} />}
+            {/* Keyed on the beat so it remounts and replays each hit. Outside
+                `.stage-world` on purpose: the wash is the screen reacting, so
+                it should not lean with the camera. */}
+            {strikeSide !== undefined && (
+              <span key={`strike-${fxKey}`} className="strike-layer" aria-hidden="true" />
+            )}
+
+            {/* The departing box, sliding off with its Pokemon. Keyed on the
+                species so a second switch rebuilds it rather than reusing the
+                previous one mid-animation. */}
+            {outgoingMon(1) && (
+              <HpBar key={`t-hp-out-${outgoingFor(1)}`} mon={outgoingMon(1)!} side="theirs" motion="out" />
+            )}
+            {theirs && (
+              <HpBar
+                key={`t-hp-${theirs.species}`}
+                mon={theirs}
+                side="theirs"
+                hitDelay={hitDelay(1)}
+                drain={drainFor(1)}
+                motion={fxFor(1, 'switch') ? 'in' : undefined}
+                switchDelay={switchDelay(1)}
+              />
+            )}
+            {outgoingMon(0) && (
+              <HpBar key={`m-hp-out-${outgoingFor(0)}`} mon={outgoingMon(0)!} side="mine" motion="out" />
+            )}
+            {mine && (
+              <HpBar
+                key={`m-hp-${mine.species}`}
+                mon={mine}
+                side="mine"
+                hitDelay={hitDelay(0)}
+                drain={drainFor(0)}
+                motion={fxFor(0, 'switch') ? 'in' : undefined}
+                switchDelay={switchDelay(0)}
+              />
+            )}
           </div>
 
-          <div className="message-box" role="status" aria-live="polite">
-            {spoken.map((line, i) => (
-              <div key={i}>{line}</div>
-            ))}
-          </div>
+          <MessageBox lines={spoken} beatKey={fxKey} beatMs={beatMs} speed={speed} />
         </div>
       </div>
 
@@ -735,10 +1053,17 @@ export function SixOhGauntlet() {
   // this array's identity). Re-parsing the whole accumulated log per chunk
   // is a single pass over <=4k lines (~1-2ms) once per decision.
   const log = battle?.result?.protocolLog ?? battle?.partialLog;
+  // The trainer's full title, so the textbox can say "Gym Leader Maylene sent
+  // out Hariyama!" the way the games do. Same string the intro announces with.
+  const foeTitle = state.opponents[index]
+    ? foeSpokenName(state.opponents[index], state.mode)
+    : undefined;
   const beats = useMemo(() => {
     if (!log?.length) return undefined;
     try {
-      return toBeats(parseProtocol(log, ['Your', 'The opposing']));
+      return toBeats(
+        parseProtocol(log, ['Your', 'The opposing'], {dialogue: true, trainer: foeTitle})
+      );
     } catch (error) {
       // This runs on the render path once per streamed decision, so a parse
       // throw here white-screens a live battle via the ErrorBoundary. The
@@ -749,8 +1074,7 @@ export function SixOhGauntlet() {
       console.error('replay parse failed; falling back to a static result', error);
       return undefined;
     }
-  }, [log]);
-  const hasBeats = !!beats?.length;
+  }, [log, foeTitle]);  const hasBeats = !!beats?.length;
 
   useEffect(() => {
     if (battle?.phase === 'ready') dispatch({type: 'REPLAY_STARTED', index});

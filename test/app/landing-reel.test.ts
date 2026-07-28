@@ -1,7 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {parseProtocol} from '../../src/replay/parse';
-import {toBeats} from '../../src/replay/pace';
-import {LANDING_REEL_LOG, LANDING_REEL_META} from '../../src/data/landingReel';
+import {landingReelBeats, LANDING_REEL_LOG, LANDING_REEL_META} from '../../src/data/landingReel';
 import {POSTER_FRAME} from '../../src/app/components/useLandingReel';
 
 /**
@@ -14,7 +13,8 @@ import {POSTER_FRAME} from '../../src/app/components/useLandingReel';
  * is timers and a dynamic import — covered by the e2e walkthrough, not here.
  */
 
-const beats = toBeats(parseProtocol(LANDING_REEL_LOG, ['Your', 'The opposing']));
+// The same builder the landing page uses, so the two cannot drift.
+const beats = landingReelBeats(LANDING_REEL_LOG);
 
 interface Mon {
   species: string;

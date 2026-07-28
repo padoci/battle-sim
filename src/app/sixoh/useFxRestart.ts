@@ -25,6 +25,11 @@ export const HIT_CLASSES = [
 export const FIELD_CLASSES = [
   'stage-shake',
   'crit-flash',
+  // Contact hits jolt the whole field. Needs restarting like the rest: two
+  // consecutive physical beats carry the same token. (The type-coloured wash
+  // that goes with it is `.strike-layer`, a real keyed element — see app.css
+  // for why it cannot share `.stage-field::after` with `crit-flash`.)
+  'strike-jolt',
   // A critical KO is two consecutive beats (toBeats gives a faint its own),
   // and both emit the SAME push token, so the second only replays because of
   // the strip-and-re-add below.
