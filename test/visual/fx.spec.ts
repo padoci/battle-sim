@@ -1100,3 +1100,159 @@ test('the FX travel variables match the real distance between the two mons', asy
   // And the distance is a real crossing of the field, not a twitch.
   expect(geom.actualX).toBeGreaterThan(geom.fieldW * 0.3);
 });
+
+test('the idle phase offset does not retime the KO drop', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'cascade is viewport-independent; desktop is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  // The bug this guards: the per-species breathing phase used to be an inline
+  // `animation-delay` on `.sprite-idle`. Inline styles outrank every
+  // stylesheet rule, so it also applied to the KO drop that shares this
+  // wrapper — and a negative delay longer than faintDrop's 0.75s, with
+  // `fill: forwards`, starts the animation past its own end. The fainting
+  // sprite teleported off the field instead of sliding, for every species
+  // whose hashed phase exceeded 750ms (most of them).
+  const read = await page.evaluate(() => {
+    const mk = (cls: string, phase: string) => {
+      const host = document.createElement('div');
+      host.className = 'battle-stage';
+      const field = document.createElement('div');
+      field.className = 'stage-field';
+      const holder = document.createElement('div');
+      holder.className = 'sprite-holder theirs faint-drop';
+      const idle = document.createElement('span');
+      idle.className = cls;
+      idle.style.setProperty('--idle-phase', phase);
+      holder.appendChild(idle);
+      field.appendChild(holder);
+      host.appendChild(field);
+      document.body.appendChild(host);
+      const cs = getComputedStyle(idle);
+      const out = {name: cs.animationName, delay: cs.animationDelay, fill: cs.animationFillMode};
+      host.remove();
+      return out;
+    };
+    // A breathing (static-sprite) mon and an animated-gif one, both with a
+    // phase far beyond the drop's duration.
+    return {
+      breathing: mk('sprite-idle breathing', '-2798ms'),
+      animated: mk('sprite-idle', '-2798ms'),
+      // The phase must still reach the breathing loop when nothing else is
+      // happening, or the two mons on the field breathe in lockstep.
+      idleOnly: (() => {
+        const host = document.createElement('div');
+        host.className = 'battle-stage';
+        const el = document.createElement('span');
+        el.className = 'sprite-idle breathing';
+        el.style.setProperty('--idle-phase', '-2798ms');
+        host.appendChild(el);
+        document.body.appendChild(host);
+        const cs = getComputedStyle(el);
+        const out = {name: cs.animationName, delay: cs.animationDelay};
+        host.remove();
+        return out;
+      })(),
+    };
+  });
+
+  for (const [which, v] of Object.entries({breathing: read.breathing, animated: read.animated})) {
+    expect(v.name, `${which}: the KO drop should own the wrapper`).toBe('faintDrop');
+    // The drop must start at its beginning. Anything negative fast-forwards it.
+    expect(
+      parseFloat(v.delay),
+      `${which}: the breathing phase leaked onto the KO drop (${v.delay})`
+    ).toBe(0);
+  }
+
+  // ...and the offset still does its real job.
+  expect(read.idleOnly.name).toBe('spriteIdle');
+  expect(parseFloat(read.idleOnly.delay)).toBeLessThan(0);
+
+  // The rules above are only half the guard: an inline style outranks all of
+  // them, so the component must not set `animation-delay` on this element at
+  // all. Asserted against the real stage, because that is where the
+  // regression would actually live.
+  await page.goto('/#/sixoh?config=fast&seed=41&speed=30');
+  await page.waitForSelector('.offer-card', {timeout: 120_000});
+  for (let i = 0; i < 6; i++) {
+    await page.locator('.offer-card').first().click();
+    await page.waitForTimeout(120);
+  }
+  await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
+  await page.waitForSelector('.hp-bar', {timeout: 120_000});
+
+  const live = await page.evaluate(() => {
+    const wrappers = [...document.querySelectorAll('.sprite-idle')] as HTMLElement[];
+    return wrappers.map(w => ({
+      cls: w.className,
+      inlineDelay: w.style.animationDelay,
+      phase: w.style.getPropertyValue('--idle-phase'),
+      computedDelay: getComputedStyle(w).animationDelay,
+    }));
+  });
+  expect(live.length, 'expected sprites on the field').toBeGreaterThan(0);
+  for (const w of live) {
+    expect(
+      w.inlineDelay,
+      `inline animation-delay on ${w.cls} would outrank the KO drop's own timing`
+    ).toBe('');
+    expect(w.phase, 'the per-species phase should ride a custom property').not.toBe('');
+  }
+});
+
+test('the HP readout counts down with its own bar', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'the readout is viewport-independent');
+  test.slow();
+
+  // The bar's width is a CSS transition; the number beside it is text that
+  // React sets the instant the beat applies. They used to disagree by as much
+  // as 100 percentage points for over a second — on a knockout the box read
+  // "0 / 317" while the bar was still full and the hit had not landed, giving
+  // the result away before the animation could. Widening the drain to a
+  // constant RATE (drainMs) made a pre-existing 400ms glitch three times worse.
+  await page.goto('/#/sixoh?config=fast&seed=41');
+  await page.waitForSelector('.offer-card', {timeout: 120_000});
+  for (let i = 0; i < 6; i++) {
+    await page.locator('.offer-card').first().click();
+    await page.waitForTimeout(120);
+  }
+  await page.locator('button.primary', {hasText: 'Start the gauntlet'}).click();
+  await page.waitForSelector('.hp-bar', {timeout: 120_000});
+
+  await page.evaluate(() => {
+    (window as unknown as {__gaps: number[]}).__gaps = [];
+    const gaps = (window as unknown as {__gaps: number[]}).__gaps;
+    const tick = () => {
+      for (const b of document.querySelectorAll('.hp-block')) {
+        // The departing box is mid-slide with its own frozen values.
+        if (b.className.includes('hp-out')) continue;
+        const fill = b.querySelector('.hp-fill');
+        const track = b.querySelector('.hp-bar');
+        if (!fill || !track) continue;
+        const trackW = track.getBoundingClientRect().width;
+        if (!trackW) continue;
+        const shown = (fill.getBoundingClientRect().width / trackW) * 100;
+        const num = b.querySelector('.hp-numeric')?.textContent ?? '';
+        const lab = b.querySelector('.hp-label')?.textContent ?? '';
+        const mNum = num.match(/(\d+)\s*\/\s*(\d+)/);
+        const mLab = lab.match(/(\d+)%/);
+        const claimed = mNum ? (Number(mNum[1]) / Number(mNum[2])) * 100 : mLab ? Number(mLab[1]) : null;
+        if (claimed !== null) gaps.push(Math.abs(shown - claimed));
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+
+  await page.waitForTimeout(25_000);
+  const gaps: number[] = await page.evaluate(
+    () => (window as unknown as {__gaps: number[]}).__gaps
+  );
+
+  expect(gaps.length, 'expected HP samples across several beats').toBeGreaterThan(500);
+  const worst = Math.max(...gaps);
+  // A few points of slack for rounding and for the transition and the rAF
+  // counter landing on different sides of a frame.
+  expect(worst, 'the HP number and its bar told different stories').toBeLessThan(12);
+});

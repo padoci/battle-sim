@@ -77,7 +77,14 @@ function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
   return (
     <span
       className={animated ? 'sprite-idle' : 'sprite-idle breathing'}
-      style={{animationDelay: `-${speciesPhase(species)}ms`}}
+      // A custom property, NOT an inline `animation-delay`. Inline styles beat
+      // every stylesheet rule, so a bare delay here applied to whatever
+      // animation this wrapper happened to be running — including the KO drop,
+      // which also lives on this element. A negative delay longer than
+      // faintDrop's 0.75s starts it past its own end, and `fill: forwards`
+      // then pins it there: the fainting sprite teleported off the field
+      // instead of sliding, for every species whose phase exceeded 750ms.
+      style={{'--idle-phase': `-${speciesPhase(species)}ms`} as CSSProperties}
     >
       {inner}
     </span>
@@ -192,6 +199,49 @@ function hpColor(frac: number): string {
   return '#e83c2e';
 }
 
+/**
+ * Count a displayed number toward a new target the way the bar next to it
+ * drains: after the same delay, over the same duration, on the same linear
+ * curve.
+ *
+ * The bar's width is a CSS transition, but the readout beside it is text and
+ * React sets it the instant the beat applies. Measured over a minute of live
+ * battle that left the two disagreeing 21 times, by as much as 100 percentage
+ * points for 1.1s — on a knockout the box read "0 / 317" while the bar was
+ * still full and the hit had not even landed, which gave the result away
+ * before the animation could.
+ */
+function useCountTo(target: number, delayMs: number, durationMs: number): number {
+  const [shown, setShown] = useState(target);
+  // Always ease from what is currently on screen, so an interrupted drain
+  // continues from where it got to rather than snapping back.
+  const shownRef = useRef(shown);
+  shownRef.current = shown;
+  useEffect(() => {
+    const from = shownRef.current;
+    if (from === target || durationMs <= 0) {
+      setShown(target);
+      return;
+    }
+    let raf = 0;
+    let start = 0;
+    const step = (now: number) => {
+      if (!start) start = now;
+      const elapsed = now - start - delayMs;
+      if (elapsed < 0) {
+        raf = requestAnimationFrame(step);
+        return;
+      }
+      const p = Math.min(1, elapsed / durationMs);
+      setShown(Math.round(from + (target - from) * p));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target, delayMs, durationMs]);
+  return shown;
+}
+
 function HpBar({
   mon,
   side,
@@ -214,9 +264,15 @@ function HpBar({
   motion?: 'in' | 'out';
 }) {
   const frac = mon.maxhp > 0 ? mon.hp / mon.maxhp : 0;
+  // The bar's own width and colour stay on the CSS transition; only the text
+  // beside them needs counting, and both run linear over the same window.
+  const shownHp = useCountTo(mon.hp, parseFloat(hitDelay ?? '0') * 1000, drain ?? 0);
+  const shownFrac = mon.maxhp > 0 ? shownHp / mon.maxhp : 0;
   // Matches hpColor's red threshold, so the pulse starts exactly when the bar
-  // turns red rather than at some second, invisible cutoff.
-  const critical = frac > 0 && frac <= 0.2;
+  // turns red rather than at some second, invisible cutoff. Driven by the
+  // counted value so the klaxon starts as the bar arrives in the red, not as
+  // the beat that will eventually take it there begins.
+  const critical = shownFrac > 0 && shownFrac <= 0.2;
   const blockStyle: Record<string, string> = {};
   if (hitDelay) blockStyle['--fx-hit-delay'] = hitDelay;
   if (drain !== undefined) blockStyle['--hp-drain'] = `${drain}ms`;
@@ -252,9 +308,9 @@ function HpBar({
       </div>
       {/* The real games never show the opponent's exact HP — only the player's box gets a numeric readout. */}
       {side === 'mine' ? (
-        <span className="mono hp-numeric">{Math.max(0, mon.hp)} / {mon.maxhp}</span>
+        <span className="mono hp-numeric">{Math.max(0, shownHp)} / {mon.maxhp}</span>
       ) : (
-        <span className="mono hp-label">{Math.round(frac * 100)}%</span>
+        <span className="mono hp-label">{Math.round(shownFrac * 100)}%</span>
       )}
     </div>
   );

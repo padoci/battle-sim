@@ -2450,6 +2450,12 @@ button.primary:disabled {
 
 .sprite-idle.breathing {
   animation: spriteIdle 3.2s ease-in-out infinite;
+  /* The per-species phase offset, so the two mons on the field never breathe
+     in lockstep. Scoped to this rule rather than set inline on the element:
+     inline styles outrank every stylesheet rule, so an inline delay also
+     retimed the KO drop that shares this wrapper. Declared AFTER the shorthand
+     above, which would otherwise reset it to 0. */
+  animation-delay: var(--idle-phase, 0ms);
 }
 
 @keyframes spriteIdle {
