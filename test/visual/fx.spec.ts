@@ -1250,3 +1250,60 @@ test('the HP readout counts down with its own bar', async ({page}, testInfo) => 
   // counter landing on different sides of a frame.
   expect(worst, 'the HP number and its bar told different stories').toBeLessThan(12);
 });
+
+test('the pokeball toss tracks the field, not the browser window', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'the units are viewport-independent by design; one is enough');
+  await page.goto('/');
+  await page.waitForSelector('.mode-card');
+
+  // The bug this guards: the toss was briefly authored in `cqw`, which is only
+  // meaningful while `.stage-field` is a query container. The field went back
+  // to a fluid width and lost its `container-type`, at which point `cqw`
+  // silently fell back to the VIEWPORT — the ball flew in from 21% of the
+  // browser window regardless of how big the stage was, and rescaled when you
+  // resized the window. Verified against production: a 400px field and a 900px
+  // field both started the ball at exactly -95px, which was 21% of that
+  // window's width.
+  const probe = await page.evaluate(() => {
+    const one = (fieldWidth: number, gapX: number, gapY: number) => {
+      const host = document.createElement('div');
+      host.className = 'battle-stage';
+      host.style.cssText = `position:absolute;left:-9999px;top:0;width:${fieldWidth}px`;
+      const field = document.createElement('div');
+      field.className = 'stage-field';
+      // What useStageGeometry publishes for a field this wide.
+      field.style.setProperty('--gap-x', `${gapX}px`);
+      field.style.setProperty('--gap-y', `${gapY}px`);
+      const holder = document.createElement('div');
+      holder.className = 'sprite-holder mine';
+      const ball = document.createElement('span');
+      ball.className = 'switch-ball';
+      // Freeze on the first keyframe: that is where the ball starts its arc.
+      ball.style.animationPlayState = 'paused';
+      holder.appendChild(ball);
+      field.appendChild(holder);
+      host.appendChild(field);
+      document.body.appendChild(host);
+      const cs = getComputedStyle(ball);
+      const m = cs.transform.match(/matrix\(([^)]+)\)/);
+      const p = m ? m[1].split(',').map(Number) : [1, 0, 0, 1, 0, 0];
+      const out = {name: cs.animationName, startTx: p[4], startTy: p[5]};
+      host.remove();
+      return out;
+    };
+    return {narrow: one(400, 240, 76), wide: one(900, 606, 88)};
+  });
+
+  expect(probe.narrow.name).toBe('ballTossMine');
+  // A proportion of the gap it was given, so a wider stage throws from further.
+  expect(probe.narrow.startTx).toBeCloseTo(-0.2 * 240, 0);
+  expect(probe.wide.startTx).toBeCloseTo(-0.2 * 606, 0);
+  expect(probe.narrow.startTy).toBeCloseTo(-0.8 * 76, 0);
+  expect(probe.wide.startTy).toBeCloseTo(-0.8 * 88, 0);
+  // The property that actually failed: identical starts meant it was tracking
+  // something other than the stage.
+  expect(
+    probe.narrow.startTx,
+    'the toss is the same distance whatever the stage size, so it is not tracking the stage'
+  ).not.toBeCloseTo(probe.wide.startTx, 0);
+});
