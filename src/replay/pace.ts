@@ -150,10 +150,15 @@ export function toBeats(events: ReplayEvent[]): Beat[] {
       while (j < events.length) {
         const next = events[j];
         const isDirectDamage = next.kind === 'damage' && !next.from && next.sourceMove?.move === event.move;
+        // Unlike direct damage, a `-sethp` line names its cause, so match on
+        // that instead of on the absence of a `[from]`. Both of Pain Split's
+        // halves ride the move's beat, so the lunge and the two bars drain as
+        // one action rather than trailing it as extra pauses.
+        const isDirectSethp = next.kind === 'sethp' && next.from === `move: ${event.move}`;
         const isAnnotation =
           next.kind === 'note' &&
           ['crit', 'supereffective', 'resisted', 'miss', 'immune'].includes(next.text);
-        if (isDirectDamage || isAnnotation) {
+        if (isDirectDamage || isDirectSethp || isAnnotation) {
           group.push(next);
           j++;
         } else break;

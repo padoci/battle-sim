@@ -38,6 +38,11 @@ export type ReplayEvent =
   | {kind: 'move'; ref: Ref; move: string; target?: Ref; tags: MoveTags; logText: string}
   | {kind: 'damage'; ref: Ref; hp: number; maxhp: number; from?: string; sourceMove?: {ref: Ref; move: string}; logText: string}
   | {kind: 'heal'; ref: Ref; hp: number; maxhp: number; from?: string; logText: string}
+  /** An absolute HP assignment that is neither damage nor healing until you
+   *  compare it against the bar's current value — Pain Split is the only gen9
+   *  move that reports this way. The direction is left to the consumer, which
+   *  is the side that knows what the bar was showing. */
+  | {kind: 'sethp'; ref: Ref; hp: number; maxhp: number; from?: string; logText: string}
   | {kind: 'faint'; ref: Ref; logText: string}
   | {kind: 'status'; ref: Ref; status: string; logText: string}
   | {kind: 'curestatus'; ref: Ref; status: string; logText: string}
@@ -168,6 +173,15 @@ function noteLogText(
   }
 }
 
+/**
+ * What to say for a `-sethp` line, by the effect that caused it. Showdown's own
+ * wording, minus its leading indent. A miss here logs nothing rather than
+ * leaking the raw protocol, same discipline as the default branch below.
+ */
+const SETHP_TEXT: Record<string, string> = {
+  'move: Pain Split': 'The battlers shared their pain!',
+};
+
 export function parseProtocol(
   log: string[],
   names: [string, string] = ['P1', 'P2'],
@@ -282,6 +296,18 @@ export function parseProtocol(
             ? `${actor(ref, names, voice)} had its HP restored!`
             : `${label(ref, names)} restored HP.`,
         });
+        break;
+      }
+      case '-sethp': {
+        const ref = parseRef(parts[2]);
+        const condition = parseHp(parts[3]);
+        if (!ref || !condition) break;
+        const {hp, maxhp} = condition;
+        const from = parts.find(p => p.startsWith('[from]'))?.replace('[from] ', '');
+        // Pain Split sends two of these, and marks the TARGET's copy
+        // `[silent]` so only one of the pair speaks. Both still move a bar.
+        const logText = parts.includes('[silent]') ? '' : (from && SETHP_TEXT[from]) || '';
+        events.push({kind: 'sethp', ref, hp, maxhp, from, logText});
         break;
       }
       case 'faint': {
