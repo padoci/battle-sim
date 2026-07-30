@@ -454,6 +454,18 @@ export const SIGNATURE_MOVES = new Set([
   'Transform',
   // Field-level.
   'Snowscape',
+  // -- Batch 14: the moves a usage-weighted sweep could not reach --
+  // Gym Challenge rosters are thematic, not OU-distributed, so these four are
+  // ordinary there and fringe-to-invisible in the stats every earlier batch was
+  // built from. test/app/fx-move-coverage.test.ts now gates the registry
+  // against the battle data itself, so the next such pack fails a test.
+  'Psycho Cut',
+  'Tail Slap',
+  'Heat Crash',
+  'Double Hit',
+  // From the /teams pool. Its element is unknowable at author time (see the
+  // app.css note), so the shape carries the identity, not the colour.
+  'Tera Blast',
 ]);
 
 export function signatureSlug(move: string | undefined): string | undefined {

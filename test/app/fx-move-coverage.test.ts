@@ -5,9 +5,13 @@
  * asserts the TypeScript list and the app.css rules agree, and
  * test/visual/fx.spec.ts asserts each class reaches the rendered style. Neither
  * looks at the battle data, so a new opponent pack can introduce a move that no
- * sweep ever animated and nothing fails. That is exactly what happened: the
- * gym-leader pack (scripts/build-gym-leader-teams.ts, added after the signature
- * batches) brought in four moves that never got a bespoke shape.
+ * sweep ever animated and nothing fails. That is exactly what happened: batches
+ * 1-13 were aimed at OU weighted usage, and the gym-leader pack
+ * (scripts/build-gym-leader-teams.ts) is thematic rather than OU-distributed, so
+ * it arrived carrying four moves - Psycho Cut, Tail Slap, Heat Crash, Double Hit
+ * - that no usage-weighted sweep would ever have reached. Batch 14 in app.css
+ * drew them, plus Tera Blast from the /teams pool. This gate is what stops the
+ * next such pack repeating it.
  *
  * "Has an animation" has two tiers, and this file only gates the second:
  *   1. EVERY move animates. SixOhGauntlet composes `fx-<category>` (the motion)
@@ -37,20 +41,10 @@ import fullTeams from '../fixtures/gen9ou.teams.full.json';
  * goes stale in either direction.
  */
 const AWAITING_A_BESPOKE_SHAPE = new Map<string, string>([
-  ['Psycho Cut', 'gym-leader pack, added after the signature batches; a physical Psychic slash'],
-  ['Tail Slap', 'gym-leader pack; multi-hit physical, so the shape has to survive repeats'],
-  ['Heat Crash', 'gym-leader pack; weight-based physical Fire contact hit'],
-  ['Double Hit', 'gym-leader pack; two-strike physical, same repeat problem as Tail Slap'],
-  [
-    'Tera Blast',
-    'teams pool only. Its type varies at runtime with the holder\'s Tera type, but ' +
-      "`fxFlavor` colours FX from the DEX type (src/replay/view.ts reads " +
-      '`gen9().moves.get(move).type`), so it always renders Normal-coloured no matter ' +
-      'what it actually became. A bespoke shape is drawable - the shape and the colour ' +
-      'are separate layers - but deciding what it should look like when the element is ' +
-      'unknowable is the judgement call, hence open rather than exempt.',
-  ],
-]);
+  // Empty, and worth keeping that way. Batch 14 closed the last five; the
+  // assertions below make an entry here cost something, so it stays a record of
+  // a real decision rather than a place to park a failure.
+])
 
 /** Every move on a team pack, flattening the "slashed alternatives" arrays. */
 function movesOfTeams(teams: Team[]): Set<string> {

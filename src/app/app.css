@@ -10228,6 +10228,113 @@ button.primary:disabled {
   100% { transform: translate(-50%, -50%) scale(0.85) rotate(240deg); opacity: 0; border-radius: 50%; }
 }
 
+/* ---- Batch 14: the moves the usage-weighted sweeps could never have found ----
+
+   Batches 1-13 aimed at the OU metagame: Smogon analysis sets plus anything
+   holding >=0.15% of real move slots by weighted usage. Gym Challenge does not
+   draw from that distribution at all — its rosters are thematic, built from
+   real gym leaders (scripts/build-gym-leader-teams.ts), so four moves that are
+   fringe-to-invisible in OU are perfectly ordinary there and arrived with no
+   shape of their own. Tera Blast is the fifth, from the /teams pool.
+
+   test/app/fx-move-coverage.test.ts is what makes this the LAST such batch: it
+   gates the registry against the data instead of against usage stats, so the
+   next pack that brings its own vocabulary fails a test rather than quietly
+   rendering on the type layer. -- */
+
+/* -- Impact-hooked physical moves -- */
+
+/* A drawn blade, not a claw: one clean crescent that sweeps through rather
+   than Shadow Claw's three parallel rakes. */
+.fx-signature-psycho-cut.impact::after {
+  width: 76px;
+  height: 76px;
+  border: 7px solid var(--fx-color, #f95587);
+  border-radius: 50%;
+  clip-path: polygon(50% 0%, 100% 0%, 100% 55%, 50% 55%);
+  animation: psychoCutSlash 0.24s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes psychoCutSlash {
+  0% { transform: translate(-50%, -50%) scale(0.45) rotate(-60deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.35) rotate(35deg); opacity: 0; }
+}
+
+/* 2-5 hits. Same steps() pelt as Rock Blast, but a flat swipe streak that
+   crosses the target instead of stones landing around it. */
+.fx-signature-tail-slap.impact::after {
+  width: 54px;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, transparent 0%, var(--fx-color, #a8a77a) 45%, #fff 100%);
+  animation: tailSlapFlurry 0.44s steps(1, end);
+}
+
+@keyframes tailSlapFlurry {
+  0%, 8% { transform: translate(-70%, -62%) rotate(-12deg); opacity: 1; }
+  16% { opacity: 0; }
+  25%, 33% { transform: translate(-38%, -48%) rotate(9deg); opacity: 1; }
+  41% { opacity: 0; }
+  50%, 58% { transform: translate(-62%, -38%) rotate(-6deg); opacity: 1; }
+  66% { opacity: 0; }
+  75%, 83% { transform: translate(-42%, -58%) rotate(14deg); opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Weight-based, like Heavy Slam, so it keeps that move's ground-level shock
+   ellipse as its base and adds the ignition Heavy Slam has no reason to. */
+.fx-signature-heat-crash.impact::after {
+  top: 82%;
+  width: 104px;
+  height: 38px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #fff3c0 0%, var(--fx-color, #ee8130) 45%, transparent 72%);
+  animation: heatCrashSlam 0.32s ease-out;
+}
+
+@keyframes heatCrashSlam {
+  0% { transform: translate(-50%, -50%) scale(0.18); opacity: 1; }
+  55% { opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1.9); opacity: 0; }
+}
+
+/* Exactly two strikes, so it reads as a pair rather than Tail Slap's flurry:
+   two crossed slashes, the second landing harder. */
+.fx-signature-double-hit.impact::after {
+  width: 60px;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, transparent 0%, var(--fx-color, #a8a77a) 50%, #fff 100%);
+  animation: doubleHitPair 0.34s steps(1, end);
+}
+
+@keyframes doubleHitPair {
+  0%, 22% { transform: translate(-62%, -64%) rotate(-52deg) scale(0.9); opacity: 1; }
+  34% { opacity: 0; }
+  50%, 78% { transform: translate(-42%, -40%) rotate(48deg) scale(1.2); opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Tera Blast's element is the holder's Tera type, decided at runtime, and
+   `fxFlavor` colours FX from the DEX type — so --fx-color says Normal no matter
+   what it actually became. Leaning on it would state the wrong element with
+   confidence. The shape is the identity instead: the Tera crystal, faceted and
+   white-cored, with --fx-color only as a rim tint. */
+.fx-signature-tera-blast.impact::after {
+  width: 66px;
+  height: 82px;
+  clip-path: polygon(50% 0%, 100% 32%, 82% 100%, 18% 100%, 0% 32%);
+  background: linear-gradient(150deg, #fff 0%, rgba(255, 255, 255, 0.85) 38%, var(--fx-color, #a8a77a) 100%);
+  box-shadow: 0 0 18px 4px rgba(255, 255, 255, 0.55);
+  animation: teraBlastShatter 0.38s cubic-bezier(0.3, 0.9, 0.4, 1);
+}
+
+@keyframes teraBlastShatter {
+  0% { transform: translate(-50%, -50%) scale(0.25) rotate(-16deg); opacity: 0; }
+  35% { transform: translate(-50%, -50%) scale(1.05) rotate(4deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.7) rotate(14deg); opacity: 0; }
+}
+
 /* -- Field-hooked: sets snow for five turns. Heavier and slower than Chilly
    Reception's flurry, which is a pivot that happens to change the weather. -- */
 
