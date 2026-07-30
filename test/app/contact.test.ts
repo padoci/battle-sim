@@ -98,12 +98,14 @@ describe('sendFeedback', () => {
       fetchFn
     );
     const body = sentBody(fetchFn);
+    // Spelled out rather than built from the constants, so this pins the wire
+    // format itself: renaming a field is a change both ends have to make.
     expect(Object.keys(body).sort()).toEqual([
       'browser',
+      'confirm-empty',
       'contact',
       'message',
       'topic',
-      'website',
     ]);
     expect(JSON.stringify(body)).not.toMatch(/Great Tusk/);
   });

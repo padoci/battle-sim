@@ -73,8 +73,13 @@ export type FeedbackProblem =
 /**
  * The honeypot field's name. Rendered off-screen and never shown to a reader,
  * so anything in it came from something filling the form blind.
+ *
+ * Deliberately not "website", "url" or "email": `autocomplete="off"` is only a
+ * hint, and password managers fill by name heuristics. A hidden field with a
+ * name they recognise gets autofilled for a real person, who then sees a send
+ * refused for a reason they cannot see or clear.
  */
-export const FEEDBACK_TRAP_FIELD = 'website';
+export const FEEDBACK_TRAP_FIELD = 'confirm-empty';
 
 export type FeedbackValidation =
   | {ok: true; value: FeedbackSubmission}

@@ -3,8 +3,8 @@
  *
  * A competitive team is work someone has put hours into, and pasting it into a
  * website they've just found is a reasonable thing to hesitate over. The app
- * has never sent it anywhere — there is no server to send it to — but it never
- * said so, and the burden of proof is on the site, not the visitor.
+ * has never sent one anywhere, but it never said so, and the burden of proof is
+ * on the site, not the visitor.
  *
  * Every claim here is checkable in the source:
  *   - the data layer has exactly one request path (`src/data/fetch.ts`), and it

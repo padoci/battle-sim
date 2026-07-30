@@ -101,6 +101,13 @@ export const onRequest = async ({request, env}: FunctionContext): Promise<Respon
   const {body} = webhookRequest(webhook);
   const chunks = webhookChunks(webhook, parsed.value);
 
+  // Sequential, and a failed chunk stops the loop and reports 502. Discord
+  // allows roughly 5 webhook requests per 2s, so a message long enough to need
+  // several parts could in principle be rate-limited part-way: the first chunk
+  // lands, the sender is told it failed, and a re-send duplicates that chunk.
+  // Left as-is because it needs a near-maximum-length message to bite, and a
+  // duplicate in the inbox is a better failure than a message reported as sent
+  // that never arrived.
   for (const chunk of chunks) {
     const relayed = await fetch(webhook, {
       method: 'POST',

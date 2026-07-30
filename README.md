@@ -2,7 +2,7 @@
 
 A client-side, in-browser competitive Pokémon teambuilding tool for the Smogon/VGC crowd. Two AI-vs-AI game modes, one engine: the skill being tested is **teambuilding, not piloting**. Every read the app gives you is *direction, not gospel* — a pressure-test, never a verdict.
 
-No server. Fully static-hostable. All simulation runs in a web worker in your browser.
+All simulation runs in a web worker in your browser: nothing you paste is uploaded, and there is no account. The one server-side piece is the feedback inbox (`functions/api/feedback.ts`), which receives a message only when someone writes one and presses send. Everything else is static.
 
 **Live demo:** https://battle-sim-eo1.pages.dev (Cloudflare Pages, deployed from `main`).
 
@@ -113,7 +113,19 @@ Setup is one secret:
 2. Cloudflare dashboard → the Pages project → Settings → Environment variables → add `FEEDBACK_WEBHOOK_URL` as a **secret** (encrypted), for Production and, if you want to test it there, Preview.
 3. Redeploy. Pages Functions pick up new variables on the next build.
 
-Without the secret the endpoint answers `503` and the panel says so and offers the mailto route, rather than accepting a message that nothing receives. Locally, `npx wrangler pages dev dist` serves the function; plain `npm run dev` does not, so the panel will report the inbox as unavailable and fall back to email.
+Without the secret the endpoint answers `503`, and the panel says so and offers the mailto route rather than accepting a message that nothing receives.
+
+Plain `npm run dev` does not serve Functions, so the panel there will report the inbox as unavailable and fall back to email. To exercise the real thing:
+
+```bash
+npm run build
+npx wrangler pages dev dist                       # 503 from /api/feedback: route resolved, no secret
+npx wrangler pages dev dist --binding FEEDBACK_WEBHOOK_URL=http://localhost:9911/hook
+curl -s -X POST localhost:8788/api/feedback -H 'content-type: application/json' \
+  -d '{"topic":"feedback","message":"hi","contact":"","browser":"","confirm-empty":""}'
+```
+
+Point the binding at any local server that accepts a POST to see what would land in the channel. Worth running after touching `functions/`: the unit tests call the handler directly and so cannot catch a bundling or routing failure, and `npm run build` does not compile this directory.
 
 Discord caps a webhook message at 2000 characters, so longer messages are split across several posts and marked `(1/2)`, `(2/2)`. Nothing is truncated.
 

@@ -212,9 +212,9 @@ export function ContactPanel() {
       {/* Off-screen, and skipped by keyboard and screen readers. Anything in it
           came from something filling the form without looking at it. */}
       <div className="contact-trap" aria-hidden="true">
-        <label htmlFor="contact-website">Leave this field empty</label>
+        <label htmlFor="contact-confirm-empty">Leave this field empty</label>
         <input
-          id="contact-website"
+          id="contact-confirm-empty"
           name={FEEDBACK_TRAP_FIELD}
           type="text"
           tabIndex={-1}
