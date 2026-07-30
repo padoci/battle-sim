@@ -10335,6 +10335,1168 @@ button.primary:disabled {
   100% { transform: translate(-50%, -50%) scale(1.7) rotate(14deg); opacity: 0; }
 }
 
+
+/* ---- Batch 15: the long tail, to 99.9% of weighted OU move slots ----
+
+   Batch 14 closed the gap against the app's own data. This one goes back to
+   usage: the 50 highest-usage OU moves still reading on the bare type layer.
+   None of them is common — the largest, Spiky Shield, is 0.022% of move slots —
+   but together they are most of what is left, taking the registry from 99.55%
+   to 99.93% of weighted slots (data.pkmn.cc/stats/gen9ou.json).
+
+   Hook follows the engine, not the flavour: a damaging move lands on the
+   defender, so it is `.impact`; a Status move that is not in
+   STATUS_SIGNATURE_TARGETS (src/replay/view.ts) never reaches the defender at
+   all and shows as the user's own `.lunge-*` glow. Terrain and weather moves
+   here are deliberately sprite-level rather than field-level: Rain Dance
+   already establishes that a weather move reads fine as a gesture by the user,
+   and the field tokens carry four extra wiring points each. -- */
+
+/* -- Impact-hooked: damaging moves -- */
+
+/* Trapped in a vortex, so the ring turns rather than bursts. */
+.fx-signature-fire-spin.impact::after {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  border: 8px solid transparent;
+  border-top-color: var(--fx-color, #ee8130);
+  border-right-color: #ffd08a;
+  animation: fireSpinVortex 0.42s linear;
+}
+
+@keyframes fireSpinVortex {
+  0% { transform: translate(-50%, -50%) scale(0.4) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4) rotate(400deg); opacity: 0; }
+}
+
+/* Hits everything adjacent along the ground, so it stays low and goes wide. */
+.fx-signature-bulldoze.impact::after {
+  top: 88%;
+  width: 120px;
+  height: 22px;
+  border-radius: 50%;
+  border: 4px solid var(--fx-color, #e2bf65);
+  animation: bulldozeRipple 0.34s ease-out;
+}
+
+@keyframes bulldozeRipple {
+  0% { transform: translate(-50%, -50%) scale(0.15); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+
+/* A thin sustained beam with a bright charge head. */
+.fx-signature-charge-beam.impact::after {
+  width: 96px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, transparent, var(--fx-color, #f7d02c) 55%, #fff 100%);
+  box-shadow: 0 0 10px 2px rgba(247, 208, 44, 0.6);
+  animation: chargeBeamLance 0.3s ease-out;
+}
+
+@keyframes chargeBeamLance {
+  0% { transform: translate(-90%, -50%) scaleX(0.2); opacity: 1; }
+  100% { transform: translate(-30%, -50%) scaleX(1.2); opacity: 0; }
+}
+
+/* Power scales with the user's boosts: chevrons stack upward. */
+.fx-signature-power-trip.impact::after {
+  width: 34px;
+  height: 34px;
+  clip-path: polygon(50% 0%, 100% 45%, 78% 45%, 78% 100%, 22% 100%, 22% 45%, 0% 45%);
+  background: var(--fx-color, #705746);
+  box-shadow: 0 16px 0 -4px var(--fx-color, #705746), 0 30px 0 -9px var(--fx-color, #705746);
+  animation: powerTripStack 0.36s ease-out;
+}
+
+@keyframes powerTripStack {
+  0% { transform: translate(-50%, -20%) scale(0.5); opacity: 1; }
+  100% { transform: translate(-50%, -85%) scale(1.15); opacity: 0; }
+}
+
+/* A stamp into the ground, dust pushed out from the point of contact. */
+.fx-signature-stomping-tantrum.impact::after {
+  top: 86%;
+  width: 78px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, var(--fx-color, #e2bf65) 0%, transparent 68%);
+  animation: stompingTantrumStamp 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes stompingTantrumStamp {
+  0% { transform: translate(-50%, -140%) scale(0.3); opacity: 0; }
+  40% { transform: translate(-50%, -50%) scale(0.7); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+}
+
+/* The held item, thrown: something small arcs in and lands hard. */
+.fx-signature-fling.impact::after {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--fx-color, #705746);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+  animation: flingArc 0.34s cubic-bezier(0.4, 0, 0.7, 1);
+}
+
+@keyframes flingArc {
+  0% { transform: translate(-160%, -160%) rotate(0deg) scale(0.7); opacity: 1; }
+  70% { transform: translate(-50%, -50%) rotate(320deg) scale(1); opacity: 1; }
+  100% { transform: translate(-40%, -30%) rotate(400deg) scale(0.8); opacity: 0; }
+}
+
+/* A pounce is a leap into a rake — one diagonal swipe, arriving. */
+.fx-signature-pounce.impact::after {
+  width: 26px;
+  height: 62px;
+  clip-path: polygon(12% 0%, 30% 0%, 52% 100%, 34% 100%);
+  background: var(--fx-color, #a6b91a);
+  box-shadow: 18px 0 0 -4px var(--fx-color, #a6b91a);
+  animation: pounceRake 0.24s ease-out;
+}
+
+@keyframes pounceRake {
+  0% { transform: translate(-80%, -80%) scale(0.5) rotate(-30deg); opacity: 1; }
+  100% { transform: translate(-40%, -35%) scale(1.25) rotate(-14deg); opacity: 0; }
+}
+
+/* Never misses, and it is stars — the one move whose shape everyone knows. */
+.fx-signature-swift.impact::after {
+  width: 30px;
+  height: 30px;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  background: linear-gradient(180deg, #fff 0%, var(--fx-color, #f7d02c) 100%);
+  box-shadow: -26px 14px 0 -6px var(--fx-color, #f7d02c), 24px 18px 0 -8px var(--fx-color, #f7d02c);
+  animation: swiftStars 0.4s ease-out;
+}
+
+@keyframes swiftStars {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(-25deg); opacity: 1; }
+  100% { transform: translate(-50%, -60%) scale(1.3) rotate(20deg); opacity: 0; }
+}
+
+/* Water that lands cold: the splash sags instead of spraying up. */
+.fx-signature-chilling-water.impact::after {
+  width: 62px;
+  height: 46px;
+  border-radius: 50% 50% 45% 45%;
+  background: radial-gradient(circle at 50% 30%, #dff0ff 0%, var(--fx-color, #6390f0) 60%, transparent 80%);
+  animation: chillingWaterDouse 0.36s ease-out;
+}
+
+@keyframes chillingWaterDouse {
+  0% { transform: translate(-50%, -80%) scale(0.4); opacity: 1; }
+  100% { transform: translate(-50%, -30%) scale(1.3); opacity: 0; }
+}
+
+/* A ball, not a bolt: it rolls in as a sphere and pops. */
+.fx-signature-electro-ball.impact::after {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #fffbe0 0%, var(--fx-color, #f7d02c) 62%, transparent 84%);
+  animation: electroBallPop 0.34s ease-out;
+}
+
+@keyframes electroBallPop {
+  0% { transform: translate(-140%, -50%) scale(0.5); opacity: 1; }
+  65% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+}
+
+/* Priority counter-punch: it comes up from below, fast. */
+.fx-signature-upper-hand.impact::after {
+  width: 40px;
+  height: 40px;
+  border-radius: 45% 45% 40% 40%;
+  background: radial-gradient(circle at 50% 65%, #fff 0%, var(--fx-color, #c22e28) 60%, transparent 82%);
+  animation: upperHandRise 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+@keyframes upperHandRise {
+  0% { transform: translate(-50%, 30%) scale(0.55); opacity: 1; }
+  100% { transform: translate(-50%, -110%) scale(1.2); opacity: 0; }
+}
+
+/* A cleave that leaves splinters behind — the hazard half of the move. */
+.fx-signature-stone-axe.impact::after {
+  width: 24px;
+  height: 76px;
+  clip-path: polygon(35% 0%, 65% 0%, 52% 100%, 40% 100%);
+  background: linear-gradient(180deg, #fff 0%, var(--fx-color, #b6a136) 70%);
+  box-shadow: -22px 26px 0 -8px var(--fx-color, #b6a136), 20px 30px 0 -9px var(--fx-color, #b6a136);
+  animation: stoneAxeCleave 0.26s ease-out;
+}
+
+@keyframes stoneAxeCleave {
+  0% { transform: translate(-50%, -50%) scale(0.5) rotate(-38deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3) rotate(16deg); opacity: 0; }
+}
+
+/* Sprayed, not shot: droplets scattering over the target. */
+.fx-signature-acid-spray.impact::after {
+  width: 16px;
+  height: 16px;
+  border-radius: 50% 50% 60% 40%;
+  background: var(--fx-color, #a33ea1);
+  box-shadow:
+    -24px -12px 0 -3px var(--fx-color, #a33ea1),
+    22px -16px 0 -4px var(--fx-color, #a33ea1),
+    -14px 20px 0 -5px var(--fx-color, #a33ea1),
+    18px 18px 0 -2px var(--fx-color, #a33ea1);
+  animation: acidSpraySpatter 0.36s ease-out;
+}
+
+@keyframes acidSpraySpatter {
+  0% { transform: translate(-50%, -50%) scale(0.25); opacity: 1; }
+  100% { transform: translate(-50%, -45%) scale(1.5); opacity: 0; }
+}
+
+/* Fixed damage, no impact flourish — the light just goes out. */
+.fx-signature-night-shade.impact::after {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 30%, var(--fx-color, #735797) 62%, rgba(20, 10, 30, 0.9) 100%);
+  animation: nightShadeVeil 0.42s ease-in-out;
+}
+
+@keyframes nightShadeVeil {
+  0% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+  55% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+}
+
+/* A sound move: concentric waves rather than a strike. */
+.fx-signature-overdrive.impact::after {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 5px solid var(--fx-color, #f7d02c);
+  box-shadow: 0 0 0 8px rgba(247, 208, 44, 0.3), 0 0 0 16px rgba(247, 208, 44, 0.15);
+  animation: overdriveWave 0.4s ease-out;
+}
+
+@keyframes overdriveWave {
+  0% { transform: translate(-50%, -50%) scale(0.25); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+/* A wet clod, thrown low: it hits and slides. */
+.fx-signature-mud-shot.impact::after {
+  width: 46px;
+  height: 34px;
+  border-radius: 55% 45% 50% 50%;
+  background: radial-gradient(circle at 40% 40%, #c9a45a 0%, var(--fx-color, #e2bf65) 55%, transparent 82%);
+  animation: mudShotSplat 0.32s ease-out;
+}
+
+@keyframes mudShotSplat {
+  0% { transform: translate(-130%, -70%) scale(0.5) rotate(-15deg); opacity: 1; }
+  60% { transform: translate(-50%, -45%) scale(1) rotate(6deg); opacity: 1; }
+  100% { transform: translate(-40%, -40%) scale(1.4) rotate(14deg); opacity: 0; }
+}
+
+/* Three beams, three statuses: one orb per corner. */
+.fx-signature-tri-attack.impact::after {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 -26px 0 0 #f7d02c,
+    -24px 16px 0 0 #ee8130,
+    24px 16px 0 0 #96d9d6;
+  animation: triAttackTriad 0.4s ease-out;
+}
+
+@keyframes triAttackTriad {
+  0% { transform: translate(-50%, -50%) scale(0.25) rotate(-60deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.25) rotate(60deg); opacity: 0; }
+}
+
+/* The user charges through, so the flame is a trail, not a burst. */
+.fx-signature-flame-charge.impact::after {
+  width: 90px;
+  height: 30px;
+  border-radius: 50% 20% 20% 50%;
+  background: linear-gradient(90deg, transparent 0%, var(--fx-color, #ee8130) 45%, #fff3c0 100%);
+  animation: flameChargeDash 0.28s ease-out;
+}
+
+@keyframes flameChargeDash {
+  0% { transform: translate(-110%, -50%) scaleX(0.4); opacity: 1; }
+  100% { transform: translate(-25%, -50%) scaleX(1.25); opacity: 0; }
+}
+
+/* A jump-scare: a fast flare that arrives before it can be read. */
+.fx-signature-astonish.impact::after {
+  width: 64px;
+  height: 64px;
+  clip-path: polygon(50% 0%, 62% 32%, 96% 26%, 72% 52%, 92% 84%, 56% 70%, 38% 98%, 34% 62%, 2% 52%, 34% 34%);
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #735797) 70%);
+  animation: astonishStartle 0.18s ease-out;
+}
+
+@keyframes astonishStartle {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.35); opacity: 0; }
+}
+
+/* Two blades, crossed — the move is named for the shape. */
+.fx-signature-x-scissor.impact::after {
+  width: 76px;
+  height: 76px;
+  clip-path: polygon(
+    44% 0%, 56% 0%, 56% 44%, 100% 44%, 100% 56%, 56% 56%,
+    56% 100%, 44% 100%, 44% 56%, 0% 56%, 0% 44%, 44% 44%
+  );
+  background: linear-gradient(135deg, #fff 0%, var(--fx-color, #a6b91a) 100%);
+  animation: xScissorCross 0.24s ease-out;
+}
+
+@keyframes xScissorCross {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3) rotate(45deg); opacity: 0; }
+}
+
+/* It bores in: a spiral, tightening. */
+.fx-signature-drill-run.impact::after {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 6px dashed var(--fx-color, #e2bf65);
+  border-left-color: transparent;
+  animation: drillRunBore 0.3s linear;
+}
+
+@keyframes drillRunBore {
+  0% { transform: translate(-50%, -50%) scale(1.5) rotate(0deg); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(0.3) rotate(540deg); opacity: 0; }
+}
+
+/* A hard seed, bursting on contact. */
+.fx-signature-seed-bomb.impact::after {
+  width: 40px;
+  height: 46px;
+  border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
+  background: radial-gradient(circle at 45% 38%, #d8f2c0 0%, var(--fx-color, #7ac74c) 62%, transparent 84%);
+  animation: seedBombBurst 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes seedBombBurst {
+  0% { transform: translate(-50%, -50%) scale(0.35) rotate(-20deg); opacity: 1; }
+  55% { transform: translate(-50%, -50%) scale(1) rotate(6deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.6) rotate(18deg); opacity: 0; }
+}
+
+/* Stronger the closer the user is to fainting: a surge, growing. */
+.fx-signature-reversal.impact::after {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 6px solid var(--fx-color, #c22e28);
+  border-bottom-color: transparent;
+  border-right-color: transparent;
+  animation: reversalSurge 0.34s cubic-bezier(0.1, 0.85, 0.25, 1);
+}
+
+@keyframes reversalSurge {
+  0% { transform: translate(-50%, -20%) scale(0.3) rotate(-90deg); opacity: 1; }
+  100% { transform: translate(-50%, -70%) scale(1.4) rotate(90deg); opacity: 0; }
+}
+
+/* A binding move: the sand closes around rather than striking. */
+.fx-signature-sand-tomb.impact::after {
+  width: 72px;
+  height: 40px;
+  border-radius: 50%;
+  border: 7px solid var(--fx-color, #e2bf65);
+  border-top-color: transparent;
+  animation: sandTombCoil 0.44s ease-in-out;
+}
+
+@keyframes sandTombCoil {
+  0% { transform: translate(-50%, -10%) scale(1.5) rotate(0deg); opacity: 0.85; }
+  60% { transform: translate(-50%, -45%) scale(0.9) rotate(240deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.7) rotate(400deg); opacity: 0; }
+}
+
+/* Steals the item, so the swipe carries a glint away with it. */
+.fx-signature-thief.impact::after {
+  width: 66px;
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(90deg, transparent, var(--fx-color, #705746) 50%, #fff 100%);
+  animation: thiefSnatch 0.26s ease-out;
+}
+
+@keyframes thiefSnatch {
+  0% { transform: translate(-30%, -60%) rotate(24deg) scale(0.6); opacity: 1; }
+  100% { transform: translate(-90%, -35%) rotate(8deg) scale(1.2); opacity: 0; }
+}
+
+/* Doubles on Electric Terrain: the charge comes up out of the ground. */
+.fx-signature-rising-voltage.impact::after {
+  width: 26px;
+  height: 92px;
+  clip-path: polygon(46% 0%, 62% 42%, 52% 42%, 66% 100%, 30% 46%, 44% 46%);
+  background: linear-gradient(0deg, var(--fx-color, #f7d02c) 0%, #fffbe0 100%);
+  animation: risingVoltageClimb 0.3s ease-out;
+}
+
+@keyframes risingVoltageClimb {
+  0% { transform: translate(-50%, 20%) scaleY(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -75%) scaleY(1.25); opacity: 0; }
+}
+
+/* Halves current HP: one oversized bite, no flourish. */
+.fx-signature-super-fang.impact::after {
+  width: 54px;
+  height: 58px;
+  clip-path: polygon(0% 0%, 100% 0%, 84% 34%, 66% 4%, 50% 40%, 34% 4%, 16% 34%);
+  background: linear-gradient(180deg, #fff 0%, var(--fx-color, #a8a77a) 100%);
+  animation: superFangBite 0.26s ease-out;
+}
+
+@keyframes superFangBite {
+  0% { transform: translate(-50%, -80%) scale(0.5); opacity: 1; }
+  100% { transform: translate(-50%, -40%) scale(1.35); opacity: 0; }
+}
+
+/* The user faints to deal it: everything they have, at once. */
+.fx-signature-final-gambit.impact::after {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #c22e28) 45%, transparent 78%);
+  animation: finalGambitAllIn 0.44s cubic-bezier(0.15, 0.85, 0.3, 1);
+}
+
+@keyframes finalGambitAllIn {
+  0% { transform: translate(-50%, -50%) scale(0.1); opacity: 1; }
+  60% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.9); opacity: 0; }
+}
+
+/* Doubles every turn it connects: each slash lands harder than the last. */
+.fx-signature-fury-cutter.impact::after {
+  width: 20px;
+  height: 58px;
+  clip-path: polygon(20% 0%, 42% 0%, 62% 100%, 40% 100%);
+  background: var(--fx-color, #a6b91a);
+  animation: furyCutterEscalate 0.42s steps(1, end);
+}
+
+@keyframes furyCutterEscalate {
+  0%, 12% { transform: translate(-70%, -60%) rotate(-24deg) scale(0.7); opacity: 1; }
+  22% { opacity: 0; }
+  33%, 45% { transform: translate(-52%, -50%) rotate(-14deg) scale(1); opacity: 1; }
+  55% { opacity: 0; }
+  66%, 82% { transform: translate(-38%, -42%) rotate(-4deg) scale(1.35); opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* -- Self lunge-hooked: Status moves that never reach the defender -- */
+
+.fx-signature-spiky-shield.lunge-right::before,
+.fx-signature-spiky-shield.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 0deg, transparent 0deg 14deg, rgba(122, 199, 76, 0.85) 14deg 20deg, transparent 20deg 30deg);
+  border: 3px solid rgba(122, 199, 76, 0.9);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: spikyShieldRaise 0.46s ease-out;
+}
+
+@keyframes spikyShieldRaise {
+  0% { transform: translate(-50%, -50%) scale(0.4) rotate(-20deg); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.15) rotate(20deg); opacity: 0; }
+}
+
+.fx-signature-burning-bulwark.lunge-right::before,
+.fx-signature-burning-bulwark.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  border: 6px solid rgba(238, 129, 48, 0.9);
+  box-shadow: 0 0 16px 4px rgba(238, 129, 48, 0.45), inset 0 0 12px 2px rgba(255, 243, 192, 0.6);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: burningBulwarkRaise 0.46s ease-out;
+}
+
+@keyframes burningBulwarkRaise {
+  0% { transform: translate(-50%, -50%) scale(0.45); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.12); opacity: 0; }
+}
+
+.fx-signature-silk-trap.lunge-right::before,
+.fx-signature-silk-trap.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px solid rgba(230, 230, 230, 0.85);
+  background:
+    repeating-conic-gradient(from 0deg, rgba(240, 240, 240, 0.55) 0deg 2deg, transparent 2deg 45deg);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: silkTrapWeave 0.48s ease-out;
+}
+
+@keyframes silkTrapWeave {
+  0% { transform: translate(-50%, -50%) scale(0.35) rotate(-40deg); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.1) rotate(10deg); opacity: 0; }
+}
+
+.fx-signature-howl.lunge-right::before,
+.fx-signature-howl.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 28%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 4px solid rgba(168, 167, 122, 0.9);
+  border-bottom-color: transparent;
+  box-shadow: 0 0 0 7px rgba(168, 167, 122, 0.25);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: howlRoar 0.44s ease-out;
+}
+
+@keyframes howlRoar {
+  0% { transform: translate(-50%, 0) scale(0.3); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: translate(-50%, -30px) scale(1.5); opacity: 0; }
+}
+
+.fx-signature-tailwind.lunge-right::before,
+.fx-signature-tailwind.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: 96px;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, rgba(169, 143, 243, 0.95));
+  box-shadow: 0 -16px 0 -1px rgba(169, 143, 243, 0.6), 0 16px 0 -2px rgba(169, 143, 243, 0.5);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: tailwindGust 0.42s ease-out;
+}
+
+@keyframes tailwindGust {
+  0% { transform: translate(-90%, -50%) scaleX(0.3); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: translate(-10%, -50%) scaleX(1.3); opacity: 0; }
+}
+
+.fx-signature-gravity.lunge-right::before,
+.fx-signature-gravity.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  border: 4px solid rgba(249, 85, 135, 0.75);
+  box-shadow: 0 0 0 9px rgba(249, 85, 135, 0.2);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: gravityPress 0.5s ease-in;
+}
+
+@keyframes gravityPress {
+  0% { transform: translate(-50%, -110%) scale(1.5); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, 10%) scale(0.55); opacity: 0; }
+}
+
+.fx-signature-focus-energy.lunge-right::before,
+.fx-signature-focus-energy.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 0 14px 3px rgba(168, 167, 122, 0.7);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: focusEnergyConverge 0.44s ease-in;
+}
+
+@keyframes focusEnergyConverge {
+  0% { transform: translate(-50%, -50%) scale(1.8) rotate(0deg); opacity: 0; }
+  55% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.5) rotate(180deg); opacity: 0; }
+}
+
+.fx-signature-sunny-day.lunge-right::before,
+.fx-signature-sunny-day.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6c0 0%, rgba(238, 129, 48, 0.9) 60%, transparent 78%);
+  box-shadow: 0 0 22px 8px rgba(247, 208, 44, 0.45);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: sunnyDayFlare 0.5s ease-out;
+}
+
+@keyframes sunnyDayFlare {
+  0% { transform: translate(-50%, 16px) scale(0.3); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-50%, -8px) scale(1.25); opacity: 0; }
+}
+
+.fx-signature-misty-terrain.lunge-right::before,
+.fx-signature-misty-terrain.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 78%;
+  left: 50%;
+  width: 104px;
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(214, 133, 173, 0.75) 0%, transparent 72%);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: mistyTerrainRoll 0.52s ease-out;
+}
+
+@keyframes mistyTerrainRoll {
+  0% { transform: translate(-50%, 10px) scale(0.4); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-50%, -4px) scale(1.3); opacity: 0; }
+}
+
+.fx-signature-electric-terrain.lunge-right::before,
+.fx-signature-electric-terrain.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 80%;
+  left: 50%;
+  width: 100px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(247, 208, 44, 0.8) 0%, transparent 70%);
+  box-shadow: 0 0 16px 4px rgba(247, 208, 44, 0.35);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: electricTerrainCharge 0.48s steps(1, end);
+}
+
+@keyframes electricTerrainCharge {
+  0%, 14% { transform: translate(-50%, 0) scale(0.5); opacity: 1; }
+  28% { opacity: 0.2; }
+  42%, 56% { transform: translate(-50%, -2px) scale(0.9); opacity: 1; }
+  70% { opacity: 0.3; }
+  84% { transform: translate(-50%, -4px) scale(1.2); opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.fx-signature-psychic-terrain.lunge-right::before,
+.fx-signature-psychic-terrain.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 80%;
+  left: 50%;
+  width: 100px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(249, 85, 135, 0.7) 0%, transparent 72%);
+  border: 2px solid rgba(249, 85, 135, 0.55);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: psychicTerrainPulse 0.5s ease-in-out;
+}
+
+@keyframes psychicTerrainPulse {
+  0% { transform: translate(-50%, 8px) scale(0.45); opacity: 0; }
+  50% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -4px) scale(1.3); opacity: 0; }
+}
+
+.fx-signature-magnet-rise.lunge-right::before,
+.fx-signature-magnet-rise.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 82%;
+  left: 50%;
+  width: 64px;
+  height: 16px;
+  border-radius: 50%;
+  border: 3px solid rgba(247, 208, 44, 0.85);
+  box-shadow: 0 12px 0 -3px rgba(247, 208, 44, 0.5);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: magnetRiseLift 0.46s ease-out;
+}
+
+@keyframes magnetRiseLift {
+  0% { transform: translate(-50%, 12px) scale(0.5); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -24px) scale(1.2); opacity: 0; }
+}
+
+.fx-signature-swagger.lunge-right::before,
+.fx-signature-swagger.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 36%;
+  left: 50%;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: conic-gradient(from 210deg, transparent 0deg 300deg, rgba(168, 167, 122, 0.85) 300deg 360deg);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: swaggerFlourish 0.44s ease-out;
+}
+
+@keyframes swaggerFlourish {
+  0% { transform: translate(-50%, -50%) scale(0.4) rotate(-70deg); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3) rotate(80deg); opacity: 0; }
+}
+
+.fx-signature-scary-face.lunge-right::before,
+.fx-signature-scary-face.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  width: 86px;
+  height: 86px;
+  clip-path: polygon(
+    50% 0%, 60% 22%, 82% 14%, 76% 38%, 100% 50%, 76% 62%, 82% 86%,
+    60% 78%, 50% 100%, 40% 78%, 18% 86%, 24% 62%, 0% 50%, 24% 38%, 18% 14%, 40% 22%
+  );
+  /* Filled, not outlined: a clip-path crops the border away too, so an
+     outlined starburst survives only as slivers and barely renders. */
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(168, 167, 122, 0.95) 55%, rgba(90, 88, 60, 0.9) 100%);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: scaryFaceLoom 0.4s ease-out;
+}
+
+@keyframes scaryFaceLoom {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(-14deg); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4) rotate(12deg); opacity: 0; }
+}
+
+.fx-signature-spite.lunge-right::before,
+.fx-signature-spite.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  width: 40px;
+  height: 56px;
+  border-radius: 50% 50% 45% 45% / 62% 62% 38% 38%;
+  background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.6) 0%, rgba(115, 87, 151, 0.9) 60%, transparent 84%);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: spiteWisp 0.5s ease-in-out;
+}
+
+@keyframes spiteWisp {
+  0% { transform: translate(-50%, 10px) scale(0.4) rotate(-8deg); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-50%, -34px) scale(1.15) rotate(10deg); opacity: 0; }
+}
+
+.fx-signature-metronome.lunge-right::before,
+.fx-signature-metronome.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  width: 6px;
+  height: 46px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(168, 167, 122, 0.9));
+  transform-origin: 50% 100%;
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: metronomeSwing 0.5s ease-in-out;
+}
+
+@keyframes metronomeSwing {
+  0% { transform: translate(-50%, 0) rotate(-38deg); opacity: 0; }
+  25% { opacity: 1; }
+  50% { transform: translate(-50%, 0) rotate(38deg); opacity: 1; }
+  75% { transform: translate(-50%, 0) rotate(-24deg); opacity: 1; }
+  100% { transform: translate(-50%, 0) rotate(16deg); opacity: 0; }
+}
+
+.fx-signature-switcheroo.lunge-right::before,
+.fx-signature-switcheroo.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: 62px;
+  height: 20px;
+  border-radius: 10px;
+  border: 3px solid rgba(112, 87, 70, 0.9);
+  border-left-color: transparent;
+  border-right-color: transparent;
+  box-shadow: 0 14px 0 -3px rgba(112, 87, 70, 0.6);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: switcherooSwap 0.44s ease-in-out;
+}
+
+@keyframes switcherooSwap {
+  0% { transform: translate(-50%, -50%) scaleX(0.3) rotate(0deg); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scaleX(1.2) rotate(180deg); opacity: 0; }
+}
+
+.fx-signature-worry-seed.lunge-right::before,
+.fx-signature-worry-seed.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  width: 22px;
+  height: 26px;
+  border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
+  background: radial-gradient(circle at 42% 36%, #d8f2c0 0%, rgba(122, 199, 76, 0.95) 65%, transparent 86%);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: worrySeedDrop 0.44s cubic-bezier(0.4, 0, 0.8, 1);
+}
+
+@keyframes worrySeedDrop {
+  0% { transform: translate(-50%, -24px) scale(0.5) rotate(-30deg); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: translate(-50%, 26px) scale(1.1) rotate(40deg); opacity: 0; }
+}
+
+.fx-signature-jungle-healing.lunge-right::before,
+.fx-signature-jungle-healing.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 44%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  border-radius: 0 60% 0 60%;
+  background: rgba(122, 199, 76, 0.9);
+  box-shadow:
+    -26px -14px 0 -4px rgba(122, 199, 76, 0.75),
+    24px -18px 0 -6px rgba(122, 199, 76, 0.7),
+    -8px 22px 0 -8px rgba(122, 199, 76, 0.65);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: jungleHealingBloom 0.52s ease-out;
+}
+
+@keyframes jungleHealingBloom {
+  0% { transform: translate(-50%, 14px) scale(0.35) rotate(-25deg); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-50%, -28px) scale(1.2) rotate(25deg); opacity: 0; }
+}
+
+.fx-signature-copycat.lunge-right::before,
+.fx-signature-copycat.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 44%;
+  left: 50%;
+  width: 56px;
+  height: 62px;
+  border-radius: 12px;
+  border: 3px dashed rgba(255, 255, 255, 0.85);
+  background: rgba(168, 167, 122, 0.25);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: copycatEcho 0.46s ease-out;
+}
+
+@keyframes copycatEcho {
+  0% { transform: translate(-50%, -50%) scale(1) skewX(0deg); opacity: 0; }
+  40% { opacity: 0.95; }
+  100% { transform: translate(-14%, -50%) scale(1.1) skewX(-12deg); opacity: 0; }
+}
+
+.fx-signature-fairy-lock.lunge-right::before,
+.fx-signature-fairy-lock.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 44%;
+  left: 50%;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 5px solid rgba(214, 133, 173, 0.9);
+  border-top-width: 12px;
+  box-shadow: inset 0 0 10px 2px rgba(214, 133, 173, 0.4);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: fairyLockClose 0.46s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes fairyLockClose {
+  0% { transform: translate(-50%, -50%) scale(1.6) rotate(-30deg); opacity: 0; }
+  55% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.92) rotate(6deg); opacity: 0; }
+}
+
+
+/* -- Batch 15, continued: ten more, so the 99.9% claim holds on either
+   denominator. Smogon's stats carry a "Nothing" pseudo-move for an empty
+   fourth slot (0.042% of slots, more than any real uncovered move); counting it
+   as a move the registry cannot cover, these ten are what keeps the figure
+   above 99.9% either way. -- */
+
+/* -- Impact-hooked -- */
+
+/* Never misses: a clean pass, no burst on arrival. */
+.fx-signature-aerial-ace.impact::after {
+  width: 88px;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, transparent, #fff 40%, var(--fx-color, #a98ff3) 100%);
+  animation: aerialAcePass 0.24s cubic-bezier(0.1, 0.8, 0.2, 1);
+}
+
+@keyframes aerialAcePass {
+  0% { transform: translate(-100%, -70%) rotate(-18deg) scaleX(0.4); opacity: 1; }
+  100% { transform: translate(-10%, -30%) rotate(-6deg) scaleX(1.25); opacity: 0; }
+}
+
+/* Burns anything that boosted: the flame licks upward off the target. */
+.fx-signature-burning-jealousy.impact::after {
+  width: 54px;
+  height: 70px;
+  border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
+  background: linear-gradient(0deg, var(--fx-color, #ee8130) 0%, #fff3c0 60%, transparent 90%);
+  animation: burningJealousyLick 0.38s ease-out;
+}
+
+@keyframes burningJealousyLick {
+  0% { transform: translate(-50%, -20%) scale(0.4) skewX(8deg); opacity: 1; }
+  100% { transform: translate(-50%, -80%) scale(1.3) skewX(-10deg); opacity: 0; }
+}
+
+/* A bite that takes the berry with it. */
+.fx-signature-bug-bite.impact::after {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 8px solid var(--fx-color, #a6b91a);
+  clip-path: polygon(0% 0%, 100% 0%, 100% 34%, 50% 50%, 100% 66%, 100% 100%, 0% 100%);
+  animation: bugBiteChomp 0.24s ease-out;
+}
+
+@keyframes bugBiteChomp {
+  0% { transform: translate(-50%, -50%) scale(1.35) rotate(-14deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.7) rotate(6deg); opacity: 0; }
+}
+
+/* Physical, but psychic: a blade with a mind behind it. */
+.fx-signature-psyblade.impact::after {
+  width: 20px;
+  height: 84px;
+  clip-path: polygon(38% 0%, 62% 0%, 56% 100%, 44% 100%);
+  background: linear-gradient(180deg, #fff 0%, var(--fx-color, #f95587) 65%);
+  box-shadow: 0 0 12px 3px rgba(249, 85, 135, 0.5);
+  animation: psybladeCut 0.24s ease-out;
+}
+
+@keyframes psybladeCut {
+  0% { transform: translate(-50%, -50%) scale(0.5) rotate(-42deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3) rotate(18deg); opacity: 0; }
+}
+
+/* A spell, not a beam: a rune closing in on the target. */
+.fx-signature-eerie-spell.impact::after {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 4px solid var(--fx-color, #f95587);
+  border-style: dashed;
+  box-shadow: inset 0 0 14px 3px rgba(249, 85, 135, 0.45);
+  animation: eerieSpellSigil 0.42s ease-in-out;
+}
+
+@keyframes eerieSpellSigil {
+  0% { transform: translate(-50%, -50%) scale(1.7) rotate(-120deg); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.6) rotate(120deg); opacity: 0; }
+}
+
+/* -- Self lunge-hooked -- */
+
+.fx-signature-rock-polish.lunge-right::before,
+.fx-signature-rock-polish.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 44%;
+  left: 50%;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg 320deg, rgba(255, 255, 255, 0.95) 340deg 360deg);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: rockPolishBuff 0.42s ease-out;
+}
+
+@keyframes rockPolishBuff {
+  0% { transform: translate(-50%, -50%) scale(0.5) rotate(-40deg); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.25) rotate(300deg); opacity: 0; }
+}
+
+.fx-signature-shift-gear.lunge-right::before,
+.fx-signature-shift-gear.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 9px dashed rgba(183, 183, 206, 0.95);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: shiftGearTurn 0.46s linear;
+}
+
+@keyframes shiftGearTurn {
+  0% { transform: translate(-50%, -50%) scale(0.5) rotate(0deg); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.2) rotate(340deg); opacity: 0; }
+}
+
+.fx-signature-stockpile.lunge-right::before,
+.fx-signature-stockpile.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  width: 46px;
+  height: 16px;
+  border-radius: 8px;
+  background: rgba(168, 167, 122, 0.9);
+  box-shadow: 0 -18px 0 -3px rgba(168, 167, 122, 0.75), 0 -34px 0 -6px rgba(168, 167, 122, 0.6);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: stockpileStack 0.46s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes stockpileStack {
+  0% { transform: translate(-50%, 18px) scale(0.5); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-50%, -10px) scale(1.15); opacity: 0; }
+}
+
+.fx-signature-block.lunge-right::before,
+.fx-signature-block.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 44%;
+  left: 50%;
+  width: 74px;
+  height: 74px;
+  border-radius: 8px;
+  border: 5px solid rgba(168, 167, 122, 0.9);
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: blockBar 0.42s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes blockBar {
+  0% { transform: translate(-50%, -50%) scaleX(1.8); opacity: 0; }
+  50% { transform: translate(-50%, -50%) scaleX(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scaleX(0.85); opacity: 0; }
+}
+
+.fx-signature-soak.lunge-right::before,
+.fx-signature-soak.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  width: 62px;
+  height: 62px;
+  border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
+  background: linear-gradient(180deg, rgba(99, 144, 240, 0.85) 0%, rgba(99, 144, 240, 0.25) 100%);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: soakDrench 0.46s ease-in;
+}
+
+@keyframes soakDrench {
+  0% { transform: translate(-50%, -34px) scale(0.5); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, 22px) scale(1.2); opacity: 0; }
+}
+
 /* -- Field-hooked: sets snow for five turns. Heavier and slower than Chilly
    Reception's flurry, which is a pivot that happens to change the weather. -- */
 
