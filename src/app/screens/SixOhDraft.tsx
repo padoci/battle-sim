@@ -17,7 +17,7 @@ import {useSixOhDispatch, useSixOhState, type GauntletOpponent} from '../sixoh/s
 import {MODE_LABELS} from '../sixoh/modeLabels';
 import {resetSixOhSession} from '../sixoh/session';
 import {useTcgArt} from '../sixoh/useTcgArt';
-import {resizedCardArtUrl} from '../../data/tcgArt';
+import {ART_RECT_OVERRIDES, cardArtEra, resizedCardArtUrl} from '../../data/tcgArt';
 import {TrainerPortrait} from '../components/TrainerPortrait';
 import type {Generation} from '@pkmn/data';
 
@@ -119,15 +119,32 @@ function fanTransform(index: number, count: number, rotateStepDeg: number, dipPx
  * (scaled up) while it loads / if no print was found. Tries the resized
  * (much smaller) proxy URL first; if that ever fails to load (the proxy is
  * down or blocked), falls back to fetching the direct TCGdex URL instead of
- * showing nothing. */
+ * showing nothing.
+ *
+ * The window shows only the illustration, which sits in a different place on
+ * each card template — so the era of the print (and, for a few prints that
+ * paint text over the art, the species) picks the crop rectangle. Cropping
+ * happens in CSS rather than at the proxy on purpose: the proxy stays a pure
+ * optimization, and a wsrv outage costs bytes rather than framing. */
 function CardArt({species}: {species: string}) {
   const url = useTcgArt(species);
   const [proxyFailed, setProxyFailed] = useState(false);
   if (url) {
     const src = proxyFailed ? url : resizedCardArtUrl(url);
+    const rect = ART_RECT_OVERRIDES[species];
     return (
       <img
-        className="card-art"
+        className={['card-art', cardArtEra(url)].filter(Boolean).join(' ')}
+        style={
+          rect
+            ? ({
+                '--art-x': rect.x,
+                '--art-y': rect.y,
+                '--art-w': rect.w,
+                '--art-h': rect.h,
+              } as CSSProperties)
+            : undefined
+        }
         src={src}
         onError={() => setProxyFailed(true)}
         alt={species}

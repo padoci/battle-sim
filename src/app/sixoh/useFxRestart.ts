@@ -41,6 +41,10 @@ export const FIELD_CLASSES = [
   'defog-sweep',
   'toxic-spikes-fall',
   'sticky-web-spread',
+  'chilly-reception-snow',
+  'court-change-swap',
+  'haze-veil',
+  'snowscape-settle',
 ] as const;
 
 /**

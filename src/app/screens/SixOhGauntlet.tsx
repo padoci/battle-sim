@@ -784,6 +784,10 @@ function BattleStage({
     fx.some(f => f.type === 'lunge' && f.move === 'Defog') && 'defog-sweep',
     fx.some(f => f.type === 'lunge' && f.move === 'Toxic Spikes') && 'toxic-spikes-fall',
     fx.some(f => f.type === 'lunge' && f.move === 'Sticky Web') && 'sticky-web-spread',
+    fx.some(f => f.type === 'lunge' && f.move === 'Chilly Reception') && 'chilly-reception-snow',
+    fx.some(f => f.type === 'lunge' && f.move === 'Court Change') && 'court-change-swap',
+    fx.some(f => f.type === 'lunge' && f.move === 'Haze') && 'haze-veil',
+    fx.some(f => f.type === 'lunge' && f.move === 'Snowscape') && 'snowscape-settle',
     jolt && 'strike-jolt',
   ]
     .filter(Boolean)

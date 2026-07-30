@@ -44,7 +44,7 @@ export interface FxItem {
   /** Physical → contact spark, Special → beam, Status → self glow. */
   category?: 'Physical' | 'Special' | 'Status';
   /** The move's exact name ("Knock Off") — drives the small curated set of
-   *  signature per-move overrides (SIGNATURE_MOVES in SixOhGauntlet.tsx). */
+   *  signature per-move overrides (SIGNATURE_MOVES in src/app/sixoh/fx.ts). */
   move?: string;
   /** `float` only: the size of the HP change as a fraction of max HP (always
    *  positive). The bar drains at a constant rate rather than in a fixed time,
@@ -85,6 +85,16 @@ const STATUS_SIGNATURE_TARGETS = new Set([
   'Strength Sap',
   'Glare',
   'Circle Throw',
+  // Pain Split averages both HP totals and Tickle drops the foe's stats —
+  // both visibly land on the opponent. Curse is NOT here on purpose: the only
+  // species running it in the app's team data are non-Ghost, so it is always
+  // the self-boost half of the move (see SIGNATURE_MOVES in sixoh/fx.ts).
+  'Pain Split',
+  'Tickle',
+  // Memento crashes the target's offenses; Transform copies it. Both are
+  // status-category but read as something happening TO the foe.
+  'Memento',
+  'Transform',
 ]);
 
 export function initView(teams: [PokemonSet[], PokemonSet[]]): ViewState {

@@ -1780,12 +1780,9 @@ button.primary:disabled {
    the TCGdex print art (or the @pkmn/img icon while it loads / if no print
    was found). TCGdex only serves the full card scan (no artwork-only crop
    endpoint), so .card-art crops down to just the illustration itself — an
-   oversized, offset background rather than the whole card with its own
-   name/HP/border baked in. The crop rectangle (art_left/top/w/h below) is
-   tuned against a real render (a first pass left the attack/ability name
-   row visible along the bottom edge — art_h was too tall); still an
-   estimate since card templates vary (full-art vs. standard prints don't
-   share one art-region shape), but no longer catching printed text. */
+   oversized, offset image rather than the whole card with its own
+   name/HP/border baked in. The crop rectangle is per card-template era; see
+   .card-art below. */
 .card-art-window {
   position: relative;
   aspect-ratio: 1.575;
@@ -1809,16 +1806,54 @@ button.primary:disabled {
   color: var(--muted-2);
 }
 
-/* art_left: 6%, art_top: 8%, art_w: 88%, art_h: 40% of the full card scan —
-   scaled up by 1/art_w and 1/art_h respectively, then shifted by
-   -(art_top/art_h) and -(art_left/art_w) so that region fills the window. */
+/* The illustration region as a FRACTION of the whole card scan: the image is
+   blown up by 1/--art-w and 1/--art-h, then shifted by -(--art-x / --art-w)
+   and -(--art-y / --art-h), so that region exactly fills the window.
+   Defaults are the modern template (SV / SWSH / SM / Mega / Pocket); the era
+   classes below retune them, and CardArt can override all four inline for a
+   print whose art sits somewhere else entirely (see ART_RECT_OVERRIDES in
+   src/data/tcgArt.ts).
+
+   ONE rectangle used to serve all fifteen TCG eras in the art map, and it was
+   wrong for most of them: the top strip of nearly every card was printed
+   chrome ("Evolves from ...", STAGE/BASIC badges, Ancient/Future banners),
+   and on the vintage inset-frame templates it landed largely on border.
+
+   Keep --art-w / --art-h at a ratio of 2.35 or more. `object-fit: cover`
+   trims whichever axis overflows, and TCGdex scans are not one size (600x825,
+   700x990, 734x1024, 600x835 all appear in the art map). At that ratio the
+   box is narrower than the narrowest source, so cover always trims WIDTH and
+   the top and bottom edges land exactly where --art-y / --art-h put them, on
+   every card. Drop below it and the trim flips to the vertical axis on some
+   sources and the chrome comes back. test/app/fx-signature-css.test.ts
+   asserts the ratio; scripts/preview-card-crops.py shows the result. */
 .card-art {
   position: absolute;
-  top: -20%;
-  left: -6.82%;
-  width: 113.64%;
-  height: 250%;
+  --art-x: 0.06;
+  --art-y: 0.14;
+  --art-w: 0.88;
+  --art-h: 0.33;
+  left: calc(var(--art-x) / var(--art-w) * -100%);
+  top: calc(var(--art-y) / var(--art-h) * -100%);
+  width: calc(100% / var(--art-w));
+  height: calc(100% / var(--art-h));
   object-fit: cover;
+}
+
+/* Thinner name bar, taller framed art window. */
+.card-art.era-mid {
+  --art-x: 0.07;
+  --art-y: 0.12;
+  --art-w: 0.86;
+  --art-h: 0.345;
+}
+
+/* Base/Gym/Neo: a small inset illustration frame inside a thick border. */
+.card-art.era-vintage {
+  --art-x: 0.09;
+  --art-y: 0.125;
+  --art-w: 0.82;
+  --art-h: 0.345;
 }
 
 /* Icons.getPokemon().css sets fixed pixel width/height + a background-position
@@ -3458,7 +3493,7 @@ button.primary:disabled {
   100% { transform: scale(1.04); opacity: 0; }
 }
 
-/* Per-type FX shapes: five signature types swap the generic spark/beam for
+/* Per-type FX shapes: every type swaps the generic spark/beam for
    a silhouette in the move's palette (still driven by --fx-color). */
 .fx-move-fire.impact::after {
   width: 54px;
@@ -3721,7 +3756,7 @@ button.primary:disabled {
   100% { transform: translate(-50%, -50%) scale(1.4) rotate(90deg); opacity: 0; }
 }
 
-/* ---- Signature moves (SIGNATURE_MOVES in SixOhGauntlet.tsx) ----
+/* ---- Signature moves (SIGNATURE_MOVES in src/app/sixoh/fx.ts) ----
    A small curated set of the highest-frequency/most iconic moves (by real
    usage in the app's own team data) get a fully bespoke override instead of
    the generic type/category treatment above. Each `.fx-signature-<slug>`
@@ -8969,6 +9004,1172 @@ button.primary:disabled {
   100% { transform: translate(-50%, -50%) rotate(30deg) scaleX(1.6); opacity: 0; }
 }
 
+/* ---- Batch 12: the last 20 moves the app's own team data actually rosters.
+   Earlier batches worked down a popularity list; this one closes the gap
+   instead — every move in vendored-teams.gen9ou.json now has a signature,
+   so nothing that appears in a real gauntlet falls back to the bare type
+   layer. Three of them are field-level and have no rule here at all (see
+   .chilly-reception-snow / .court-change-swap / .haze-veil below). ---- */
+
+/* -- Impact-hooked physical moves -- */
+
+.fx-signature-ceaseless-edge.impact::after {
+  width: 84px;
+  height: 84px;
+  background-image:
+    linear-gradient(115deg, transparent 44%, #fff 47%, var(--fx-color, #705746) 53%, transparent 56%),
+    radial-gradient(circle, var(--fx-color, #705746) 0 3px, transparent 4px),
+    radial-gradient(circle, #d8cfc4 0 2px, transparent 3px);
+  /* Each layer has to be SMALLER than the box or `background-position` has
+     nothing to move it within — same-size layers all stack dead centre and
+     only the topmost one is visible. */
+  background-size: 100% 100%, 18% 18%, 15% 15%;
+  background-position: 50% 50%, 30% 72%, 66% 78%;
+  background-repeat: no-repeat;
+  animation: ceaselessEdgeSplinter 0.3s ease-out;
+}
+
+@keyframes ceaselessEdgeSplinter {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -40%) scale(1.4); opacity: 0; }
+}
+
+/* Always a critical hit, so the burst carries the star the crit ring implies. */
+.fx-signature-flower-trick.impact::after {
+  width: 86px;
+  height: 86px;
+  background-image:
+    radial-gradient(circle, #fff 0 4px, transparent 5px),
+    radial-gradient(circle, var(--fx-color, #7ac74c) 0 6px, transparent 7px),
+    radial-gradient(circle, #f7a8c8 0 5px, transparent 6px),
+    radial-gradient(circle, #f7d774 0 4px, transparent 5px);
+  background-size: 26% 26%, 34% 34%, 30% 30%, 26% 26%;
+  background-position: 50% 50%, 24% 30%, 74% 34%, 46% 76%;
+  background-repeat: no-repeat;
+  animation: flowerTrickBloom 0.34s ease-out;
+}
+
+@keyframes flowerTrickBloom {
+  0% { transform: translate(-50%, -50%) scale(0.2) rotate(-40deg); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5) rotate(30deg); opacity: 0; }
+}
+
+/* Cuts the target down to the attacker's own HP — a levelling bar, not a hit. */
+.fx-signature-endeavor.impact::after {
+  width: 88px;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, transparent, #fff 20%, var(--fx-color, #a8a77a) 50%, #fff 80%, transparent);
+  animation: endeavorLevel 0.32s cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+@keyframes endeavorLevel {
+  0% { transform: translate(-50%, -180%) scaleX(0.3); opacity: 0; }
+  55% { transform: translate(-50%, -50%) scaleX(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scaleX(1.4); opacity: 0; }
+}
+
+/* A 2-5 hit volley: overlapping scales arriving on slightly staggered stops. */
+.fx-signature-scale-shot.impact::after {
+  width: 92px;
+  height: 60px;
+  background-image:
+    radial-gradient(ellipse, var(--fx-color, #6f35fc) 0 6px, transparent 7px),
+    radial-gradient(ellipse, #c9b3ff 0 5px, transparent 6px),
+    radial-gradient(ellipse, var(--fx-color, #6f35fc) 0 5px, transparent 6px),
+    radial-gradient(ellipse, #c9b3ff 0 4px, transparent 5px);
+  background-size: 28% 44%, 24% 38%, 24% 38%, 20% 32%;
+  background-position: 20% 40%, 44% 62%, 68% 32%, 88% 58%;
+  background-repeat: no-repeat;
+  animation: scaleShotVolley 0.34s steps(4, end);
+}
+
+@keyframes scaleShotVolley {
+  0% { transform: translate(-70%, -50%) scaleX(0.4); opacity: 1; }
+  100% { transform: translate(-30%, -50%) scaleX(1.3); opacity: 0; }
+}
+
+/* Two darts, one after the other — the second lands as the first fades. */
+.fx-signature-dragon-darts.impact::after {
+  width: 76px;
+  height: 34px;
+  background-image:
+    linear-gradient(90deg, transparent 10%, var(--fx-color, #6f35fc) 30%, #fff 48%, transparent 52%),
+    linear-gradient(90deg, transparent 10%, var(--fx-color, #6f35fc) 30%, #fff 48%, transparent 52%);
+  background-size: 100% 6px, 100% 6px;
+  background-position: 0 35%, 0 65%;
+  background-repeat: no-repeat;
+  animation: dragonDartsPair 0.34s ease-out;
+}
+
+@keyframes dragonDartsPair {
+  0% { transform: translate(-90%, -50%) scaleX(0.3); opacity: 1; }
+  45% { transform: translate(-50%, -55%) scaleX(1.2); opacity: 1; }
+  65% { transform: translate(-70%, -45%) scaleX(0.5); opacity: 0.8; }
+  100% { transform: translate(-40%, -45%) scaleX(1.3); opacity: 0; }
+}
+
+/* Doubles when the holder is empty — an unweighted loop rather than a slam. */
+.fx-signature-acrobatics.impact::after {
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  border: 3px solid var(--fx-color, #a98ff3);
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  background: none;
+  animation: acrobaticsLoop 0.32s ease-in-out;
+}
+
+@keyframes acrobaticsLoop {
+  0% { transform: translate(-50%, -20%) rotate(-90deg) scale(0.3); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -70%) rotate(320deg) scale(1.3); opacity: 0; }
+}
+
+/* Ice mass dropping from above, like Draco Meteor's arrival but blunt. */
+.fx-signature-avalanche.impact::after {
+  width: 88px;
+  height: 70px;
+  border-radius: 12px 18px 10px 16px;
+  background:
+    linear-gradient(160deg, #fff 0%, var(--fx-color, #96d9d6) 45%, rgba(120, 190, 200, 0.7) 75%, transparent 92%);
+  animation: avalancheDrop 0.36s cubic-bezier(0.5, 0, 0.9, 0.6);
+}
+
+@keyframes avalancheDrop {
+  0% { transform: translate(-50%, -240%) scale(0.5); opacity: 0.85; }
+  70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -40%) scale(1.35); opacity: 0; }
+}
+
+/* A thin, fast blade — closer to Secret Sword than to a splash. */
+.fx-signature-aqua-cutter.impact::after {
+  width: 96px;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, transparent, #eaf6ff 25%, var(--fx-color, #6390f0) 55%, transparent);
+  animation: aquaCutterSlash 0.2s ease-out;
+}
+
+@keyframes aquaCutterSlash {
+  0% { transform: translate(-50%, -50%) rotate(-38deg) scaleX(0.15); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(-38deg) scaleX(1.7); opacity: 0; }
+}
+
+/* -- Special beam-hooked moves -- */
+
+/* Sound, not light: rings that beat outward instead of a single burst. */
+.fx-signature-psychic-noise.impact::after {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 3px solid var(--fx-color, #f95587);
+  box-shadow: 0 0 0 6px rgba(249, 85, 135, 0.18), 0 0 0 12px rgba(249, 85, 135, 0.1);
+  background: none;
+  animation: psychicNoisePulse 0.36s ease-out;
+}
+
+@keyframes psychicNoisePulse {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  45% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.9; }
+  70% { transform: translate(-50%, -50%) scale(0.75); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+/* Sends the damage back: a pane that catches the beam, then flips. */
+.fx-signature-mirror-coat.impact::after {
+  width: 74px;
+  height: 90px;
+  border-radius: 6px;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.85) 0%, var(--fx-color, #f95587) 45%, rgba(255, 255, 255, 0.6) 60%, transparent 85%);
+  animation: mirrorCoatReflect 0.36s ease-in-out;
+}
+
+@keyframes mirrorCoatReflect {
+  0% { transform: translate(-50%, -50%) perspective(220px) rotateY(80deg); opacity: 0; }
+  45% { transform: translate(-50%, -50%) perspective(220px) rotateY(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) perspective(220px) rotateY(-80deg); opacity: 0; }
+}
+
+/* Traps for several turns — the swarm closes in and stays closed. */
+.fx-signature-infestation.impact::after {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 4px dashed var(--fx-color, #a6b91a);
+  background: radial-gradient(circle, transparent 55%, rgba(166, 185, 26, 0.25) 80%, transparent 92%);
+  animation: infestationClose 0.42s ease-in;
+}
+
+@keyframes infestationClose {
+  0% { transform: translate(-50%, -50%) scale(1.6) rotate(0deg); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.55) rotate(200deg); opacity: 0; }
+}
+
+/* -- Motion-hooked (pivot) -- */
+
+/* A pivot like U-turn: hit and leave. Snappier, and it recoils further back
+   than it advanced, because Volt Switch is the retreat and not the commit. */
+.fx-signature-volt-switch.lunge-right {
+  animation: voltSwitchDartRight 0.34s ease-in-out;
+}
+
+.fx-signature-volt-switch.lunge-left {
+  animation: voltSwitchDartLeft 0.34s ease-in-out;
+}
+
+@keyframes voltSwitchDartRight {
+  35%, 55% { transform: translate(58px, -14px); }
+  100% { transform: translate(-16px, 0); }
+}
+
+@keyframes voltSwitchDartLeft {
+  35%, 55% { transform: translate(-58px, 14px); }
+  100% { transform: translate(16px, 0); }
+}
+
+/* -- Self-hooked status moves (no defender impact) -- */
+
+/* The user faints to pass a full heal on. A halo settles down over it and
+   the sprite is gone a beat later, so this reads as a handover, not a buff. */
+.fx-signature-healing-wish.lunge-right::before,
+.fx-signature-healing-wish.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid var(--fx-color, #f95587);
+  box-shadow: 0 0 16px 4px rgba(255, 220, 240, 0.6);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: healingWishDescend 0.55s ease-out;
+}
+
+@keyframes healingWishDescend {
+  0% { transform: translate(-50%, -46px) scale(0.5); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-50%, 24px) scale(1.25); opacity: 0; }
+}
+
+/* Protect's shield with teeth — same hex guard idiom, poisoned edge. */
+.fx-signature-baneful-bunker.lunge-right::before,
+.fx-signature-baneful-bunker.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 74px;
+  height: 82px;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: linear-gradient(160deg, rgba(163, 62, 161, 0.45), rgba(214, 133, 173, 0.3));
+  border: 0;
+  box-shadow: 0 0 12px 3px rgba(163, 62, 161, 0.45);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: banefulBunkerGuard 0.5s ease-out;
+}
+
+@keyframes banefulBunkerGuard {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  30% { transform: translate(-50%, -50%) scale(1.08); opacity: 0.95; }
+  70% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(1.05); opacity: 0; }
+}
+
+/* Only the non-Ghost half of Curse ever runs in this app's team data (see
+   fx.ts) — it is always the self-boost, so this is weight settling on the
+   user, not a curse thrown at the foe. */
+.fx-signature-curse.lunge-right::before,
+.fx-signature-curse.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 22%;
+  left: 50%;
+  width: 44px;
+  height: 46px;
+  background: linear-gradient(180deg, #cbb8e8, var(--fx-color, #705898));
+  /* Two stacked chevrons pointing down — weight settling, the same read as
+     the stat-drop arrow the move actually is. */
+  clip-path: polygon(
+    0% 0%, 50% 34%, 100% 0%, 100% 26%, 50% 60%, 0% 26%,
+    0% 40%, 50% 74%, 100% 40%, 100% 66%, 50% 100%, 0% 66%
+  );
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: curseSettle 0.5s cubic-bezier(0.4, 0, 0.3, 1);
+}
+
+@keyframes curseSettle {
+  0% { transform: translate(-50%, -34px) scale(0.7); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, 18px) scale(1.15); opacity: 0; }
+}
+
+/* -- Target-hooked status moves (also listed in STATUS_SIGNATURE_TARGETS) -- */
+
+/* Averages both HP totals: two halves meeting in the middle. */
+.fx-signature-pain-split.impact::after {
+  width: 88px;
+  height: 44px;
+  background-image:
+    linear-gradient(90deg, var(--fx-color, #a8a77a) 0%, #fff 100%),
+    linear-gradient(90deg, #fff 0%, var(--fx-color, #a8a77a) 100%);
+  background-size: 40% 100%, 40% 100%;
+  background-position: 0% 50%, 100% 50%;
+  background-repeat: no-repeat;
+  animation: painSplitConverge 0.4s ease-in-out;
+}
+
+@keyframes painSplitConverge {
+  0% { transform: translate(-50%, -50%) scaleX(1.6); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scaleX(0.25); opacity: 0; }
+}
+
+/* Drops Attack and Defense — a fidget, not a blow. */
+.fx-signature-tickle.impact::after {
+  width: 70px;
+  height: 70px;
+  background-image:
+    radial-gradient(circle, #fff 0 3px, transparent 4px),
+    radial-gradient(circle, var(--fx-color, #a8a77a) 0 3px, transparent 4px),
+    radial-gradient(circle, #fff 0 2px, transparent 3px);
+  background-size: 24% 24%, 24% 24%, 18% 18%;
+  background-position: 30% 35%, 62% 50%, 44% 70%;
+  background-repeat: no-repeat;
+  animation: tickleJitter 0.4s ease-in-out;
+}
+
+@keyframes tickleJitter {
+  0% { transform: translate(-54%, -50%) scale(0.6); opacity: 0; }
+  25% { transform: translate(-46%, -54%) scale(1); opacity: 1; }
+  50% { transform: translate(-54%, -46%) scale(0.9); opacity: 1; }
+  75% { transform: translate(-48%, -52%) scale(1.05); opacity: 0.7; }
+  100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
+}
+
+/* -- Field-hooked moves: same idiom as .spikes-fall/.defog-sweep above (a
+   class toggled in SixOhGauntlet.tsx's fieldClasses, no fx-signature rule).
+   All three change the state of the whole field rather than hitting anyone,
+   so the flourish belongs on .stage-field. -- */
+
+.chilly-reception-snow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, #fff 0 3px, transparent 4px),
+    radial-gradient(circle, #dff0f5 0 2px, transparent 3px),
+    radial-gradient(circle, #fff 0 2px, transparent 3px),
+    radial-gradient(circle, #dff0f5 0 3px, transparent 4px),
+    radial-gradient(circle, #fff 0 2px, transparent 3px);
+  background-size: 8% 14%, 7% 12%, 6% 10%, 8% 14%, 6% 10%;
+  background-position: 18% 10%, 38% 22%, 55% 8%, 72% 26%, 88% 14%;
+  background-repeat: no-repeat;
+  animation: chillyReceptionFlurry 0.55s ease-in;
+}
+
+@keyframes chillyReceptionFlurry {
+  0% { transform: translateY(-40px); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translateY(70px); opacity: 0; }
+}
+
+.court-change-swap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image:
+    linear-gradient(90deg, transparent 15%, rgba(255, 255, 255, 0.5) 45%, transparent 60%),
+    linear-gradient(270deg, transparent 15%, rgba(255, 255, 255, 0.5) 45%, transparent 60%);
+  background-size: 100% 10px, 100% 10px;
+  background-position: 0 38%, 0 62%;
+  background-repeat: no-repeat;
+  animation: courtChangeSwap 0.5s ease-in-out;
+}
+
+@keyframes courtChangeSwap {
+  0% { transform: scaleX(0.2); opacity: 0; }
+  50% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1.15); opacity: 0; }
+}
+
+.haze-veil::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    0deg, rgba(190, 200, 205, 0.55) 0%, rgba(210, 218, 222, 0.35) 45%, transparent 80%
+  );
+  animation: hazeVeilRise 0.55s ease-in-out;
+}
+
+@keyframes hazeVeilRise {
+  0% { transform: translateY(45px); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(-30px); opacity: 0; }
+}
+
+/* ---- Batch 13: everything semi-viable in OU, 38 moves ----
+
+   Batch 12 closed the gap against the app's own team data. This one widens
+   the target to the metagame: every move that appears in a Smogon gen9ou
+   analysis set (data.pkmn.cc/sets/gen9ou.json), plus anything else holding
+   at least 0.15% of real OU move slots by weighted usage
+   (data.pkmn.cc/stats/gen9ou.json) — Shell Smash, Revival Blessing,
+   Population Bomb and friends, which Smogon does not write up for an OU
+   species but which turn up on the ladder often enough to matter.
+
+   That takes the registry to 99.5% of OU move slots by weighted usage, and to
+   every move Smogon writes up for an OU species. What is left below the
+   threshold (Spiky Shield, Howl, Tailwind, Fire Spin ...) is genuinely fringe
+   and reads fine on the type layer.
+
+   NOTE on multi-layer gradients: a layer with no `background-size` fills the
+   box, and `background-position` then has nothing to move it within — every
+   layer stacks dead centre and only the top one shows. Any rule here that
+   scatters particles sets an explicit size. ---- */
+
+/* -- Impact-hooked physical moves -- */
+
+.fx-signature-trailblaze.impact::after {
+  width: 84px;
+  height: 46px;
+  background:
+    linear-gradient(80deg, transparent 20%, var(--fx-color, #7ac74c) 45%, #d7f0b0 60%, transparent 78%);
+  border-radius: 40% 60% 50% 50%;
+  animation: trailblazeDash 0.28s ease-out;
+}
+
+@keyframes trailblazeDash {
+  0% { transform: translate(-90%, -50%) scaleX(0.3); opacity: 1; }
+  100% { transform: translate(-30%, -50%) scaleX(1.4); opacity: 0; }
+}
+
+.fx-signature-rock-tomb.impact::after {
+  width: 86px;
+  height: 86px;
+  /* Radial rather than linear: linear layers fill their whole box and read as
+     flat grey rectangles, which is not what a falling boulder looks like. */
+  background-image:
+    radial-gradient(ellipse at 38% 32%, #b8a68d 0%, #8a7a67 55%, transparent 76%),
+    radial-gradient(ellipse at 42% 30%, #c4b294 0%, #7d6d5c 55%, transparent 74%),
+    radial-gradient(ellipse at 36% 34%, #b8a68d 0%, #6f6152 55%, transparent 78%),
+    radial-gradient(ellipse at 44% 28%, #c4b294 0%, #8a7a67 55%, transparent 75%);
+  background-size: 40% 36%, 36% 40%, 36% 38%, 40% 34%;
+  background-position: 4% 6%, 90% 14%, 8% 88%, 86% 86%;
+  background-repeat: no-repeat;
+  animation: rockTombEnclose 0.34s ease-in;
+}
+
+@keyframes rockTombEnclose {
+  0% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.85); opacity: 0; }
+}
+
+/* Trips the target and knocks it flat rather than back. */
+.fx-signature-temper-flare.impact::after {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 62%, #fff 0%, #ffd25c 25%, var(--fx-color, #ee8130) 55%, transparent 82%);
+  animation: temperFlareBurst 0.3s ease-out;
+}
+
+@keyframes temperFlareBurst {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -62%) scale(1.7); opacity: 0; }
+}
+
+.fx-signature-lunge.impact::after {
+  width: 80px;
+  height: 52px;
+  border-radius: 60% 40% 45% 55%;
+  background: radial-gradient(ellipse at 30% 50%, #e4f09a 0%, var(--fx-color, #a6b91a) 50%, transparent 80%);
+  animation: bugLungePounce 0.26s cubic-bezier(0.2, 0, 0.4, 1);
+}
+
+@keyframes bugLungePounce {
+  0% { transform: translate(-100%, -80%) scale(0.4); opacity: 1; }
+  100% { transform: translate(-35%, -45%) scale(1.35); opacity: 0; }
+}
+
+/* Always drops the target's Special Attack — the pink breaks apart. */
+.fx-signature-spirit-break.impact::after {
+  width: 88px;
+  height: 88px;
+  /* Four solid shards flying apart. The layers used to sit under an outer
+     pentagon clip-path, which cut most of them away and left a faint block. */
+  background-image:
+    radial-gradient(closest-side, #fff 0%, var(--fx-color, #d685ad) 70%, transparent 100%),
+    radial-gradient(closest-side, #ffe0ef 0%, var(--fx-color, #d685ad) 70%, transparent 100%),
+    radial-gradient(closest-side, #fff 0%, var(--fx-color, #d685ad) 70%, transparent 100%),
+    radial-gradient(closest-side, #ffd0e6 0%, var(--fx-color, #d685ad) 70%, transparent 100%);
+  background-size: 34% 22%, 22% 32%, 28% 20%, 20% 26%;
+  background-position: 8% 18%, 78% 34%, 34% 82%, 60% 62%;
+  background-repeat: no-repeat;
+  animation: spiritBreakShatter 0.32s ease-out;
+}
+
+@keyframes spiritBreakShatter {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(-10deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5) rotate(20deg); opacity: 0; }
+}
+
+/* Up to ten hits: a dense scatter rather than one shape. */
+.fx-signature-population-bomb.impact::after {
+  width: 94px;
+  height: 76px;
+  background-image:
+    radial-gradient(circle, #fff 0 4px, transparent 5px),
+    radial-gradient(circle, var(--fx-color, #a8a77a) 0 4px, transparent 5px),
+    radial-gradient(circle, #fff 0 3px, transparent 4px),
+    radial-gradient(circle, var(--fx-color, #a8a77a) 0 3px, transparent 4px),
+    radial-gradient(circle, #fff 0 3px, transparent 4px),
+    radial-gradient(circle, var(--fx-color, #a8a77a) 0 2px, transparent 3px);
+  background-size: 22% 26%, 20% 24%, 18% 22%, 18% 22%, 16% 20%, 14% 18%;
+  background-position: 14% 26%, 40% 12%, 66% 30%, 86% 62%, 30% 74%, 56% 58%;
+  background-repeat: no-repeat;
+  animation: populationBombSwarm 0.4s steps(5, end);
+}
+
+@keyframes populationBombSwarm {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.35); opacity: 0; }
+}
+
+.fx-signature-fire-fang.impact::after {
+  width: 78px;
+  height: 78px;
+  background: linear-gradient(180deg, #ffd97a, var(--fx-color, #ee8130));
+  /* Two rows of teeth closing on each other. */
+  clip-path: polygon(
+    0% 0%, 16% 34%, 33% 0%, 50% 34%, 67% 0%, 84% 34%, 100% 0%, 100% 12%, 50% 46%, 0% 12%,
+    0% 88%, 50% 54%, 100% 88%, 100% 100%, 84% 66%, 67% 100%, 50% 66%, 33% 100%, 16% 66%, 0% 100%
+  );
+  animation: fireFangBite 0.26s ease-out;
+}
+
+@keyframes fireFangBite {
+  0% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+  45% { transform: translate(-50%, -50%) scale(0.95); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+}
+
+/* One hit per conscious party member — a pile-on, staggered. */
+.fx-signature-beat-up.impact::after {
+  width: 90px;
+  height: 90px;
+  background-image:
+    radial-gradient(circle, #3a2f45 0 8px, transparent 9px),
+    radial-gradient(circle, var(--fx-color, #705746) 0 7px, transparent 8px),
+    radial-gradient(circle, #3a2f45 0 6px, transparent 7px);
+  background-size: 34% 34%, 30% 30%, 26% 26%;
+  background-position: 22% 30%, 62% 44%, 42% 74%;
+  background-repeat: no-repeat;
+  animation: beatUpPileOn 0.38s steps(3, end);
+}
+
+@keyframes beatUpPileOn {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+.fx-signature-brick-break.impact::after {
+  width: 84px;
+  height: 84px;
+  background: linear-gradient(100deg, transparent 42%, #fff 47%, var(--fx-color, #c22e28) 54%, transparent 60%);
+  /* A cracked screen: the chop breaks the barrier, which is the point. */
+  clip-path: polygon(48% 0%, 56% 44%, 100% 38%, 60% 56%, 70% 100%, 46% 60%, 0% 70%, 42% 48%, 10% 12%);
+  animation: brickBreakChop 0.24s ease-out;
+}
+
+@keyframes brickBreakChop {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+/* Grounds a Flying-type: the rock drives down, not across. */
+.fx-signature-smack-down.impact::after {
+  width: 44px;
+  height: 76px;
+  border-radius: 45% 55% 50% 50%;
+  background: linear-gradient(180deg, #b8a68d 0%, var(--fx-color, #b6a136) 55%, #6f6152 100%);
+  animation: smackDownSlam 0.3s cubic-bezier(0.5, 0, 0.9, 0.6);
+}
+
+@keyframes smackDownSlam {
+  0% { transform: translate(-50%, -230%) scale(0.6); opacity: 0.9; }
+  70% { transform: translate(-50%, -40%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -20%) scale(1.2); opacity: 0; }
+}
+
+/* Exactly two hits, one wing each. */
+.fx-signature-dual-wingbeat.impact::after {
+  width: 90px;
+  height: 66px;
+  background-image:
+    linear-gradient(105deg, transparent 40%, #fff 47%, var(--fx-color, #a98ff3) 55%, transparent 62%),
+    linear-gradient(75deg, transparent 40%, #fff 47%, var(--fx-color, #a98ff3) 55%, transparent 62%);
+  background-size: 100% 46%, 100% 46%;
+  background-position: 0 4%, 0 96%;
+  background-repeat: no-repeat;
+  animation: dualWingbeatPair 0.3s ease-out;
+}
+
+@keyframes dualWingbeatPair {
+  0% { transform: translate(-50%, -50%) scaleX(0.25); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scaleX(1.1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scaleX(1.5); opacity: 0; }
+}
+
+.fx-signature-bite.impact::after {
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(180deg, #d8cfe0, var(--fx-color, #705746));
+  clip-path: polygon(
+    0% 4%, 20% 40%, 40% 4%, 60% 40%, 80% 4%, 100% 40%, 100% 60%, 80% 96%, 60% 60%,
+    40% 96%, 20% 60%, 0% 96%
+  );
+  animation: biteChomp 0.22s ease-out;
+}
+
+@keyframes biteChomp {
+  0% { transform: translate(-50%, -50%) scale(1.4); opacity: 0.2; }
+  50% { transform: translate(-50%, -50%) scale(0.9); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.72); opacity: 0; }
+}
+
+.fx-signature-dragon-claw.impact::after {
+  width: 86px;
+  height: 86px;
+  background-image:
+    linear-gradient(105deg, transparent 44%, #e0d0ff 48%, var(--fx-color, #6f35fc) 54%, transparent 58%),
+    linear-gradient(105deg, transparent 44%, #e0d0ff 48%, var(--fx-color, #6f35fc) 54%, transparent 58%),
+    linear-gradient(105deg, transparent 44%, #e0d0ff 48%, var(--fx-color, #6f35fc) 54%, transparent 58%);
+  background-size: 30% 100%, 30% 100%, 30% 100%;
+  background-position: 6% 50%, 50% 50%, 94% 50%;
+  background-repeat: no-repeat;
+  animation: dragonClawRake 0.24s ease-out;
+}
+
+@keyframes dragonClawRake {
+  0% { transform: translate(-50%, -50%) scale(0.4) rotate(-8deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.45) rotate(6deg); opacity: 0; }
+}
+
+/* Returns double what it took: the burst travels back the way it came. */
+.fx-signature-counter.impact::after {
+  width: 88px;
+  height: 30px;
+  border-radius: 15px;
+  background: linear-gradient(270deg, transparent, #fff 30%, var(--fx-color, #c22e28) 65%, transparent);
+  animation: counterReturn 0.3s ease-in;
+}
+
+@keyframes counterReturn {
+  0% { transform: translate(-10%, -50%) scaleX(0.3); opacity: 1; }
+  100% { transform: translate(-80%, -50%) scaleX(1.5); opacity: 0; }
+}
+
+/* A dance, so it turns as it lands. */
+.fx-signature-aqua-step.impact::after {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 3px solid var(--fx-color, #6390f0);
+  border-top-color: rgba(255, 255, 255, 0.9);
+  background: radial-gradient(circle, transparent 58%, rgba(120, 180, 240, 0.3) 80%, transparent 92%);
+  animation: aquaStepTwirl 0.32s ease-in-out;
+}
+
+@keyframes aquaStepTwirl {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -60%) scale(1.4) rotate(300deg); opacity: 0; }
+}
+
+/* Cuts off berries and sound moves — a chop, then a hard stop. */
+.fx-signature-throat-chop.impact::after {
+  width: 90px;
+  height: 16px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, transparent, #cbb8e8 30%, var(--fx-color, #705746) 62%, transparent);
+  animation: throatChopSilence 0.26s cubic-bezier(0.1, 0, 0.2, 1);
+}
+
+@keyframes throatChopSilence {
+  0% { transform: translate(-50%, -50%) rotate(72deg) scaleX(0.2); opacity: 1; }
+  70% { transform: translate(-50%, -50%) rotate(72deg) scaleX(1.3); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(72deg) scaleX(1.35); opacity: 0; }
+}
+
+/* -- Special beam-hooked moves -- */
+
+/* Always goes first: a flat, fast wave rather than a gathered blast. */
+.fx-signature-vacuum-wave.impact::after {
+  width: 96px;
+  height: 24px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9) 35%, var(--fx-color, #c22e28) 70%, transparent);
+  animation: vacuumWaveRush 0.18s ease-out;
+}
+
+@keyframes vacuumWaveRush {
+  0% { transform: translate(-90%, -50%) scaleX(0.2) scaleY(0.5); opacity: 1; }
+  100% { transform: translate(-30%, -50%) scaleX(1.6) scaleY(1.2); opacity: 0; }
+}
+
+.fx-signature-aura-sphere.impact::after {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 42% 38%, #fff 0%, #bcd8ff 30%, var(--fx-color, #c22e28) 62%, transparent 84%);
+  box-shadow: 0 0 18px 5px rgba(150, 200, 255, 0.45);
+  animation: auraSphereBloom 0.32s ease-out;
+}
+
+@keyframes auraSphereBloom {
+  0% { transform: translate(-50%, -50%) scale(0.25); opacity: 1; }
+  60% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.45); opacity: 0; }
+}
+
+/* Damages and heals in one go — a splash that settles rather than bursts. */
+.fx-signature-matcha-gotcha.impact::after {
+  width: 88px;
+  height: 76px;
+  border-radius: 50% 50% 44% 56%;
+  background: radial-gradient(ellipse at 50% 40%, #eaf7c8 0%, var(--fx-color, #7ac74c) 52%, transparent 82%);
+  animation: matchaGotchaSplash 0.36s ease-out;
+}
+
+@keyframes matchaGotchaSplash {
+  0% { transform: translate(-50%, -80%) scale(0.3); opacity: 1; }
+  55% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  100% { transform: translate(-50%, -42%) scale(1.4); opacity: 0; }
+}
+
+/* Either one beam or three: the flicker is the move's whole identity. */
+.fx-signature-fickle-beam.impact::after {
+  width: 96px;
+  height: 22px;
+  border-radius: 11px;
+  background: linear-gradient(90deg, transparent, #e0d0ff 25%, var(--fx-color, #6f35fc) 60%, transparent);
+  animation: fickleBeamFlicker 0.34s steps(1, end);
+}
+
+@keyframes fickleBeamFlicker {
+  0% { transform: translate(-70%, -50%) scaleX(0.4); opacity: 1; }
+  25% { transform: translate(-50%, -50%) scaleX(1.2); opacity: 0.2; }
+  50% { transform: translate(-55%, -70%) scaleX(1); opacity: 1; }
+  75% { transform: translate(-50%, -30%) scaleX(1.3); opacity: 0.9; }
+  100% { transform: translate(-45%, -50%) scaleX(1.5); opacity: 0; }
+}
+
+.fx-signature-alluring-voice.impact::after {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 3px solid var(--fx-color, #d685ad);
+  box-shadow: 0 0 0 5px rgba(214, 133, 173, 0.22), 0 0 0 10px rgba(255, 224, 239, 0.14);
+  background: none;
+  animation: alluringVoiceRing 0.36s ease-out;
+}
+
+@keyframes alluringVoiceRing {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  55% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.85; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+/* Burns rather than poisons: a plume of hot sand, rising. */
+.fx-signature-scorching-sands.impact::after {
+  width: 92px;
+  height: 80px;
+  border-radius: 46% 54% 40% 60%;
+  background: radial-gradient(ellipse at 50% 80%, #ffd08a 0%, var(--fx-color, #e2bf65) 45%, rgba(210, 140, 60, 0.5) 70%, transparent 88%);
+  animation: scorchingSandsPlume 0.36s ease-out;
+}
+
+@keyframes scorchingSandsPlume {
+  0% { transform: translate(-50%, -20%) scale(0.3); opacity: 1; }
+  100% { transform: translate(-50%, -75%) scale(1.5); opacity: 0; }
+}
+
+/* Drops Speed. A cold gust crossing the target, not a blast into it. */
+.fx-signature-icy-wind.impact::after {
+  width: 100px;
+  height: 60px;
+  background-image:
+    linear-gradient(88deg, transparent 20%, rgba(255, 255, 255, 0.85) 45%, transparent 70%),
+    linear-gradient(88deg, transparent 25%, var(--fx-color, #96d9d6) 50%, transparent 75%),
+    linear-gradient(88deg, transparent 20%, rgba(255, 255, 255, 0.7) 45%, transparent 70%);
+  background-size: 100% 18%, 100% 22%, 100% 16%;
+  background-position: 0 12%, 0 50%, 0 88%;
+  background-repeat: no-repeat;
+  animation: icyWindGust 0.34s ease-in-out;
+}
+
+@keyframes icyWindGust {
+  0% { transform: translate(-95%, -50%) scaleX(0.4); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-10%, -50%) scaleX(1.4); opacity: 0; }
+}
+
+/* Traps for several turns: a vortex that keeps turning. */
+.fx-signature-whirlpool.impact::after {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg, transparent 0%, var(--fx-color, #6390f0) 25%, rgba(255, 255, 255, 0.8) 40%,
+    var(--fx-color, #6390f0) 60%, transparent 85%
+  );
+  animation: whirlpoolSpin 0.44s linear;
+}
+
+@keyframes whirlpoolSpin {
+  0% { transform: translate(-50%, -50%) scale(0.3) rotate(0deg); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.25) rotate(560deg); opacity: 0; }
+}
+
+.fx-signature-water-shuriken.impact::after {
+  width: 88px;
+  height: 88px;
+  background-image:
+    conic-gradient(from 0deg, var(--fx-color, #6390f0) 0 12%, transparent 12% 25%, var(--fx-color, #6390f0) 25% 37%, transparent 37% 50%, var(--fx-color, #6390f0) 50% 62%, transparent 62% 75%, var(--fx-color, #6390f0) 75% 87%, transparent 87%),
+    conic-gradient(from 45deg, #dff0ff 0 12%, transparent 12% 25%, #dff0ff 25% 37%, transparent 37% 50%, #dff0ff 50% 62%, transparent 62% 75%, #dff0ff 75% 87%, transparent 87%);
+  background-size: 46% 46%, 34% 34%;
+  background-position: 24% 32%, 70% 62%;
+  background-repeat: no-repeat;
+  animation: waterShurikenVolley 0.36s steps(3, end);
+}
+
+@keyframes waterShurikenVolley {
+  0% { transform: translate(-80%, -50%) scale(0.4); opacity: 1; }
+  100% { transform: translate(-35%, -50%) scale(1.25); opacity: 0; }
+}
+
+/* Resets every stat change: the cloud rolls in, then clears out. */
+.fx-signature-clear-smog.impact::after {
+  width: 96px;
+  height: 82px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(240, 220, 250, 0.85) 0%, var(--fx-color, #a33ea1) 45%, rgba(163, 62, 161, 0.3) 70%, transparent 88%);
+  animation: clearSmogDisperse 0.42s ease-in-out;
+}
+
+@keyframes clearSmogDisperse {
+  0% { transform: translate(-50%, -50%) scale(0.25); opacity: 1; }
+  45% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.95; }
+  100% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+}
+
+/* -- Self-hooked status moves (no defender impact) -- */
+
+.fx-signature-agility.lunge-right::before,
+.fx-signature-agility.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  width: 60px;
+  height: 34px;
+  background-image:
+    linear-gradient(90deg, transparent, #fff),
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7)),
+    linear-gradient(90deg, transparent, #fff);
+  background-size: 100% 4px, 80% 4px, 60% 4px;
+  background-position: 0 20%, 0 50%, 0 80%;
+  background-repeat: no-repeat;
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: agilityStreak 0.45s ease-out;
+}
+
+@keyframes agilityStreak {
+  0% { transform: translate(-20%, -50%) scaleX(0.3); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-90%, -50%) scaleX(1.3); opacity: 0; }
+}
+
+/* +3 Special Attack, the biggest special boost in the game — go bright. */
+.fx-signature-tail-glow.lunge-right::before,
+.fx-signature-tail-glow.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--fx-color, #a6b91a) 55%, transparent 80%);
+  box-shadow: 0 0 24px 10px rgba(230, 245, 160, 0.6);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: tailGlowFlare 0.55s ease-out;
+}
+
+@keyframes tailGlowFlare {
+  0% { transform: translate(-50%, 10px) scale(0.3); opacity: 0; }
+  45% { transform: translate(-50%, -10px) scale(1.15); opacity: 1; }
+  100% { transform: translate(-50%, -26px) scale(1.5); opacity: 0; }
+}
+
+.fx-signature-take-heart.lunge-right::before,
+.fx-signature-take-heart.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 34%;
+  left: 50%;
+  width: 46px;
+  height: 46px;
+  background: linear-gradient(160deg, #fff, var(--fx-color, #f95587));
+  clip-path: polygon(50% 100%, 8% 52%, 8% 24%, 28% 8%, 50% 24%, 72% 8%, 92% 24%, 92% 52%);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: takeHeartPulse 0.5s ease-out;
+}
+
+@keyframes takeHeartPulse {
+  0% { transform: translate(-50%, 6px) scale(0.4); opacity: 0; }
+  40% { transform: translate(-50%, -6px) scale(1.15); opacity: 1; }
+  70% { transform: translate(-50%, -10px) scale(0.98); opacity: 0.9; }
+  100% { transform: translate(-50%, -22px) scale(1.25); opacity: 0; }
+}
+
+/* +2 Defense: the sprite coats itself rather than throwing anything. */
+.fx-signature-acid-armor.lunge-right::before,
+.fx-signature-acid-armor.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 66px;
+  height: 74px;
+  border-radius: 50% 50% 45% 55%;
+  background: linear-gradient(180deg, rgba(163, 62, 161, 0.15) 0%, var(--fx-color, #a33ea1) 100%);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: acidArmorCoat 0.5s ease-in-out;
+}
+
+@keyframes acidArmorCoat {
+  0% { transform: translate(-50%, -110%) scaleY(0.2); opacity: 0; }
+  50% { transform: translate(-50%, -50%) scaleY(1); opacity: 0.85; }
+  100% { transform: translate(-50%, -46%) scaleY(1.05); opacity: 0; }
+}
+
+/* Clears hazards and substitutes off both sides — a sweep, not a buff. */
+.fx-signature-tidy-up.lunge-right::before,
+.fx-signature-tidy-up.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 62%;
+  left: 50%;
+  width: 78px;
+  height: 22px;
+  border-radius: 11px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85) 45%, var(--fx-color, #a8a77a) 70%, transparent);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: tidyUpSweep 0.5s ease-in-out;
+}
+
+@keyframes tidyUpSweep {
+  0% { transform: translate(-90%, -50%) scaleX(0.3); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-10%, -50%) scaleX(1.3); opacity: 0; }
+}
+
+/* +2 Atk/SpA/Spe at the cost of both defenses: the shell comes off. */
+.fx-signature-shell-smash.lunge-right::before,
+.fx-signature-shell-smash.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(150deg, #f0e2c8, var(--fx-color, #a8a77a));
+  clip-path: polygon(
+    46% 0%, 52% 40%, 100% 26%, 58% 50%, 96% 88%, 50% 58%, 12% 96%, 42% 52%, 0% 34%
+  );
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: shellSmashCrack 0.5s cubic-bezier(0.2, 0, 0.3, 1);
+}
+
+@keyframes shellSmashCrack {
+  0% { transform: translate(-50%, -50%) scale(0.35) rotate(-15deg); opacity: 0; }
+  35% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -55%) scale(1.6) rotate(25deg); opacity: 0; }
+}
+
+/* Brings a fainted team-mate back and faints the user: a handover, like
+   Healing Wish, but the light comes UP out of the platform. */
+.fx-signature-revival-blessing.lunge-right::before,
+.fx-signature-revival-blessing.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 62%;
+  left: 50%;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, var(--fx-color, #a8a77a) 45%, transparent 78%);
+  box-shadow: 0 0 20px 6px rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: revivalBlessingHalo 0.55s ease-out;
+}
+
+@keyframes revivalBlessingHalo {
+  0% { transform: translate(-50%, 22px) scale(0.3); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-50%, -34px) scale(1.35); opacity: 0; }
+}
+
+.fx-signature-cosmic-power.lunge-right::before,
+.fx-signature-cosmic-power.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  width: 68px;
+  height: 68px;
+  background-image:
+    radial-gradient(circle, #fff 0 3px, transparent 4px),
+    radial-gradient(circle, var(--fx-color, #f95587) 0 4px, transparent 5px),
+    radial-gradient(circle, #fff 0 2px, transparent 3px),
+    radial-gradient(circle, var(--fx-color, #f95587) 0 3px, transparent 4px);
+  background-size: 22% 22%, 26% 26%, 18% 18%, 20% 20%;
+  background-position: 16% 24%, 78% 32%, 34% 76%, 66% 84%;
+  background-repeat: no-repeat;
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: cosmicPowerAura 0.55s ease-in-out;
+}
+
+@keyframes cosmicPowerAura {
+  0% { transform: translate(-50%, -50%) scale(0.4) rotate(0deg); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translate(-50%, -60%) scale(1.3) rotate(140deg); opacity: 0; }
+}
+
+/* +1 Atk/Def/Spe: three chevrons, all going up. */
+.fx-signature-victory-dance.lunge-right::before,
+.fx-signature-victory-dance.lunge-left::before {
+  content: '';
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  width: 48px;
+  height: 52px;
+  background: linear-gradient(0deg, var(--fx-color, #c22e28), #ffd9d6);
+  clip-path: polygon(
+    0% 30%, 50% 0%, 100% 30%, 100% 44%, 50% 14%, 0% 44%,
+    0% 66%, 50% 36%, 100% 66%, 100% 80%, 50% 50%, 0% 80%,
+    0% 100%, 50% 70%, 100% 100%
+  );
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: victoryDanceRise 0.5s cubic-bezier(0.3, 0, 0.4, 1);
+}
+
+@keyframes victoryDanceRise {
+  0% { transform: translate(-50%, 16px) scale(0.6); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, -34px) scale(1.2); opacity: 0; }
+}
+
+/* -- Target-hooked status moves (also listed in STATUS_SIGNATURE_TARGETS) -- */
+
+/* The user faints to crash the target's offenses — a parting imprint. */
+.fx-signature-memento.impact::after {
+  width: 74px;
+  height: 86px;
+  border-radius: 50% 50% 42% 58%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, var(--fx-color, #705746) 60%, transparent 92%);
+  animation: mementoFade 0.44s ease-out;
+}
+
+@keyframes mementoFade {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.95; }
+  45% { transform: translate(-50%, -55%) scale(1.05); opacity: 0.8; }
+  100% { transform: translate(-50%, -46%) scale(1.3); opacity: 0; }
+}
+
+/* Becomes a copy of the target: the outline resolves onto it. */
+.fx-signature-transform.impact::after {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px dashed var(--fx-color, #a8a77a);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.35) 0%, transparent 62%);
+  animation: transformMorph 0.44s ease-in-out;
+}
+
+@keyframes transformMorph {
+  0% { transform: translate(-50%, -50%) scale(1.5) rotate(0deg); opacity: 0; border-radius: 50%; }
+  50% { transform: translate(-50%, -50%) scale(1) rotate(120deg); opacity: 1; border-radius: 20%; }
+  100% { transform: translate(-50%, -50%) scale(0.85) rotate(240deg); opacity: 0; border-radius: 50%; }
+}
+
+/* -- Field-hooked: sets snow for five turns. Heavier and slower than Chilly
+   Reception's flurry, which is a pivot that happens to change the weather. -- */
+
+.snowscape-settle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, #fff 0 4px, transparent 5px),
+    radial-gradient(circle, #eaf6fa 0 3px, transparent 4px),
+    radial-gradient(circle, #fff 0 3px, transparent 4px),
+    radial-gradient(circle, #eaf6fa 0 4px, transparent 5px),
+    radial-gradient(circle, #fff 0 3px, transparent 4px),
+    radial-gradient(circle, #eaf6fa 0 2px, transparent 3px);
+  background-size: 9% 15%, 8% 13%, 7% 12%, 9% 15%, 7% 11%, 6% 10%;
+  background-position: 12% 8%, 30% 20%, 47% 6%, 63% 22%, 79% 10%, 92% 18%;
+  background-repeat: no-repeat;
+  animation: snowscapeSettle 0.6s ease-out;
+}
+
+@keyframes snowscapeSettle {
+  0% { transform: translateY(-46px); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: translateY(86px); opacity: 0; }
+}
+
 /* Mid-battle switch-in: a small pop up from the platform. */
 /* Incoming mon: delayed so its ball lands first (backwards-fill keeps it
    hidden through the delay). Shared by mid-battle switch-ins and the
@@ -10061,6 +11262,10 @@ button.primary:disabled {
   .defog-sweep,
   .toxic-spikes-fall,
   .sticky-web-spread,
+  .chilly-reception-snow,
+  .court-change-swap,
+  .haze-veil,
+  .snowscape-settle,
   .simulating .pulse {
     animation: none;
   }
@@ -10111,7 +11316,11 @@ button.primary:disabled {
   .spikes-fall::before,
   .defog-sweep::before,
   .toxic-spikes-fall::before,
-  .sticky-web-spread::before {
+  .sticky-web-spread::before,
+  .chilly-reception-snow::before,
+  .court-change-swap::before,
+  .haze-veil::before,
+  .snowscape-settle::before {
     display: none;
   }
   .hp-fill,
