@@ -379,6 +379,81 @@ export const SIGNATURE_MOVES = new Set([
   'Uproar',
   'Night Daze',
   'Secret Sword',
+  // Batch 12 closes the gap rather than extending the popularity list: these
+  // are the last moves in vendored-teams.gen9ou.json without a signature, so
+  // every move that can actually turn up in a gauntlet now has one.
+  'Ceaseless Edge',
+  'Psychic Noise',
+  'Flower Trick',
+  'Endeavor',
+  'Scale Shot',
+  'Dragon Darts',
+  'Acrobatics',
+  'Mirror Coat',
+  'Avalanche',
+  'Infestation',
+  'Aqua Cutter',
+  'Volt Switch',
+  'Healing Wish',
+  'Baneful Bunker',
+  // Curse is dual-behaviour — a Ghost user curses the foe, everyone else
+  // boosts itself. Only Clodsire, Dondozo and Garganacl run it here, so it is
+  // always the self-boost; animated on the caster and deliberately absent
+  // from STATUS_SIGNATURE_TARGETS (src/replay/view.ts).
+  'Curse',
+  'Pain Split',
+  'Tickle',
+  // Field-level: no fx-signature rule, a token on .stage-field instead.
+  'Chilly Reception',
+  'Court Change',
+  'Haze',
+  // Batch 13 widens the target from "moves in this app's team data" to "moves
+  // that are semi-viable in OU": everything in a Smogon gen9ou analysis set
+  // (data.pkmn.cc/sets/gen9ou.json), plus anything else holding >=0.15% of
+  // real OU move slots by weighted usage (data.pkmn.cc/stats/gen9ou.json).
+  // Takes the registry from ~97.3% to 99.5% of OU move slots by weighted
+  // usage, and to 100% of the moves Smogon writes up for an OU species.
+  'Vacuum Wave',
+  'Trailblaze',
+  'Aura Sphere',
+  'Matcha Gotcha',
+  'Fickle Beam',
+  'Rock Tomb',
+  'Alluring Voice',
+  'Scorching Sands',
+  'Temper Flare',
+  'Lunge',
+  'Spirit Break',
+  'Population Bomb',
+  'Fire Fang',
+  'Beat Up',
+  'Icy Wind',
+  'Whirlpool',
+  'Brick Break',
+  'Smack Down',
+  'Dual Wingbeat',
+  'Water Shuriken',
+  'Bite',
+  'Dragon Claw',
+  'Counter',
+  'Aqua Step',
+  'Throat Chop',
+  'Clear Smog',
+  // Self-hooked (target=self).
+  'Agility',
+  'Tail Glow',
+  'Take Heart',
+  'Acid Armor',
+  'Tidy Up',
+  'Shell Smash',
+  'Revival Blessing',
+  'Cosmic Power',
+  'Victory Dance',
+  // Status moves that land on the foe (also in STATUS_SIGNATURE_TARGETS).
+  'Memento',
+  'Transform',
+  // Field-level.
+  'Snowscape',
 ]);
 
 export function signatureSlug(move: string | undefined): string | undefined {

@@ -21,19 +21,46 @@ const css = readFileSync(new URL('../../src/app/app.css', import.meta.url), 'utf
 );
 
 /**
- * Six moves are in SIGNATURE_MOVES but deliberately have no
+ * Ten moves are in SIGNATURE_MOVES but deliberately have no
  * `.fx-signature-*` rule: they animate the whole field rather than a sprite,
  * so SixOhGauntlet's `fieldClasses` gives them a class on `.stage-field`
  * instead. Listed explicitly so the exemption can't quietly grow.
+ *
+ * Mapped to their token rather than just named, because "exempt from the
+ * sprite-level rule" used to be the ONLY thing asserted about them — a
+ * field-level move whose token was misspelled in any of the four places it
+ * has to appear was exempted from the one test that would have noticed.
+ * `field flourishes are fully wired` below is that missing check.
  */
-const FIELD_LEVEL = new Set([
-  'Earthquake',
-  'Stealth Rock',
-  'Spikes',
-  'Defog',
-  'Toxic Spikes',
-  'Sticky Web',
+const FIELD_LEVEL = new Map([
+  ['Earthquake', 'earthquake-shake'],
+  ['Stealth Rock', 'stealth-rock-fall'],
+  ['Spikes', 'spikes-fall'],
+  ['Defog', 'defog-sweep'],
+  ['Toxic Spikes', 'toxic-spikes-fall'],
+  ['Sticky Web', 'sticky-web-spread'],
+  ['Chilly Reception', 'chilly-reception-snow'],
+  ['Court Change', 'court-change-swap'],
+  ['Haze', 'haze-veil'],
+  ['Snowscape', 'snowscape-settle'],
 ]);
+
+const gauntlet = readFileSync(
+  new URL('../../src/app/screens/SixOhGauntlet.tsx', import.meta.url),
+  'utf8'
+);
+
+/** The `@media (prefers-reduced-motion: reduce)` block, brace-matched from
+ * the last one in the file (the earlier one covers non-battle chrome). */
+const reducedMotionCss = (() => {
+  const start = css.lastIndexOf('@media (prefers-reduced-motion: reduce)');
+  let depth = 0;
+  for (let i = css.indexOf('{', start); i < css.length; i++) {
+    if (css[i] === '{') depth++;
+    else if (css[i] === '}' && --depth === 0) return css.slice(start, i + 1);
+  }
+  throw new Error('unterminated reduced-motion block');
+})();
 
 /** Every `.fx-signature-<slug>` mentioned anywhere in the stylesheet. */
 function slugsInCss(): Set<string> {
@@ -119,8 +146,39 @@ describe('signature move FX: TypeScript list vs app.css rules', () => {
   });
 
   it('every field-level exemption is really in the move list', () => {
-    const stale = [...FIELD_LEVEL].filter(move => !SIGNATURE_MOVES.has(move));
+    const stale = [...FIELD_LEVEL.keys()].filter(move => !SIGNATURE_MOVES.has(move));
     expect(stale, `FIELD_LEVEL names not in SIGNATURE_MOVES: ${stale.join(', ')}`).toEqual([]);
+  });
+
+  it('field flourishes are fully wired', () => {
+    // A field-level move is exempt from the sprite-level rule above, so a
+    // mistake in ANY of its four remaining wiring points is otherwise silent:
+    // the move just animates nothing. Reduced motion is the nastiest of the
+    // four, because it fails only for the users who asked not to see motion.
+    const broken: string[] = [];
+    for (const [move, token] of FIELD_LEVEL) {
+      // 1. Actually toggled, keyed on this move's exact display name.
+      if (!new RegExp(`'${move}'\\s*\\)\\s*&&\\s*'${token}'`).test(gauntlet)) {
+        broken.push(`${move}: fieldClasses (SixOhGauntlet.tsx) never sets "${token}"`);
+      }
+      // 2. Restarted, or two identical consecutive beats play it once.
+      if (!(FIELD_CLASSES as readonly string[]).includes(token)) {
+        broken.push(`${move}: "${token}" missing from FIELD_CLASSES (useFxRestart.ts)`);
+      }
+      // 3. Draws something. `content:` is what creates the box.
+      const draws = new RegExp(`\\.${token}::(before|after)\\s*\\{[^}]*content\\s*:`).test(css);
+      // Earthquake shakes the field itself rather than drawing on a pseudo.
+      const shakes = new RegExp(`\\.${token}\\s*\\{[^}]*animation\\s*:`).test(css);
+      if (!draws && !shakes) broken.push(`${move}: no ".${token}" rule in app.css`);
+      // 4 + 5. Suppressed under reduced motion, both the token and its pseudo.
+      if (!new RegExp(`\\.${token}\\s*[,{]`).test(reducedMotionCss)) {
+        broken.push(`${move}: ".${token}" still animates under reduced motion`);
+      }
+      if (draws && !new RegExp(`\\.${token}::(before|after)\\s*[,{]`).test(reducedMotionCss)) {
+        broken.push(`${move}: ".${token}::before" still draws under reduced motion`);
+      }
+    }
+    expect(broken, `field-level moves with broken wiring:\n${broken.join('\n')}`).toEqual([]);
   });
 
   it('every CSS rule maps back to a signature move', () => {

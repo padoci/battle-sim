@@ -96,11 +96,22 @@ async function probe(page: import('@playwright/test').Page, slugs: string[]) {
 }
 
 /**
- * Six moves animate the whole field (a class on `.stage-field`) rather than
+ * Ten moves animate the whole field (a class on `.stage-field`) rather than
  * the sprite holder, so they intentionally have no `.fx-signature-*` rule.
  * Kept in step with the same list in test/app/fx-signature-css.test.ts.
  */
-const FIELD_LEVEL = new Set(['Earthquake', 'Stealth Rock', 'Spikes', 'Defog', 'Toxic Spikes', 'Sticky Web']);
+const FIELD_LEVEL = new Set([
+  'Earthquake',
+  'Stealth Rock',
+  'Spikes',
+  'Defog',
+  'Toxic Spikes',
+  'Sticky Web',
+  'Chilly Reception',
+  'Court Change',
+  'Haze',
+  'Snowscape',
+]);
 
 const SPRITE_SLUGS = [...SIGNATURE_MOVES].filter(m => !FIELD_LEVEL.has(m)).map(m => signatureSlug(m)!);
 
