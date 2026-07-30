@@ -107,6 +107,47 @@ async function resolveCardImage(species: string): Promise<string | undefined> {
   return base ? bestCardImage(base) : undefined;
 }
 
+/** Which card template an image belongs to, read off the series segment of a
+ * TCGdex path (`assets.tcgdex.net/en/<series>/<set>/<number>`). The three
+ * groups crop differently — see `.card-art` in app.css for the rectangles.
+ * Anything unrecognised (a series added after this was written) falls through
+ * to the modern default, which is what every recent set uses. */
+const MID_ERA_SERIES = new Set(['xy', 'bw', 'dp', 'pl', 'hgss', 'col', 'pop']);
+const VINTAGE_SERIES = new Set(['base', 'gym', 'neo']);
+
+export function cardArtEra(url: string): 'era-mid' | 'era-vintage' | undefined {
+  const series = url.split('/')[4];
+  if (VINTAGE_SERIES.has(series)) return 'era-vintage';
+  if (MID_ERA_SERIES.has(series)) return 'era-mid';
+  return undefined;
+}
+
+export interface ArtRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * Per-species crop overrides.
+ *
+ * A handful of prints paint card text over the illustration itself rather
+ * than beside it — the Tera prints put a rules box across the top of the art —
+ * so the era rectangle lands on type instead of artwork. These are the ones
+ * `bestCardImage` could not avoid: no classic-template print of the species
+ * exists in the map. Every rect here must satisfy the same w/h >= 2.35 rule
+ * as the era classes (asserted in test/app/fx-signature-css.test.ts).
+ */
+export const ART_RECT_OVERRIDES: Record<string, ArtRect> = {
+  // The Tera rules box occupies roughly the top third of the illustration;
+  // start below it and take the shorter band that is left.
+  Ogerpon: {x: 0.06, y: 0.245, w: 0.88, h: 0.235},
+  'Ogerpon-Cornerstone': {x: 0.06, y: 0.245, w: 0.88, h: 0.235},
+  'Ogerpon-Wellspring': {x: 0.06, y: 0.245, w: 0.88, h: 0.235},
+  Dragapult: {x: 0.06, y: 0.245, w: 0.88, h: 0.235},
+};
+
 /**
  * Resolves a species to a TCGdex card image URL (a base path — callers
  * append `/<quality>.<ext>`, e.g. `/high.webp`), or `undefined` if no card
@@ -125,16 +166,18 @@ export function tcgCardImageBase(species: string): Promise<string | undefined> {
 }
 
 /**
- * Convenience wrapper returning a ready-to-use `<img src>`. Defaults to
- * `low` quality: every card is displayed cropped down to a small illustration
- * window (see .card-art-crop in app.css), so the full-resolution scan buys
- * nothing visually while costing a lot of load time across a ten-card hand —
- * `low` is a fraction of the size of `high` and still looks sharp once
- * cropped and scaled to the small window.
+ * Convenience wrapper returning a ready-to-use `<img src>`.
+ *
+ * `high` rather than `low`, because the window does not show the card — it
+ * shows a crop of roughly a third of its height, blown back up to fill the
+ * window (see .card-art in app.css). That puts the card's full width at about
+ * 190 CSS px on screen, so a 2x display wants ~380 source px and `low` only
+ * carries 245: every retina draft screen was upscaling. The proxy below
+ * brings the transferred size back down.
  */
 export async function tcgCardArtUrl(
   species: string,
-  quality: 'high' | 'low' = 'low',
+  quality: 'high' | 'low' = 'high',
   ext: 'webp' | 'png' = 'webp'
 ): Promise<string | undefined> {
   const base = await tcgCardImageBase(species);
@@ -143,15 +186,19 @@ export async function tcgCardArtUrl(
 
 /**
  * Routes a card image through wsrv.nl (a free image resizing proxy) to have
- * it downscaled server-side before it reaches the browser. Even `low`
- * quality is still a full card scan — every pixel beyond what a ~150px-wide
- * cropped window (see .card-art-window in app.css) actually shows is bytes
- * spent on detail that gets thrown away, times up to ten cards on the draft
- * screen at once. `width` is sized for the window's on-screen footprint at
- * up to 2x device pixel ratio, well above what it displays but far below a
- * full scan. Purely an optimization: if the proxy is ever unreachable, the
- * caller falls back to the direct TCGdex URL (see CardArt in SixOhDraft.tsx).
+ * it downscaled server-side before it reaches the browser. A `high` scan is
+ * 600-734px wide; every pixel beyond what the cropped window (see .card-art
+ * in app.css) actually shows is bytes spent on detail that gets thrown away,
+ * times up to ten cards on the draft screen at once.
+ *
+ * `width` is sized for the card's on-screen footprint at 2x device pixel
+ * ratio — ~190 CSS px of card, so ~380 source px. Measured on a real card,
+ * that lands at ~28 KB against ~14 KB for the old (too small to be sharp)
+ * 240px request. Purely an optimization: if the proxy is ever unreachable
+ * the caller falls back to the direct TCGdex URL (see CardArt in
+ * SixOhDraft.tsx), which is heavier but frames identically — the crop is
+ * done in CSS, not here.
  */
-export function resizedCardArtUrl(url: string, width = 240): string {
-  return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=${width}&output=webp&q=80`;
+export function resizedCardArtUrl(url: string, width = 384): string {
+  return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=${width}&output=webp&q=72`;
 }

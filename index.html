@@ -35,7 +35,10 @@
     <meta name="twitter:image" content="https://battle-sim-eo1.pages.dev/og.png" />
     <!-- The draft screen fires off ~10 parallel lookups to TCGdex for card
          art; warming the connection (DNS + TLS) before those requests fire
-         shaves a round trip off each one. -->
+         shaves a round trip off each one. wsrv.nl is the resizing proxy every
+         one of those images is actually fetched through (see
+         resizedCardArtUrl), so it needs warming most of all. -->
+    <link rel="preconnect" href="https://wsrv.nl" crossorigin />
     <link rel="preconnect" href="https://api.tcgdex.net" crossorigin />
     <link rel="preconnect" href="https://assets.tcgdex.net" crossorigin />
     <link
