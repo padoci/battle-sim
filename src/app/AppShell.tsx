@@ -52,7 +52,7 @@ export function AppShell() {
           <div className="shell">
             <header className="shell-header">
               <a className="brand" href="#">
-                battle-sim
+                Team Preview
               </a>
               <div className="tier-control" role="group" aria-label="Format">
                 <button className="tier active">Gen 9 OU</button>

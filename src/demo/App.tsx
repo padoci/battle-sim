@@ -186,7 +186,7 @@ export function App() {
   if (error) {
     return (
       <main>
-        <h1>battle-sim · Stage 0</h1>
+        <h1>Team Preview · Stage 0</h1>
         <p className="error">Failed to load data: {error}</p>
       </main>
     );
@@ -195,7 +195,7 @@ export function App() {
   return (
     <main>
       <header>
-        <h1>battle-sim · Stage 0 data layer</h1>
+        <h1>Team Preview · Stage 0 data layer</h1>
         <p className="counts">
           {pool ? `${pool.length} pool species` : 'loading pool…'}
           {statsCount !== undefined && ` · ${statsCount} in stats`}

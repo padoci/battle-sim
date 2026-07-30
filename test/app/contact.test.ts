@@ -29,12 +29,12 @@ describe('mailtoUrl', () => {
       return new URLSearchParams(url.search).get('subject');
     });
     expect(new Set(subjects).size).toBe(3);
-    for (const s of subjects) expect(s).toMatch(/^battle-sim: /);
+    for (const s of subjects) expect(s).toMatch(/^Team Preview: /);
   });
 
   it('encodes spaces as %20 rather than +', () => {
     // URLSearchParams defaults to "+", which mail clients show literally in a
-    // subject line ("battle-sim:+bug+report").
+    // subject line ("Team+Preview:+bug+report").
     const url = mailtoUrl('bug', 'two words');
     expect(url).not.toContain('+');
     expect(url).toContain('%20');

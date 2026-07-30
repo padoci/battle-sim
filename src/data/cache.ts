@@ -23,7 +23,15 @@ export class MemoryStore implements KVStore {
   }
 }
 
-const DB_NAME = 'battle-sim-data';
+/**
+ * Renamed with the app. No migration on purpose: every entry carries a
+ * `fetchedAt` and expires after DEFAULT_TTL_MS (24h), so the whole database is
+ * disposable by construction — the worst a returning visitor pays is one extra
+ * cold fetch they would have paid within the day anyway. Copying ~3 MB between
+ * two IndexedDB databases to save that is more code, and more to go wrong, than
+ * the thing it buys. The old `battle-sim-data` database is simply abandoned.
+ */
+const DB_NAME = 'teampreview-data';
 const DB_VERSION = 1;
 const STORE_NAME = 'http-cache';
 

@@ -1,5 +1,5 @@
 /* ============================================================
-   battle-sim — visual identity: trading-card ("TCG") design language.
+   Team Preview — visual identity: trading-card ("TCG") design language.
    Playful, collectible-card-inspired, retro-pixel accents, on a light
    lilac surface. Type colors are the functional accent system (never
    decorative); the deep-violet --signal owns primary actions / active /
@@ -332,14 +332,17 @@ h3 {
   color: var(--ink);
 }
 
+/* The mark: your six over theirs, the Team Preview screen abstracted. The same
+   artwork is the favicon in index.html; test/app/logo-mark.test.ts fails if the
+   two drift apart. Inline rather than a file so it costs no extra request and
+   no base-path handling, at ~500 bytes. */
 .brand::before {
   content: '';
   width: 20px;
   height: 20px;
-  border-radius: 6px;
-  background: linear-gradient(150deg, #7d5ce8, #5b34d6);
-  box-shadow: inset 0 0 0 2px var(--surface), inset 0 0 0 3px var(--signal);
-  transform: rotate(-8deg);
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%235B34D6'/><g fill='%23fff'><rect x='4' y='7' width='6' height='6' rx='1.5'/><rect x='13' y='7' width='6' height='6' rx='1.5'/><rect x='22' y='7' width='6' height='6' rx='1.5'/></g><g fill='none' stroke='%23fff' stroke-width='1.6' opacity='.85'><rect x='4.8' y='19.8' width='4.4' height='4.4' rx='1'/><rect x='13.8' y='19.8' width='4.4' height='4.4' rx='1'/><rect x='22.8' y='19.8' width='4.4' height='4.4' rx='1'/></g></svg>");
+  background-size: contain;
+  background-repeat: no-repeat;
 }
 
 .tier-control {

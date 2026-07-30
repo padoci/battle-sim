@@ -26,11 +26,28 @@ Jolly Nature
  * the user off to find their export again — the sharpest edge of losing a run,
  * and the cheapest to remove.
  */
-const DRAFT_KEY = 'battle-sim:team-draft';
+const DRAFT_KEY = 'teampreview:team-draft';
 
-function loadDraft(): string {
+/**
+ * The pre-rename key. Unlike the HTTP cache, this holds something the user
+ * typed and cannot be re-fetched, so the rename reads it forward instead of
+ * abandoning it: someone who pasted a team, refreshed, and landed on the
+ * renamed build still finds their export in the box. Safe to delete once no
+ * one plausibly has a draft from before the rename.
+ */
+const LEGACY_DRAFT_KEY = 'battle-sim:team-draft';
+
+/** Exported for test/app/draft-key-migration.test.ts; not used elsewhere. */
+export function loadDraft(): string {
   try {
-    return localStorage.getItem(DRAFT_KEY) ?? '';
+    const current = localStorage.getItem(DRAFT_KEY);
+    if (current !== null) return current;
+    const legacy = localStorage.getItem(LEGACY_DRAFT_KEY);
+    if (legacy === null) return '';
+    // Carry it forward once, then stop paying for the lookup.
+    localStorage.setItem(DRAFT_KEY, legacy);
+    localStorage.removeItem(LEGACY_DRAFT_KEY);
+    return legacy;
   } catch {
     return '';
   }
