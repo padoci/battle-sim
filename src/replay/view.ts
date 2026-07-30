@@ -89,6 +89,16 @@ const STATUS_SIGNATURE_TARGETS = new Set([
   // both visibly land on the opponent. Curse is NOT here on purpose: the only
   // species running it in the app's team data are non-Ghost, so it is always
   // the self-boost half of the move (see SIGNATURE_MOVES in sixoh/fx.ts).
+  // Batch 15. All seven are `target: normal` in the dex - they act ON the
+  // foe - so without this they would glow on the user while the effect
+  // landed somewhere else entirely.
+  'Swagger',
+  'Spite',
+  'Scary Face',
+  'Switcheroo',
+  'Worry Seed',
+  'Block',
+  'Soak',
   'Pain Split',
   'Tickle',
   // Memento crashes the target's offenses; Transform copies it. Both are
