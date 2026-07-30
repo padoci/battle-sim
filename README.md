@@ -2,7 +2,7 @@
 
 A client-side, in-browser competitive Pokémon teambuilding tool for the Smogon/VGC crowd. Two AI-vs-AI game modes, one engine: the skill being tested is **teambuilding, not piloting**. Every read the app gives you is *direction, not gospel* — a pressure-test, never a verdict.
 
-No server. Fully static-hostable. All simulation runs in a web worker in your browser.
+All simulation runs in a web worker in your browser: nothing you paste is uploaded, and there is no account. The one server-side piece is the feedback inbox (`functions/api/feedback.ts`), which receives a message only when someone writes one and presses send. Everything else is static.
 
 **Live demo:** https://battle-sim-eo1.pages.dev (Cloudflare Pages, deployed from `main`).
 
@@ -102,6 +102,36 @@ One-time Cloudflare setup (dashboard → Workers & Pages → Create → Pages �
 - Node version comes from `.nvmrc` (22); nothing else to configure.
 
 Cloudflare posts each preview URL back onto the PR as a deployment status once it's connected.
+
+## Feedback inbox
+
+"Get in touch" in the footer is an anonymous inbox. It posts to `/api/feedback`, a Cloudflare Pages Function (`functions/api/feedback.ts`) that relays the message to a Discord or Slack webhook. It runs on the site's own origin, so no third-party form service sees anything, and it forwards only the fields someone typed: topic, message, an optional free-text contact detail, and a browser string they can opt into for bug reports. It reads no IP, no user agent, and no `request.cf`, and stores nothing.
+
+Setup is one secret:
+
+1. Make an incoming webhook. Discord: channel → Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL. Slack: an app with Incoming Webhooks enabled.
+2. Cloudflare dashboard → the Pages project → Settings → Environment variables → add `FEEDBACK_WEBHOOK_URL` as a **secret** (encrypted), for Production and, if you want to test it there, Preview.
+3. Redeploy. Pages Functions pick up new variables on the next build.
+
+Without the secret the endpoint answers `503`, and the panel says so and offers the mailto route rather than accepting a message that nothing receives.
+
+Plain `npm run dev` does not serve Functions, so the panel there will report the inbox as unavailable and fall back to email. To exercise the real thing:
+
+```bash
+npm run build
+npx wrangler pages dev dist                       # 503 from /api/feedback: route resolved, no secret
+npx wrangler pages dev dist --binding FEEDBACK_WEBHOOK_URL=http://localhost:9911/hook
+curl -s -X POST localhost:8788/api/feedback -H 'content-type: application/json' \
+  -d '{"topic":"feedback","message":"hi","contact":"","browser":"","confirm-empty":""}'
+```
+
+Point the binding at any local server that accepts a POST to see what would land in the channel. Worth running after touching `functions/`: the unit tests call the handler directly and so cannot catch a bundling or routing failure, and `npm run build` does not compile this directory.
+
+Discord caps a webhook message at 2000 characters, so longer messages are split across several posts and marked `(1/2)`, `(2/2)`. Nothing is truncated.
+
+**Spam.** The form has a honeypot field and per-field length caps, and a caught bot gets a silent `204` rather than a hint about which field it tripped. If that stops being enough, add a Cloudflare Rate Limiting rule on `/api/feedback` (dashboard → the domain → Security → WAF → Rate limiting rules) rather than tracking senders in the app, which would mean handling the IPs the endpoint currently refuses to look at.
+
+**The privacy wording depends on this.** `PrivacyNote` used to say "no server"; this endpoint made that false, so the phrase came out and the narrower promise stayed. `test/app/privacy-note.test.ts` enforces the rest: exactly one file in `src/` may POST, it must target a relative path, and nothing under `functions/` may read an identifying header or hold a storage binding.
 
 ## Scripts
 

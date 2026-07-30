@@ -18,3 +18,6 @@ logs/tera-*.txt
 
 # Downloaded card scans + rendered crop sheets (scripts/preview-card-crops.py)
 .cache/
+
+# wrangler pages dev local state
+.wrangler/

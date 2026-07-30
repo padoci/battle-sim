@@ -65,8 +65,14 @@ export function FooterExtras() {
       {dataOpen && (
         <div className="footer-panel mono" role="region" aria-label="Your data">
           <p>
-            Your team never leaves this browser. There is no account and no server, and every
-            battle runs locally in this tab.
+            Your team never leaves this browser. There is no account, and every battle runs
+            locally in this tab.
+          </p>
+          <p>
+            The only thing this site ever sends is a message you type into Get in touch and
+            press send on. That goes to my own inbox, not to a form service, and it carries
+            nothing but what you typed. Leave the contact box empty and there is no way for me
+            to tell who wrote it.
           </p>
         </div>
       )}
