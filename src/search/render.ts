@@ -90,6 +90,9 @@ export function renderBattle(result: BattleResult, names: [string, string]): str
       case '-heal':
         out.push(`    ${ident(parts[2])} healed -> ${hp(parts[3])}`);
         break;
+      case '-sethp':
+        out.push(`    ${ident(parts[2])} set to ${hp(parts[3])}`);
+        break;
       case 'faint':
         out.push(`    ${ident(parts[2])} fainted!`);
         break;

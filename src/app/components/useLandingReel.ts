@@ -65,7 +65,8 @@ function applyEvent(frame: ReelFrame, event: ReplayEvent): ReelFrame {
       };
     }
     case 'damage':
-    case 'heal': {
+    case 'heal':
+    case 'sethp': {
       const key = sideKey(event.ref.side);
       const current = frame[key];
       // A fainted mon reports 0/0; keep the last known maxhp so the bar keeps

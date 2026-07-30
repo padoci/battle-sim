@@ -264,6 +264,27 @@ export function applyBeat(
         }
         break;
       }
+      case 'sethp': {
+        // An absolute assignment: which of damage/heal it is depends on the bar
+        // it lands on, so both directions get a float and a no-op gets neither.
+        // Pain Split routinely produces the no-op half, since a user already at
+        // full HP is clamped back to its own maximum.
+        const mon = findMon(next.sides[event.ref.side], event.ref.name);
+        if (!mon) break;
+        const before = mon.hp;
+        mon.hp = event.hp;
+        if (event.maxhp > 0) mon.maxhp = Math.max(mon.maxhp, event.maxhp);
+        const delta = Math.round(((event.hp - before) / Math.max(1, mon.maxhp)) * 100);
+        if (delta !== 0) {
+          fx.push({
+            type: 'float',
+            side: event.ref.side,
+            text: `${delta > 0 ? '+' : '−'}${Math.abs(delta)}%`,
+            delta: Math.abs(event.hp - before) / Math.max(1, mon.maxhp),
+          });
+        }
+        break;
+      }
       case 'faint': {
         const mon = findMon(next.sides[event.ref.side], event.ref.name);
         if (mon) {
