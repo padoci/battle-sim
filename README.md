@@ -103,6 +103,24 @@ One-time Cloudflare setup (dashboard → Workers & Pages → Create → Pages �
 
 Cloudflare posts each preview URL back onto the PR as a deployment status once it's connected.
 
+## Feedback inbox
+
+"Get in touch" in the footer is an anonymous inbox. It posts to `/api/feedback`, a Cloudflare Pages Function (`functions/api/feedback.ts`) that relays the message to a Discord or Slack webhook. It runs on the site's own origin, so no third-party form service sees anything, and it forwards only the fields someone typed: topic, message, an optional free-text contact detail, and a browser string they can opt into for bug reports. It reads no IP, no user agent, and no `request.cf`, and stores nothing.
+
+Setup is one secret:
+
+1. Make an incoming webhook. Discord: channel → Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL. Slack: an app with Incoming Webhooks enabled.
+2. Cloudflare dashboard → the Pages project → Settings → Environment variables → add `FEEDBACK_WEBHOOK_URL` as a **secret** (encrypted), for Production and, if you want to test it there, Preview.
+3. Redeploy. Pages Functions pick up new variables on the next build.
+
+Without the secret the endpoint answers `503` and the panel says so and offers the mailto route, rather than accepting a message that nothing receives. Locally, `npx wrangler pages dev dist` serves the function; plain `npm run dev` does not, so the panel will report the inbox as unavailable and fall back to email.
+
+Discord caps a webhook message at 2000 characters, so longer messages are split across several posts and marked `(1/2)`, `(2/2)`. Nothing is truncated.
+
+**Spam.** The form has a honeypot field and per-field length caps, and a caught bot gets a silent `204` rather than a hint about which field it tripped. If that stops being enough, add a Cloudflare Rate Limiting rule on `/api/feedback` (dashboard → the domain → Security → WAF → Rate limiting rules) rather than tracking senders in the app, which would mean handling the IPs the endpoint currently refuses to look at.
+
+**The privacy wording depends on this.** `PrivacyNote` used to say "no server"; this endpoint made that false, so the phrase came out and the narrower promise stayed. `test/app/privacy-note.test.ts` enforces the rest: exactly one file in `src/` may POST, it must target a relative path, and nothing under `functions/` may read an identifying header or hold a storage binding.
+
 ## Scripts
 
 - `npx vite-node scripts/measure.ts` — Node-side search gate numbers (ms/turn, nodes/turn, strength vs baselines) + rendered battle logs into `logs/`

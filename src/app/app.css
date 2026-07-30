@@ -700,9 +700,9 @@ main.screen.wide {
 }
 
 /* ---- Get in touch ----
-   A composer, not a form: it builds a mailto and hands it to the reader's own
-   email app (see ContactPanel). Styled to sit inside .footer-panel, which
-   already owns the surface and border. */
+   An anonymous inbox that posts to /api/feedback, with the reader's own email
+   app as the fallback (see ContactPanel). Styled to sit inside .footer-panel,
+   which already owns the surface and border. */
 .contact-panel {
   text-align: left;
 }
@@ -753,25 +753,41 @@ main.screen.wide {
   margin: 0.75rem 0 0.5rem;
 }
 
-/* An anchor, so it gets the browser's own link affordances (open in a new
-   window, copy address) rather than a button that only works on click.
-   Scoped through .footer-panel: the panel's own `a` rule is (0,1,1) and would
-   otherwise win, painting link-coloured underlined text on the violet fill. */
+/* The real submit. Scoped through .footer-panel to stay ahead of the panel's
+   own control styling, and shaped like the pill the mailto link used to be so
+   the primary action didn't move when the panel gained an endpoint. */
 .footer-panel .contact-send {
   display: inline-flex;
   align-items: center;
   min-height: 34px;
   padding: 0 0.85rem;
+  border: none;
   border-radius: var(--r-pill);
   background: var(--signal);
   color: var(--on-accent);
   text-decoration: none;
+  font: inherit;
   font-size: 0.78rem;
+  cursor: pointer;
 }
 
-.footer-panel .contact-send:hover {
+.footer-panel .contact-send:hover:not(:disabled) {
   background: var(--signal-deep);
   color: var(--on-accent);
+}
+
+/* Disabled until something has been typed. Dimmed rather than hidden, so the
+   button is visible as the thing that will send once there's a message. */
+.footer-panel .contact-send:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* The escape hatch: a real anchor, so it keeps the browser's own affordances
+   for anyone whose mail app is not the default handler. Deliberately quiet, a
+   link beside the button rather than a second pill competing with it. */
+.contact-mailto {
+  font-size: 0.74rem;
 }
 
 .contact-copy {
@@ -796,6 +812,76 @@ main.screen.wide {
 .contact-note {
   color: var(--muted);
   font-size: 0.72rem;
+}
+
+/* The optional "how to reach you" box. Matched to the select above it rather
+   than to the message textarea: it is one line, and sizing it like the message
+   would suggest it wants as much from you. */
+.contact-reply {
+  display: block;
+  width: 100%;
+  max-width: 22rem;
+  min-height: 32px;
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 0 0.45rem;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* Sits directly under the contact field it explains, so it reads as part of
+   that field rather than as another paragraph of small print. */
+.contact-hint {
+  margin-top: -0.5rem;
+}
+
+.contact-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0.75rem 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.contact-check input {
+  margin-top: 0.15rem;
+  flex: none;
+}
+
+/* The exact string the checkbox would attach, shown before it is ticked. Long
+   user-agent strings must wrap rather than widen the footer. */
+.contact-browser {
+  overflow-wrap: anywhere;
+  color: var(--ink-2);
+}
+
+/* The honeypot. Off-screen rather than display:none — some bots skip fields
+   that are not rendered at all, and this one is meant to be filled in. */
+.contact-trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Empty in every state but 'error', so it must not reserve a line. */
+.contact-status:empty {
+  display: none;
+}
+
+.contact-status {
+  margin: 0.35rem 0 0;
+  font-size: 0.74rem;
+  color: var(--warn, #d9534f);
+}
+
+.contact-sent {
+  font-size: 0.85rem;
 }
 
 /* Must sit after the base rule above, not up with the other dark overrides:
