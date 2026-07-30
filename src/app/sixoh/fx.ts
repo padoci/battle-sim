@@ -454,6 +454,85 @@ export const SIGNATURE_MOVES = new Set([
   'Transform',
   // Field-level.
   'Snowscape',
+  // -- Batch 14: the moves a usage-weighted sweep could not reach --
+  // Gym Challenge rosters are thematic, not OU-distributed, so these four are
+  // ordinary there and fringe-to-invisible in the stats every earlier batch was
+  // built from. test/app/fx-move-coverage.test.ts now gates the registry
+  // against the battle data itself, so the next such pack fails a test.
+  'Psycho Cut',
+  'Tail Slap',
+  'Heat Crash',
+  'Double Hit',
+  // From the /teams pool. Its element is unknowable at author time (see the
+  // app.css note), so the shape carries the identity, not the colour.
+  'Tera Blast',
+  // -- Batch 15: the long tail, to 99.9% of weighted OU move slots --
+  // Back to usage after Batch 14 closed the data gap: the 50 highest-usage OU
+  // moves still reading on the bare type layer. None is common on its own (the
+  // largest, Spiky Shield, is 0.022% of move slots) but together they take the
+  // registry from 99.55% to 99.93% of weighted slots.
+  'Spiky Shield',
+  'Howl',
+  'Tailwind',
+  'Fire Spin',
+  'Bulldoze',
+  'Charge Beam',
+  'Power Trip',
+  'Stomping Tantrum',
+  'Gravity',
+  'Fling',
+  'Pounce',
+  'Swift',
+  'Focus Energy',
+  'Chilling Water',
+  'Electro Ball',
+  'Upper Hand',
+  'Stone Axe',
+  'Sunny Day',
+  'Acid Spray',
+  'Misty Terrain',
+  'Night Shade',
+  'Overdrive',
+  'Swagger',
+  'Mud Shot',
+  'Spite',
+  'Scary Face',
+  'Metronome',
+  'Tri Attack',
+  'Flame Charge',
+  'Astonish',
+  'Switcheroo',
+  'X-Scissor',
+  'Burning Bulwark',
+  'Drill Run',
+  'Electric Terrain',
+  'Psychic Terrain',
+  'Seed Bomb',
+  'Worry Seed',
+  'Reversal',
+  'Jungle Healing',
+  'Copycat',
+  'Sand Tomb',
+  'Thief',
+  'Rising Voltage',
+  'Magnet Rise',
+  'Super Fang',
+  'Final Gambit',
+  'Fury Cutter',
+  'Fairy Lock',
+  'Silk Trap',
+  // Ten more so the 99.9% figure holds whether or not Smogon's "Nothing"
+  // pseudo-move (an empty fourth slot, 0.042% of slots) counts against us.
+  'Aerial Ace',
+  'Burning Jealousy',
+  'Bug Bite',
+  'Psyblade',
+  'Eerie Spell',
+  'Rock Polish',
+  'Shift Gear',
+  'Stockpile',
+  'Block',
+  'Soak',
 ]);
 
 export function signatureSlug(move: string | undefined): string | undefined {

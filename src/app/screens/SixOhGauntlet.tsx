@@ -84,8 +84,7 @@ function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
 
   // Decided by the asset, not by `tier`. Asking @pkmn/img for `gen5ani` on a
   // species that has none returns a static .png rather than erroring, so the
-  // tier stays 'gen5ani' and would claim the sprite animates when it does not
-  // — which is most of the modern meta.
+  // tier stays 'gen5ani' and would claim the sprite animates when it does not.
   const animated = url?.endsWith('.gif') ?? false;
 
   // The wrapper is a third transform channel. The holder owns the lunge,
@@ -94,8 +93,11 @@ function SpriteWithFallback({species, back}: {species: string; back: boolean}) {
   // somewhere of its own to live, and it composes with the other two.
   //
   // Only the static tiers breathe: `gen5ani` sprites are animated GIFs that
-  // already move on their own, and doubling up looks wrong. That is most of
-  // the field in practice, since Gen 6+ mons have no gen5ani sprite.
+  // already move on their own, and doubling up looks wrong. That covers most of
+  // the field: 173 of the 213 species across the shipped packs (81%) do have a
+  // gen5ani sprite, so the breathing path is the minority case, not the norm.
+  // test/app/sprite-coverage.test.ts prints the split, and
+  // scripts/check-sprite-cdn.mjs confirms the CDN really serves every one.
   return (
     <span
       className={animated ? 'sprite-idle' : 'sprite-idle breathing'}
