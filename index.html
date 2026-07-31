@@ -15,9 +15,9 @@
          og:image has to be absolute — relative paths fail on most unfurlers,
          which also means PR previews unfurl with production's image. -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="battle-sim" />
+    <meta property="og:site_name" content="Team Preview" />
     <meta property="og:url" content="https://battle-sim-eo1.pages.dev/" />
-    <meta property="og:title" content="battle-sim: draft, simulate, pressure-test" />
+    <meta property="og:title" content="Team Preview: draft, simulate, pressure-test" />
     <meta
       property="og:description"
       content="AI-vs-AI Gen 9 OU simulation, in your browser. Draft a team and take it through a six-battle gauntlet, or paste one and see its worst matchups. Direction, not gospel."
@@ -25,9 +25,9 @@
     <meta property="og:image" content="https://battle-sim-eo1.pages.dev/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="battle-sim — build the team, we'll pressure-test it." />
+    <meta property="og:image:alt" content="Team Preview: build the team, we'll pressure-test it." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="battle-sim: draft, simulate, pressure-test" />
+    <meta name="twitter:title" content="Team Preview: draft, simulate, pressure-test" />
     <meta
       name="twitter:description"
       content="AI-vs-AI Gen 9 OU simulation, in your browser. Draft a team and take it through a six-battle gauntlet, or paste one and see its worst matchups."
@@ -41,11 +41,14 @@
     <link rel="preconnect" href="https://wsrv.nl" crossorigin />
     <link rel="preconnect" href="https://api.tcgdex.net" crossorigin />
     <link rel="preconnect" href="https://assets.tcgdex.net" crossorigin />
+    <!-- The mark: your six over theirs, the Team Preview screen abstracted.
+         Kept byte-identical to `.brand::before` in app.css, which is the same
+         artwork at header size. test/app/logo-mark.test.ts fails if they drift. -->
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%235B34D6'/%3E%3Cpath d='M8 22 L14 10 L18 17 L21 12 L24 22' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%235B34D6'/><g fill='%23fff'><rect x='4' y='7' width='6' height='6' rx='1.5'/><rect x='13' y='7' width='6' height='6' rx='1.5'/><rect x='22' y='7' width='6' height='6' rx='1.5'/></g><g fill='none' stroke='%23fff' stroke-width='1.6' opacity='.85'><rect x='4.8' y='19.8' width='4.4' height='4.4' rx='1'/><rect x='13.8' y='19.8' width='4.4' height='4.4' rx='1'/><rect x='22.8' y='19.8' width='4.4' height='4.4' rx='1'/></g></svg>"
     />
-    <title>battle-sim: draft, simulate, pressure-test</title>
+    <title>Team Preview: draft, simulate, pressure-test</title>
   </head>
   <body>
     <div id="root"></div>

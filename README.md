@@ -1,10 +1,25 @@
-# battle-sim
+# Team Preview
 
 A client-side, in-browser competitive Pokémon teambuilding tool for the Smogon/VGC crowd. Two AI-vs-AI game modes, one engine: the skill being tested is **teambuilding, not piloting**. Every read the app gives you is *direction, not gospel* — a pressure-test, never a verdict.
 
 All simulation runs in a web worker in your browser: nothing you paste is uploaded, and there is no account. The one server-side piece is the feedback inbox (`functions/api/feedback.ts`), which receives a message only when someone writes one and presses send. Everything else is static.
 
 **Live demo:** https://battle-sim-eo1.pages.dev (Cloudflare Pages, deployed from `main`).
+
+> **Naming.** The product is **Team Preview**; the domain is `teampreview.gg`. Three
+> things deliberately still say `battle-sim`, because they identify the repo or the
+> host rather than the product, and changing them breaks something:
+>
+> | Still `battle-sim` | Why |
+> |---|---|
+> | `DEPLOY_BASE=/battle-sim/` in `deploy.yml` | Project Pages serve under `/<repo>/`. Follows the GitHub repo name, so it changes only if the repo is renamed. |
+> | The `padoci/battle-sim` repo and its clone URLs | Renaming a repo rewrites every clone URL and the Cloudflare build hook. Worth doing deliberately, not as a side effect. |
+> | `battle-sim-eo1.pages.dev` in `index.html` og tags | These are absolute URLs and must point at a host that resolves **today**. Switch them the moment `teampreview.gg` has DNS, not before, or every share unfurls to a dead link. |
+>
+> Switching to the new domain is then: the four absolute URLs in `index.html`
+> (`og:url`, `og:image`, `twitter:image`, and the `preconnect`s if they change),
+> the two live-demo links in this file, and a regenerated `og.png` carrying the new
+> wordmark.
 
 ## Two modes
 
@@ -96,7 +111,7 @@ The Vite `base` is environment-driven (`vite.config.ts`): it defaults to `/`, an
 
 One-time Cloudflare setup (dashboard → Workers & Pages → Create → Pages → Connect to Git):
 
-- **Repository:** `padoci/battle-sim`
+- **Repository:** `padoci/battle-sim` (unchanged by the rename; see the Naming note at the top)
 - **Build command:** `npm run build`
 - **Build output directory:** `dist`
 - Node version comes from `.nvmrc` (22); nothing else to configure.

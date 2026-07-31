@@ -23,20 +23,20 @@ export const FEEDBACK_TOPICS = [
   {
     id: 'bug',
     label: 'Something is broken',
-    subject: 'battle-sim: bug report',
+    subject: 'Team Preview: bug report',
     template:
       "What happened:\n\n\nWhat I expected instead:\n\n\nWhere (which mode/screen, and your browser):\n",
   },
   {
     id: 'feedback',
     label: 'Feedback or an idea',
-    subject: 'battle-sim: feedback',
+    subject: 'Team Preview: feedback',
     template: '',
   },
   {
     id: 'other',
     label: 'Anything else',
-    subject: 'battle-sim: hello',
+    subject: 'Team Preview: hello',
     template: '',
   },
 ] as const;

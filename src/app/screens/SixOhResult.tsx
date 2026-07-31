@@ -81,10 +81,10 @@ export function SixOhResult() {
     const url = `${location.origin}${location.pathname}#/sixoh?${params.toString()}`;
     const ending =
       killerIndex === undefined
-        ? 'Flawless — all six.'
+        ? 'Flawless. All six.'
         : `Ended by ${state.opponents[killerIndex]?.name} on rung ${killerIndex + 1}.`;
     const text = [
-      `battle-sim · Can you 6-0? (${MODE_LABELS[state.mode]}) — ${postMortem.record}`,
+      `Team Preview · Can you 6-0? (${MODE_LABELS[state.mode]}) — ${postMortem.record}`,
       ending,
       (state.team ?? []).map(set => set.species).join(' · '),
       url,
