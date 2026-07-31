@@ -144,7 +144,7 @@ export function ConfigureRun() {
     const watchdog = setTimeout(() => {
       if (settled) return;
       settled = true;
-      setPoolError('timed out loading the opponent pool, check your connection and reload');
+      setPoolError('timeout');
     }, POOL_WATCHDOG_MS);
     const startedAt = Date.now();
     const ticker = setInterval(() => {
@@ -175,7 +175,9 @@ export function ConfigureRun() {
         settled = true;
         clearTimeout(watchdog);
         clearInterval(ticker);
-        setPoolError(String(error));
+        // Console, not the screen: see the note in SixOhDraft.
+        console.error('opponent pool failed to load', error);
+        setPoolError('load-failed');
       });
     return () => {
       settled = true;
@@ -205,7 +207,9 @@ export function ConfigureRun() {
   if (poolError) {
     return (
       <main className="screen">
-        <p className="problems">Couldn't load the opponent pool: {poolError}. Check your connection and reload.</p>
+        <p className="problems">
+          Couldn't load the opponent pool. Check your connection and reload.
+        </p>
       </main>
     );
   }

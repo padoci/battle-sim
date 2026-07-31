@@ -23,13 +23,18 @@
   /* Ink / text */
   --ink: #241a3a;
   --ink-2: #3a2f56;
-  --muted: #6b6480;
-  --muted-2: #9a90b5;
+  /* --muted and --muted-2 are pinned by contrast, not taste: every surface
+     they sit on is near-white, so both have to clear WCAG AA 4.5:1 or the
+     hint and footer text fails. --muted stays clearly darker than --muted-2
+     so the secondary/tertiary hierarchy survives the constraint. Worst
+     measured ratios: 5.83:1 and 4.61:1. See test/app/contrast.test.ts. */
+  --muted: #565073;
+  --muted-2: #676079;
   --ghost: #b3a9cc;
 
   /* Brand signal (deep violet — owned space — plus holo tints) */
   --signal: #5b34d6;
-  --signal-2: #8a5cf0;
+  --signal-2: #734cc7;
   --signal-deep: #3f1fa8;
   --signal-soft: #efe9f7;
   --signal-bright: #b9a6f5;
@@ -52,6 +57,9 @@
   --code-bg: #1b1430;
   --code-text: #c9bef0;
   --code-caret: #7a6ca8;
+  /* Ink for badges sitting on a fixed type colour. Must not follow the
+     theme; see the type-badge block. */
+  --on-type-light: #241a3a;
 
   --ring: var(--signal);
 
@@ -144,7 +152,7 @@
     --ink: #ece7f8;
     --ink-2: #cfc6e6;
     --muted: #a79dc2;
-    --muted-2: #8479a3;
+    --muted-2: #9288ad;
     --ghost: #635a80;
 
     /* The violet has to lift off a dark ground rather than sit on white. */
@@ -1020,25 +1028,31 @@ main.screen.wide {
 }
 
 /* Per-type badge colors (also fixes TeamPreviewRow, which emits type-<x>
-   classes without inline styles). Light types take ink text for contrast. */
-.type-badge.type-normal { background: var(--type-normal); }
-.type-badge.type-fire { background: var(--type-fire); }
-.type-badge.type-water { background: var(--type-water); }
-.type-badge.type-electric { background: var(--type-electric); color: var(--ink); }
-.type-badge.type-grass { background: var(--type-grass); color: var(--ink); }
-.type-badge.type-ice { background: var(--type-ice); color: var(--ink); }
+   classes without inline styles). Light types take dark text for contrast.
+
+   That text colour is deliberately NOT `var(--ink)`. The badge sits on a fixed
+   type colour that does not follow the theme, so its ink must not either: when
+   --ink inverted in dark mode these flipped to light-on-light and fell to
+   1.46:1 (Ground) and 1.62:1 (Steel). Pinned, they hold 8:1 or better in both
+   themes. */
+.type-badge.type-normal { background: var(--type-normal); color: var(--on-type-light); }
+.type-badge.type-fire { background: var(--type-fire); color: var(--on-type-light); }
+.type-badge.type-water { background: var(--type-water); color: var(--on-type-light); }
+.type-badge.type-electric { background: var(--type-electric); color: var(--on-type-light); }
+.type-badge.type-grass { background: var(--type-grass); color: var(--on-type-light); }
+.type-badge.type-ice { background: var(--type-ice); color: var(--on-type-light); }
 .type-badge.type-fighting { background: var(--type-fighting); }
 .type-badge.type-poison { background: var(--type-poison); }
-.type-badge.type-ground { background: var(--type-ground); color: var(--ink); }
-.type-badge.type-flying { background: var(--type-flying); }
-.type-badge.type-psychic { background: var(--type-psychic); }
-.type-badge.type-bug { background: var(--type-bug); color: var(--ink); }
-.type-badge.type-rock { background: var(--type-rock); color: var(--ink); }
+.type-badge.type-ground { background: var(--type-ground); color: var(--on-type-light); }
+.type-badge.type-flying { background: var(--type-flying); color: var(--on-type-light); }
+.type-badge.type-psychic { background: var(--type-psychic); color: var(--on-type-light); }
+.type-badge.type-bug { background: var(--type-bug); color: var(--on-type-light); }
+.type-badge.type-rock { background: var(--type-rock); color: var(--on-type-light); }
 .type-badge.type-ghost { background: var(--type-ghost); }
 .type-badge.type-dragon { background: var(--type-dragon); }
 .type-badge.type-dark { background: var(--type-dark); }
-.type-badge.type-steel { background: var(--type-steel); color: var(--ink); }
-.type-badge.type-fairy { background: var(--type-fairy); }
+.type-badge.type-steel { background: var(--type-steel); color: var(--on-type-light); }
+.type-badge.type-fairy { background: var(--type-fairy); color: var(--on-type-light); }
 
 /* Card motif "art window": a type-gradient tile behind a @pkmn/img icon,
    with a white ring. Reused by the team preview, draft cards and tray. */
@@ -10596,7 +10610,7 @@ button.primary:disabled {
   font-weight: 700;
   font-style: italic;
   font-size: 0.69rem;
-  color: #d8a12a;
+  color: #8c691b;
 }
 
 .hp-bar {
@@ -10655,9 +10669,11 @@ button.primary:disabled {
 .hp-label {
   display: block;
   text-align: right;
+  /* Pinned, not --muted-2: the HP box stays light in dark mode, so themed ink
+     lifts off it and falls to 3:1. Same trap as the type badges. */
+  color: #5d5672;
   font-family: var(--font-mono);
   font-size: 0.66rem;
-  color: var(--muted-2);
   margin-top: 0.15rem;
 }
 
