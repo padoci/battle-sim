@@ -207,7 +207,7 @@ export function SixOhDraft() {
     const watchdog = setTimeout(() => {
       if (settled) return;
       settled = true;
-      setError('timed out loading the draft data, check your connection and reload');
+      setError('timeout');
     }, LOAD_WATCHDOG_MS);
     // A slow-but-healthy fetch (the third-party data host being slow that
     // moment, or a first visit with nothing cached yet — see cachedJson's
@@ -244,7 +244,11 @@ export function SixOhDraft() {
         settled = true;
         clearTimeout(watchdog);
         clearInterval(ticker);
-        setError(String(e));
+        // The technical detail belongs in the console, not in front of a
+        // visitor: "TypeError: Failed to fetch" tells them nothing they can
+        // act on, but it is exactly what a bug report needs.
+        console.error('draft data failed to load', e);
+        setError('load-failed');
       });
     return () => {
       settled = true;
@@ -275,7 +279,7 @@ export function SixOhDraft() {
     return (
       <main className="screen">
         <p className="problems">
-          Couldn't load the draft data: {error}. Check your connection and reload.
+          Couldn't load the draft data. Check your connection and reload.
         </p>
       </main>
     );
