@@ -4,7 +4,10 @@
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
     "module": "ESNext",
-    "types": ["vite/client"],
+    // "node" is load-bearing: test/ imports node:fs/node:path, and before
+    // vitest 4 those only resolved via a transitive /// <reference types="node">
+    // inside vitest 2's own declarations.
+    "types": ["vite/client", "node"],
     "skipLibCheck": true,
 
     "moduleResolution": "bundler",
